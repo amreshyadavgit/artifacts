@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shukhee Integration Map</title>
+<meta name="description" content="Sequence and dependency diagrams for the Shukhee teleconsultation integration's inbound and outbound Bearer-token auth, booking flow, and app topology.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* ---- tokens (dark-first: bare :root holds the dark palette) ---- */
+  :root {
+    --bg: #14171a;
+    --bg-elevated: #1b1f23;
+    --surface: #21262b;
+    --surface-2: #262c32;
+    --border: #343c43;
+    --border-soft: #2a3138;
+    --text: #e9e6df;
+    --text-dim: #9aa4ab;
+    --text-faint: #6c767d;
+    --accent: #4bcdbe;      /* signal teal — live connection / data flow */
+    --accent-ink: #0a1f1d;
+    --accent-2: #e3a63f;    /* auth amber — credentials / security */
+    --accent-2-ink: #241a04;
+    --danger: #e2765a;      /* unverified / Phase 1 warning */
+    --danger-ink: #2a1108;
+    --shadow: 0 12px 32px -16px rgba(0,0,0,0.55);
+    --radius: 10px;
+    --font-display: "Archivo", "Arial Narrow", sans-serif;
+    --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f7f4ee;
+      --bg-elevated: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #f1ece2;
+      --border: #ddd5c6;
+      --border-soft: #e6e0d3;
+      --text: #201d17;
+      --text-dim: #5c564a;
+      --text-faint: #8b8474;
+      --accent: #0f8a7e;
+      --accent-ink: #e4f5f2;
+      --accent-2: #a3690a;
+      --accent-2-ink: #fbedd6;
+      --danger: #b8492e;
+      --danger-ink: #fbe6df;
+      --shadow: 0 12px 28px -18px rgba(60,50,30,0.28);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f4ee;
+    --bg-elevated: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f1ece2;
+    --border: #ddd5c6;
+    --border-soft: #e6e0d3;
+    --text: #201d17;
+    --text-dim: #5c564a;
+    --text-faint: #8b8474;
+    --accent: #0f8a7e;
+    --accent-ink: #e4f5f2;
+    --accent-2: #a3690a;
+    --accent-2-ink: #fbedd6;
+    --danger: #b8492e;
+    --danger-ink: #fbe6df;
+    --shadow: 0 12px 28px -18px rgba(60,50,30,0.28);
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171a;
+    --bg-elevated: #1b1f23;
+    --surface: #21262b;
+    --surface-2: #262c32;
+    --border: #343c43;
+    --border-soft: #2a3138;
+    --text: #e9e6df;
+    --text-dim: #9aa4ab;
+    --text-faint: #6c767d;
+    --accent: #4bcdbe;
+    --accent-ink: #0a1f1d;
+    --accent-2: #e3a63f;
+    --accent-2-ink: #241a04;
+    --danger: #e2765a;
+    --danger-ink: #2a1108;
+    --shadow: 0 12px 32px -16px rgba(0,0,0,0.55);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16.5px;
+    line-height: 1.6;
+    margin: 0;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  code, .mono { font-family: var(--font-mono); }
+
+  a { color: var(--accent); }
+
+  .page {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr);
+    gap: 56px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 44px 24px 96px;
+  }
+
+  /* ---- TOC ---- */
+  nav.toc {
+    position: sticky;
+    top: 28px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-display);
+    font-size: 12.5px;
+  }
+  nav.toc .toc-title {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  nav.toc a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+    font-weight: 600;
+  }
+  nav.toc a:hover { color: var(--text); background: var(--surface); }
+  nav.toc a .n { color: var(--text-faint); margin-right: 7px; font-family: var(--font-mono); font-weight: 500; }
+
+  @media (max-width: 900px) {
+    .page { grid-template-columns: 1fr; gap: 28px; padding: 28px 18px 72px; }
+    nav.toc {
+      position: static;
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 6px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    nav.toc .toc-title { display: none; }
+    nav.toc a { white-space: nowrap; border: 1px solid var(--border-soft); }
+  }
+
+  /* ---- hero ---- */
+  .hero { margin-bottom: 56px; max-width: 720px; }
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--accent);
+    letter-spacing: 0.03em;
+    margin: 0 0 14px;
+  }
+  h1 { font-size: clamp(2rem, 4vw, 2.7rem); font-weight: 800; margin-bottom: 16px; }
+  .lede {
+    font-size: 1.14rem;
+    color: var(--text-dim);
+    max-width: 62ch;
+    margin: 0 0 26px;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .dot.teal { background: var(--accent); }
+  .dot.amber { background: var(--accent-2); }
+  .dot.danger { background: var(--danger); }
+
+  /* ---- sections ---- */
+  section { margin-bottom: 68px; scroll-margin-top: 24px; }
+  section .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin: 0 0 8px;
+    text-transform: uppercase;
+  }
+  section h2 { font-size: 1.55rem; font-weight: 700; margin-bottom: 14px; max-width: 640px; }
+  section > p.prose { max-width: 720px; color: var(--text); margin: 0 0 16px; }
+  section > p.prose + p.prose { margin-top: -6px; }
+  .prose strong { color: var(--text); font-weight: 600; }
+  .prose code { background: var(--surface-2); padding: 0.12em 0.4em; border-radius: 4px; font-size: 0.86em; border: 1px solid var(--border-soft); }
+
+  /* ---- diagram panels ---- */
+  .diagram-panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px 20px 8px;
+    margin: 22px 0 10px;
+  }
+  .diagram-panel .diagram-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .diagram-panel .diagram-label::before {
+    content: "";
+    width: 16px; height: 1px;
+    background: var(--accent);
+    display: inline-block;
+  }
+  .diagram-scroll { overflow-x: auto; padding-bottom: 12px; }
+  .diagram-scroll .mermaid { min-width: 560px; display: flex; justify-content: center; }
+  .diagram-scroll .mermaid svg { max-width: none !important; }
+  figcaption, .caption {
+    font-size: 0.9rem;
+    color: var(--text-faint);
+    max-width: 680px;
+    margin: 0 0 4px;
+  }
+
+  /* ---- tables ---- */
+  .table-wrap { overflow-x: auto; margin: 18px 0 8px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    font-size: 0.92rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  thead th {
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--text-faint);
+    background: var(--surface);
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: top;
+    color: var(--text-dim);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:first-child { color: var(--text); font-weight: 600; font-family: var(--font-display); font-size: 0.94em; white-space: nowrap; }
+  tbody td code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+
+  .pill {
+    display: inline-flex; align-items:center; gap:5px;
+    font-family: var(--font-mono); font-size: 11.5px;
+    padding: 3px 9px; border-radius: 999px; font-weight: 600;
+  }
+  .pill.phase1 { background: var(--danger-ink); color: var(--danger); }
+  .pill.phase2 { background: var(--accent-ink); color: var(--accent); }
+
+  /* ---- footer / source index ---- */
+  footer {
+    border-top: 1px solid var(--border-soft);
+    padding-top: 28px;
+    margin-top: 24px;
+  }
+  footer h3 { font-size: 1rem; margin-bottom: 14px; color: var(--text-dim); font-weight: 700; }
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 4px 24px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .source-grid div { padding: 5px 0; color: var(--text-faint); border-bottom: 1px dashed var(--border-soft); }
+  .source-grid span { color: var(--text-dim); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    section { animation: rise 0.5s ease-out both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <nav class="toc" aria-label="On this page">
+    <div class="toc-title">On this page</div>
+    <a href="#dependency"><span class="n">01</span>Topology</a>
+    <a href="#inbound"><span class="n">02</span>Inbound auth</a>
+    <a href="#outbound"><span class="n">03</span>Outbound auth</a>
+    <a href="#booking"><span class="n">04</span>Booking flow</a>
+    <a href="#polling"><span class="n">05</span>Status &amp; docs</a>
+    <a href="#clients"><span class="n">06</span>Callers</a>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="kicker">shukhee_integration · spice_next_core · leapwell_telemetry · uhis</p>
+      <h1>Shukhee Integration Map</h1>
+      <p class="lede">
+        Every Bearer token in this flow does a different job. One authenticates a caller
+        <em>to</em> <code>shukhee_integration</code>'s own endpoints; a completely separate one
+        authenticates <code>shukhee_integration</code> <em>to</em> the real Shukhee (SSK) vendor.
+        This page traces both, plus the booking, polling, and app-dependency shape around them.
+      </p>
+      <div class="legend">
+        <span class="chip"><span class="dot teal"></span>inbound — caller → shukhee_integration</span>
+        <span class="chip"><span class="dot amber"></span>outbound — shukhee_integration → Shukhee</span>
+        <span class="chip"><span class="dot danger"></span>Phase 1 — unverified local decode</span>
+        <span class="chip"><span class="dot teal"></span>Phase 2 — verified via auth-service</span>
+      </div>
+    </header>
+
+    <section id="dependency">
+      <p class="eyebrow">01 · Topology</p>
+      <h2>App dependency graph</h2>
+      <p class="prose">
+        <code>spice_next_core</code> (renamed from <code>uhis_next_core</code>) owns the shared
+        auth primitives — <code>auth.decorators</code>, the <code>Provider</code> doctype,
+        <code>UHIS Settings</code>. <code>shukhee_integration</code> and
+        <code>leapwell_telemetry</code> both declare it as a <code>required_apps</code>
+        dependency and import from it directly; nothing about the rename touched
+        <code>shukhee_integration</code>'s own module name or API paths. <code>uhis</code> sits
+        on top as the client-facing umbrella, requiring all three.
+      </p>
+      <div class="diagram-panel">
+        <p class="diagram-label">Graph — app &amp; service dependencies</p>
+        <div class="diagram-scroll">
+<pre class="mermaid">
+graph LR
+  subgraph ext["External services"]
+    AUTHSVC["Legacy auth-service<br/>Phase 2 token verification"]
+    SSK["Shukhee SSK API"]
+    VIDEO["Shukhee video-call WebView"]
+  end
+  subgraph callers["Callers"]
+    MOB["Flutter mobile app<br/>shukhee_sdk"]
+    DESK["Frappe Desk<br/>UHIS Shukhee User form"]
+  end
+  subgraph bench["frappe-uhis-next bench"]
+    SPICE["spice_next_core<br/>auth.decorators, Provider, UHIS Settings"]
+    SHU["shukhee_integration<br/>consultation API, shukhee_client"]
+    TEL["leapwell_telemetry<br/>ingest / report API"]
+    UHISAPP["uhis — umbrella app"]
+  end
+  MOB -- "X-Auth-Token: Bearer, real session token" --> SHU
+  DESK -- "X-Auth-Token: Bearer, dev-minted" --> SHU
+  SHU -- imports auth.decorators --> SPICE
+  TEL -- imports auth.decorators --> SPICE
+  UHISAPP -. requires .-> SPICE
+  UHISAPP -. requires .-> SHU
+  UHISAPP -. requires .-> TEL
+  SPICE -- "Phase 2: validate(token)" --> AUTHSVC
+  SHU -- "Bearer vendor access_token" --> SSK
+  SHU -- "call_url, top-level navigation" --> VIDEO
+</pre>
+        </div>
+      </div>
+      <p class="caption">Solid arrows carry a request or an import; dotted arrows are app-install dependencies (<code>required_apps</code>).</p>
+    </section>
+
+    <section id="inbound">
+      <p class="eyebrow">02 · Inbound auth</p>
+      <h2>Caller → shukhee_integration</h2>
+      <p class="prose">
+        Every endpoint in <code>consultation.py</code> is declared
+        <code>@whitelist(methods=["POST"], remote_auth=True)</code>. That wraps
+        <code>require_remote_auth</code> (in <code>spice_next_core/auth/decorators.py</code>)
+        under Frappe's own guest-accessible whitelist — the gate is a caller-supplied
+        <code>X-Auth-Token</code> header, never a Frappe session cookie.
+      </p>
+      <div class="diagram-panel">
+        <p class="diagram-label">Sequence — X-Auth-Token validation</p>
+        <div class="diagram-scroll">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant C as Caller (mobile / desk)
+  participant EP as consultation.* endpoint
+  participant RA as require_remote_auth
+  participant JV as JWTTokenValidator
+  participant AS as Legacy auth-service
+  participant LOG as Remote Auth Activity Log
+
+  C->>EP: POST shukhee_integration.api.consultation.*, X-Auth-Token: Bearer token, tenantId
+  EP->>RA: wrapped call
+  RA->>JV: extract_user_id(token, tenant_id)
+  alt remote_auth_url unset — Phase 1
+    JV-->>RA: decode sub claim, signature unverified
+  else remote_auth_url set — Phase 2
+    JV->>AS: POST Authorization: Bearer token, tenantId, client tag
+    AS-->>JV: 200 userDetail.username, or 4xx/5xx
+    JV-->>RA: username, or JWTDecodeError
+  end
+  RA->>LOG: enqueue Success or Rejected, async
+  alt token invalid
+    RA-->>C: 403 AuthenticationError
+  else token valid
+    RA->>EP: frappe.local.remote_user_id set, call the real endpoint
+    EP-->>C: 200 result
+  end
+</pre>
+        </div>
+      </div>
+      <p class="caption">
+        <code>_current_provider()</code> then matches the resolved id against
+        <code>Provider.username</code> — deliberately not <code>Provider.user</code>, which is an
+        unrelated Frappe User link.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mode</th><th>Trigger</th><th>Verification</th><th>Used by</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="pill phase1">Phase 1</span></td>
+              <td><code>UHIS Settings.remote_auth_url</code> empty</td>
+              <td>None — base64-decodes the payload, reads <code>sub</code>. Any self-minted <code>{alg:"none"}</code> token is accepted.</td>
+              <td>Postman collection; Desk client's <code>_mint_dev_token</code></td>
+            </tr>
+            <tr>
+              <td><span class="pill phase2">Phase 2</span></td>
+              <td><code>remote_auth_url</code> configured</td>
+              <td>Real — <code>RemoteAuthClient</code> posts the token to the legacy auth-service and trusts its response only</td>
+              <td>Production mobile traffic</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="outbound">
+      <p class="eyebrow">03 · Outbound auth</p>
+      <h2>shukhee_integration → Shukhee vendor</h2>
+      <p class="prose">
+        A second, unrelated Bearer token: each <code>UHIS Shukhee User</code> record holds its own
+        <code>shukhee_username</code>/<code>shukhee_password</code>. <code>get_valid_token()</code>
+        caches the resulting access token in <code>frappe.cache()</code>, keyed per record, and
+        every live call goes through <code>_authed_request()</code>, which retries exactly once on
+        a live 401 before surfacing a real error.
+      </p>
+      <div class="diagram-panel">
+        <p class="diagram-label">Sequence — token cache, refresh, retry-once-on-401</p>
+        <div class="diagram-scroll">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant SC as shukhee_client
+  participant CACHE as frappe.cache()
+  participant SSK as Shukhee SSK API
+
+  SC->>CACHE: get shukhee_token colon UHIS Shukhee User name
+  alt cached, not expiring within 30s
+    CACHE-->>SC: access_token
+  else expired or missing
+    alt refresh_token cached
+      SC->>SSK: POST /ssk/refresh
+      SSK-->>SC: new accessToken / refreshToken
+    end
+    opt refresh missing or failed
+      SC->>SSK: POST /ssk/login-v2, username + password
+      SSK-->>SC: accessToken / refreshToken
+    end
+    SC->>CACHE: set token, ttl = decoded exp minus now
+  end
+  SC->>SSK: request, Authorization colon Bearer access_token
+  alt 401 despite cache
+    SC->>CACHE: delete cached token
+    SC->>SSK: retry once with a freshly fetched token
+    SSK-->>SC: response, or a real error surfaced to the caller
+  else 200
+    SSK-->>SC: response
+  end
+</pre>
+        </div>
+      </div>
+      <p class="caption">The exp-claim decode here is only bookkeeping for cache TTL — it is Shukhee's own token, never trusted for identity on our side.</p>
+    </section>
+
+    <section id="booking">
+      <p class="eyebrow">04 · Booking flow</p>
+      <h2><code>start_consultation</code>, end to end</h2>
+      <p class="prose">
+        Both auth layers meet here: the inbound check (section 02) runs once, on entry; every step
+        below then runs under the outbound token (section 03), reused across calls until Shukhee
+        itself expires it.
+      </p>
+      <div class="diagram-panel">
+        <p class="diagram-label">Sequence — booking an instant call</p>
+        <div class="diagram-scroll">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant C as Caller
+  participant EP as start_consultation
+  participant P as Provider / UHIS Shukhee User
+  participant SC as shukhee_client
+  participant SSK as Shukhee SSK API
+  participant DB as Call Logs
+
+  C->>EP: contact_number, reason, requested_speciality, medias optional
+  EP->>P: resolve Provider by username, load an Active UHIS Shukhee User
+  EP->>SC: find_or_create_shukhee_patient
+  SC->>SSK: GET /ssk/patient-list, search contact_number
+  alt patient found
+    SSK-->>SC: existing patient
+  else not found
+    SC->>SSK: POST /v2/patient/person-patient-create
+    SSK-->>SC: new patient, id sometimes missing
+    opt id missing
+      SC->>SSK: GET /ssk/patient-list, relist
+      SSK-->>SC: patient id
+    end
+  end
+  opt medias attached
+    EP->>SC: upload_medias
+    SC->>SSK: POST /ssk/medical-document/upload
+    SSK-->>SC: file ids
+  end
+  EP->>SC: resolve_speciality_id
+  SC->>SSK: GET /patient/emergency-request-specialities
+  SSK-->>SC: match by title, case-insensitive, or first entry
+  EP->>SC: book_instant_call
+  SC->>SSK: POST /ssk/emergency-request/v3
+  SSK-->>SC: transactionId
+  EP->>SC: resolve_request_id
+  SC->>SSK: GET /ssk/all-emergency-request, page 0 then the real last page
+  SSK-->>SC: newest request, by createdAt
+  EP->>SC: build_video_call_url
+  EP->>DB: insert Call Logs, status pending
+  EP-->>C: call_log, call_url, status
+</pre>
+        </div>
+      </div>
+      <p class="caption">
+        <code>resolve_request_id</code>'s two-fetch shape exists because
+        <code>/ssk/all-emergency-request</code> returns oldest-first and paginates — for a number
+        with real history, the newest record can land past page 0.
+      </p>
+    </section>
+
+    <section id="polling">
+      <p class="eyebrow">05 · Status &amp; docs</p>
+      <h2>Polling, completion, and document download</h2>
+      <p class="prose">
+        <code>get_consultation_status</code> short-circuits once a call reaches a terminal state —
+        no Shukhee call at all. While still in progress, a doctor assignment is surfaced on
+        <em>every</em> poll, not only the completed one, so the connected screen can name the
+        doctor early.
+      </p>
+      <div class="diagram-panel">
+        <p class="diagram-label">Sequence — status poll, doctor fields, prescription capture</p>
+        <div class="diagram-scroll">
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant C as Caller
+  participant EP as get_consultation_status
+  participant DB as Call Logs
+  participant SC as shukhee_client
+  participant SSK as Shukhee SSK API
+  participant F as Frappe File, private
+
+  loop every 4s until terminal
+    C->>EP: call_log
+    EP->>DB: load Call Logs
+    alt already terminal
+      EP-->>C: cached status and links, no Shukhee call
+    else in progress
+      EP->>SC: get_emergency_request
+      SC->>SSK: GET /patient/emergency-request colon id
+      SSK-->>SC: status, doctor, appointment
+      opt doctor assigned
+        EP->>DB: persist doctor_name, speciality, facility
+      end
+      opt status becomes completed
+        EP->>SC: download_and_attach, prescription and invoice
+        SC->>SSK: GET presigned, short-lived document URL
+        SC->>F: save_file, is_private true
+        F-->>SC: permanent slash files slash URL
+      end
+      EP->>DB: commit updates
+      EP-->>C: merged status
+    end
+  end
+  opt mobile client only
+    C->>EP: download_document, call_log, doc_type
+    EP->>DB: verify doc.uhis_user equals calling Provider
+    EP->>F: get_content
+    EP-->>C: base64 bytes and filename
+  end
+</pre>
+        </div>
+      </div>
+      <p class="caption">
+        Shukhee's presigned links expire; <code>download_and_attach</code> fetches them once and
+        re-hosts the bytes as a permanent private Frappe File, so later reads never race an
+        expired vendor URL.
+      </p>
+    </section>
+
+    <section id="clients">
+      <p class="eyebrow">06 · Callers</p>
+      <h2>Mobile app vs. Desk client</h2>
+      <p class="prose">
+        Same three endpoints, same inbound contract — but the token each caller presents comes
+        from a very different place, and only one of them is production-ready.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Caller</th><th>Token source</th><th>Auth mode it works under</th><th>Document viewing</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Flutter mobile app</td>
+              <td><code>ApiClient.exportAuthToken()</code> — the SK's real, already-authenticated session</td>
+              <td>Phase 1 <em>and</em> Phase 2 — a genuine token, verifiable either way</td>
+              <td><code>download_document</code> — no session cookie to open a private file URL directly</td>
+            </tr>
+            <tr>
+              <td>Frappe Desk client script</td>
+              <td><code>_mint_dev_token</code> — self-signed, <code>alg: none</code>, from the linked Provider's user</td>
+              <td>Phase 1 only — rejected outright once Phase 2 is turned on</td>
+              <td><code>window.open(prescription_link)</code> — a real browser session cookie already grants access</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      <h3>Source index</h3>
+      <div class="source-grid">
+        <div><span>Inbound auth</span> — spice_next_core/auth/decorators.py</div>
+        <div><span>Token verification</span> — spice_next_core/auth/jwt_token_validator.py</div>
+        <div><span>Consultation API</span> — shukhee_integration/api/consultation.py</div>
+        <div><span>Outbound HTTP client</span> — shukhee_integration/shukhee_client.py</div>
+        <div><span>Desk client script</span> — uhis_shukhee_user.js</div>
+        <div><span>Mobile SDK</span> — shukhee_sdk / shukhee_client.dart</div>
+        <div><span>Mobile config</span> — lib/core/config/app_config.dart</div>
+        <div><span>App wiring</span> — hooks.py, required_apps</div>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var explicitTheme = document.documentElement.getAttribute('data-theme');
+  var wantsDark = explicitTheme ? explicitTheme === 'dark' : (explicitTheme === null && (prefersDark || !window.matchMedia('(prefers-color-scheme: light)').matches));
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: wantsDark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    fontFamily: 'IBM Plex Mono, ui-monospace, monospace'
+  });
+</script>
+</body>
+</html>
