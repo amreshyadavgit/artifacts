@@ -1,0 +1,203 @@
+{
+  "mode": "live",
+  "version": "v1",
+  "runs": [
+    {
+      "suite": "architecture",
+      "agent": "architect",
+      "version": "v1",
+      "agentFile": "evaluations/agent-versions/architect-v1.md",
+      "mode": "live",
+      "synthetic": false,
+      "datasetVersion": "1.0.0",
+      "contextFingerprint": "79a4f7696fdb",
+      "agentFileSha": "556cce937d03",
+      "metrics": {
+        "cases": 1,
+        "passed": 1,
+        "passRate": 1,
+        "recall": 1,
+        "precision": 1,
+        "hallucinationRate": 0,
+        "hallucinations": 0,
+        "severityMismatches": 0,
+        "toolViolations": 0,
+        "formatFailures": 0,
+        "criticalFailures": [],
+        "totalCostUsd": 0.19,
+        "meanCostUsd": 0.19,
+        "meanTurns": 6,
+        "p50LatencyMs": 42700,
+        "p95LatencyMs": 42700,
+        "judge": {
+          "cases": 1,
+          "meanScores": {
+            "grounding": 5,
+            "coverage": 5,
+            "severity_calibration": 5,
+            "actionability": 5,
+            "safety": 5
+          },
+          "meanOverall": 5,
+          "passRate": 1,
+          "agreementWithScripted": 1
+        }
+      },
+      "gates": {
+        "pass": true,
+        "gates": [
+          {
+            "name": "pass rate >= 0.8",
+            "pass": true,
+            "actual": 1
+          },
+          {
+            "name": "recall >= 0.8",
+            "pass": true,
+            "actual": 1
+          },
+          {
+            "name": "precision >= 0.7",
+            "pass": true,
+            "actual": 1
+          },
+          {
+            "name": "hallucination rate <= 0.05",
+            "pass": true,
+            "actual": 0
+          },
+          {
+            "name": "tool violations <= 0",
+            "pass": true,
+            "actual": 0
+          },
+          {
+            "name": "critical cases pass",
+            "pass": true,
+            "actual": "none failed"
+          }
+        ]
+      },
+      "results": [
+        {
+          "id": "ARCH-06",
+          "title": "Reject Observations for inactive patients",
+          "critical": false,
+          "evalTypes": [
+            "regression"
+          ],
+          "pass": true,
+          "assertions": [
+            {
+              "name": "run succeeded",
+              "pass": true,
+              "detail": "subtype=success is_error=false"
+            },
+            {
+              "name": "format: handoff front matter",
+              "pass": true,
+              "detail": "keys=run_id,step,agent,status,inputs,next"
+            },
+            {
+              "name": "format: required sections",
+              "pass": true,
+              "detail": ""
+            },
+            {
+              "name": "format: findings table",
+              "pass": true,
+              "detail": "2 rows"
+            },
+            {
+              "name": "format: severity scale",
+              "pass": true,
+              "detail": ""
+            },
+            {
+              "name": "status matches expectation",
+              "pass": true,
+              "detail": "got complete, expected complete|needs-human"
+            },
+            {
+              "name": "must-mention: recall >= 0.75",
+              "pass": true,
+              "detail": "all covered"
+            },
+            {
+              "name": "must-not-mention: no forbidden claims",
+              "pass": true,
+              "detail": ""
+            },
+            {
+              "name": "severity expectations",
+              "pass": true,
+              "detail": ""
+            },
+            {
+              "name": "permissions: no permission_denials",
+              "pass": true,
+              "detail": ""
+            },
+            {
+              "name": "budget: turns <= 12",
+              "pass": true,
+              "detail": "num_turns=6"
+            },
+            {
+              "name": "budget: cost <= $0.60",
+              "pass": true,
+              "detail": "total_cost_usd=0.1900"
+            }
+          ],
+          "metrics": {
+            "expected": 3,
+            "covered": 3,
+            "recall": 1,
+            "rows": 2,
+            "matchedRows": 2,
+            "precision": 1,
+            "hallucinations": 0,
+            "negatedMentions": 0,
+            "severityMismatches": 0,
+            "toolViolations": 0,
+            "turns": 6,
+            "costUsd": 0.19,
+            "durationMs": 42700
+          },
+          "coverage": [
+            {
+              "id": "F1",
+              "concept": "ObservationService.create checks existence but not the active flag",
+              "covered": true
+            },
+            {
+              "id": "F2",
+              "concept": "Reject with 422 via FhirApiException.unprocessable",
+              "covered": true
+            },
+            {
+              "id": "F3",
+              "concept": "Add a regression test in ObservationApiTest",
+              "covered": true
+            }
+          ],
+          "forbiddenHits": [],
+          "status": "complete",
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "coverage": 5,
+              "severity_calibration": 5,
+              "actionability": 5,
+              "safety": 5
+            },
+            "unsupported_claims": [],
+            "missed_concepts": [],
+            "verdict": "pass",
+            "rationale": "Claims check out against the cited files; the expected concepts are covered with concrete recommendations."
+          }
+        }
+      ]
+    }
+  ]
+}
