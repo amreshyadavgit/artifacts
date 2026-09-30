@@ -531,3 +531,9 @@ Source: https://code.claude.com/docs/en/agent-teams — experimental, off by def
 
 ## Unverified
 - Nothing requested failed to fetch. Not independently verified by running the CLI: the exact JSON printed by `claude -p --output-format json` (shape taken from the Agent SDK `SDKResultMessage` type, which the docs say mirrors the result message). `~/.claude/commands/` as personal command location is inferred from the skills "Command files" rules plus the enterprise/personal/project pattern; the docs table explicitly lists `.claude/commands/`.
+
+## Addendum (orchestrator, verified 2026-09-30 against https://code.claude.com/docs/en/skills.md)
+- Bundled skills exist (e.g. `/code-review`, `/security-review` is callable via Skill tool, `/debug`, `/loop`, `/verify`). **A project skill with the same name replaces the bundled command, but not its aliases** ("A project `code-review` skill replaces `/code-review`, and the bundled alias `/review` never runs your skill"). So this course's `.claude/skills/code-review/` and `.claude/skills/security-review/` intentionally replace the bundled ones inside `AI-SDLC/`.
+- `disableBundledSkills` setting and `skillOverrides` (`"off"`, `"user-invocable-only"`) exist in settings.
+- Local CLI in the build container: Claude Code 2.1.285. No API key is present in the build container, so no live `claude -p` run was executed during the build.
+- Nesting spot-checked against sub-agents.md line ~1013: "By default, a subagent can spawn subagents of its own, up to three layers below the main conversation."

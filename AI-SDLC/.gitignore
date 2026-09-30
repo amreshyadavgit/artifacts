@@ -1,0 +1,7 @@
+.ai-sdlc/runs/
+.claude/settings.local.json
+CLAUDE.local.md
+evaluations/reports/live-*
+sample-app/target/
+.env
+.env.*

@@ -101,14 +101,14 @@ const MARK = "/*__CURRICULUM_DATA__*/null";
 if (!template.includes(MARK)) { console.error("template marker not found"); process.exit(1); }
 const payload = { builtAt: new Date().toISOString(), modules: modules.map((m) => m.data) };
 // Escape "<" so no string can close the <script> element; also escape U+2028/9 for older parsers.
-const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/ /g, "\\u2028").replace(/ /g, "\\u2029");
+const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 const html = template.replace(MARK, () => json);
 mkdirSync(join(ROOT, "dist"), { recursive: true });
 writeFileSync(join(ROOT, "dist/index.html"), html);
 
 // ---- self-containment check: only https CDN references allowed ----
 const refs = [...html.matchAll(/<(?:script|link|img|iframe)\b[^>]*?\s(?:src|href)="([^"]+)"/gi)].map((m) => m[1]);
-const ALLOWED = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
+const ALLOWED = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)(\/|$)/;
 const bad = refs.filter((r) => !ALLOWED.test(r));
 if (bad.length) { console.error(`Non-CDN resource references in dist/index.html: ${bad.join(", ")}`); process.exit(1); }
 

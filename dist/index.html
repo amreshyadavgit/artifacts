@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI-SDLC Agent Engineering</title>
+<meta name="description" content="AI-SDLC: Agent & Skill Engineering with Claude Code. A hands-on curriculum with a working reference repository.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: fixed left rail (levels + artifact types) beside a single reading column; code/tables/diagrams scroll inside their own frames. */
+:root {
+  --bg: #f6f8f8;
+  --surface: #ffffff;
+  --surface-2: #eef2f2;
+  --fg: #16201f;
+  --muted: #53625f;
+  --line: #d5dedc;
+  --accent: #0b6e69;
+  --accent-soft: #d9eeec;
+  --accent-fg: #ffffff;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd9;
+  --ok: #2c6e2f;
+  --ok-soft: #e1f1e1;
+  --code-bg: #f1f4f4;
+  --code-fg: #1d2a28;
+  --hl-kw: #8a2f6b;
+  --hl-str: #2c6e2f;
+  --hl-num: #9a5b00;
+  --hl-com: #6b7b78;
+  --hl-fn: #1c5aa6;
+  --font-display: "Literata", Georgia, "Times New Roman", serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rail: 300px;
+  --radius: 6px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1514; --surface: #151d1c; --surface-2: #1b2524; --fg: #e3ebe9; --muted: #98a9a5; --line: #2a3735;
+    --accent: #4fc2b8; --accent-soft: #173634; --accent-fg: #06201e; --warn: #f0b35a; --warn-soft: #3a2b12;
+    --ok: #86cf88; --ok-soft: #173019; --code-bg: #111a19; --code-fg: #d6e2df;
+    --hl-kw: #e28ac6; --hl-str: #93d18f; --hl-num: #f0b35a; --hl-com: #7d8f8b; --hl-fn: #86b6f2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1514; --surface: #151d1c; --surface-2: #1b2524; --fg: #e3ebe9; --muted: #98a9a5; --line: #2a3735;
+  --accent: #4fc2b8; --accent-soft: #173634; --accent-fg: #06201e; --warn: #f0b35a; --warn-soft: #3a2b12;
+  --ok: #86cf88; --ok-soft: #173019; --code-bg: #111a19; --code-fg: #d6e2df;
+  --hl-kw: #e28ac6; --hl-str: #93d18f; --hl-num: #f0b35a; --hl-com: #7d8f8b; --hl-fn: #86b6f2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--font-body); -webkit-text-size-adjust: 100%; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 650; line-height: 1.25; text-wrap: balance; margin: 0; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.15rem; }
+code, pre, kbd { font-family: var(--font-mono); font-size: .86em; }
+:not(pre) > code { background: var(--code-bg); padding: .1em .35em; border-radius: 4px; overflow-wrap: anywhere; }
+
+.app { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); min-height: 100vh; }
+.topbar { display: none; }
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto; border-right: 1px solid var(--line); background: var(--surface); padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
+.brand { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--fg); }
+.brand b { font-family: var(--font-display); font-size: 1.15rem; }
+.brand span { color: var(--muted); font-size: .8rem; }
+.search input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--fg); font: inherit; font-size: .92rem; }
+.navgroup h4 { font-family: var(--font-body); font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.navgroup ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.navgroup a { display: flex; gap: 8px; align-items: baseline; padding: 5px 8px; border-radius: 4px; text-decoration: none; color: var(--fg); font-size: .9rem; }
+.navgroup a:hover { background: var(--surface-2); }
+.navgroup a.active { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+.navgroup .lv { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); min-width: 2.2em; font-variant-numeric: tabular-nums; }
+.navgroup .count { margin-left: auto; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-actions { display: flex; flex-direction: column; gap: 8px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); padding: 7px 12px; border-radius: var(--radius); font: 600 .85rem var(--font-body); cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.progress-meter { font-size: .8rem; color: var(--muted); }
+.progress-bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.progress-bar i { display: block; height: 100%; background: var(--accent); width: 0; }
+
+main { min-width: 0; padding-block: 32px 80px; padding-inline: clamp(16px, 4vw, 56px); }
+.content { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.eyebrow { font-size: .75rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.lede { font-size: 1.08rem; color: var(--muted); max-width: 68ch; }
+.prose { max-width: 70ch; }
+.prose p, .prose ul, .prose ol { margin: 0 0 .8em; }
+.prose table { border-collapse: collapse; }
+.section { display: flex; flex-direction: column; gap: 14px; }
+.section > h2 { padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: .78rem; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--fg); text-decoration: none; }
+.chip.tag-verified { background: var(--ok-soft); border-color: transparent; color: var(--ok); font-weight: 600; }
+.chip.tag-illustrative { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; }
+.concept { display: flex; flex-direction: column; gap: 8px; }
+
+.scroll-x { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+table.cmp { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 560px; }
+table.cmp th, table.cmp td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+table.cmp th { background: var(--surface-2); font-weight: 700; white-space: nowrap; }
+table.cmp tr:last-child td { border-bottom: 0; }
+table.cmp td:first-child { font-weight: 600; }
+
+.diagram { padding: 16px; text-align: center; }
+.diagram .mermaid { display: inline-block; min-width: 100%; }
+.diagram-title { font-size: .85rem; color: var(--muted); margin: 0 0 6px; }
+
+figure.code { margin: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--code-bg); overflow: hidden; min-width: 0; }
+figure.code figcaption { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); font: .78rem var(--font-mono); color: var(--muted); min-width: 0; }
+figure.code figcaption .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+figure.code pre { margin: 0; padding: 12px 14px; overflow-x: auto; color: var(--code-fg); line-height: 1.5; }
+figure.code pre code { background: none; padding: 0; font-size: .82rem; }
+.copy { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 4px; padding: 2px 8px; font: 600 .72rem var(--font-body); cursor: pointer; }
+.copy.done { color: var(--ok); border-color: var(--ok); }
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-type, .hljs-literal { color: var(--hl-kw); }
+.hljs-string, .hljs-attr + .hljs-string, .hljs-regexp, .hljs-addition { color: var(--hl-str); }
+.hljs-number, .hljs-symbol, .hljs-variable, .hljs-template-variable { color: var(--hl-num); }
+.hljs-comment, .hljs-quote, .hljs-meta, .hljs-deletion { color: var(--hl-com); font-style: italic; }
+.hljs-title, .hljs-function, .hljs-section, .hljs-attr, .hljs-name, .hljs-attribute { color: var(--hl-fn); }
+
+.exercise { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; min-width: 0; scroll-margin-top: 16px; }
+.exercise header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+.exercise header .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.exercise header .xid { font: .75rem var(--font-mono); color: var(--muted); }
+.done-toggle { display: inline-flex; gap: 8px; align-items: center; font-size: .85rem; font-weight: 600; cursor: pointer; padding: 5px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
+.done-toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+.exercise.is-done header { background: var(--ok-soft); }
+.tabs { display: flex; gap: 2px; overflow-x: auto; padding: 0 10px; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.tabs button { flex: none; border: 0; background: none; color: var(--muted); font: 600 .82rem var(--font-body); padding: 10px 10px 9px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tabs button .n { font-family: var(--font-mono); font-size: .7rem; margin-right: 4px; color: var(--muted); }
+.panel { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel pre.plain { margin: 0; padding: 12px 14px; background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; font-size: .82rem; white-space: pre; }
+.testcase { border: 1px solid var(--line); border-radius: var(--radius); display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.testcase > div { padding: 10px 12px; min-width: 0; }
+.testcase > div + div { border-left: 1px solid var(--line); }
+.testcase .name { grid-column: 1 / -1; font-weight: 700; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.testcase .lbl { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; }
+.testcase pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: .8rem; }
+ul.criteria { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+
+.contract { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.contract header { padding: 12px 16px; background: var(--surface-2); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+.contract header code { font-size: 1rem; font-weight: 600; }
+.contract dl { margin: 0; display: grid; grid-template-columns: 170px minmax(0, 1fr); }
+.contract dt, .contract dd { margin: 0; padding: 9px 16px; border-bottom: 1px solid var(--line); font-size: .9rem; min-width: 0; }
+.contract dt { font-weight: 700; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+.contract dd ul { margin: 0; padding-left: 1.1em; }
+.contract dd.gate { background: var(--warn-soft); }
+
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.checklist li { display: flex; gap: 10px; align-items: flex-start; }
+.checklist li::before { content: ""; flex: none; width: 14px; height: 14px; margin-top: 5px; border: 1.5px solid var(--accent); border-radius: 3px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 14px 16px; text-decoration: none; color: var(--fg); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card:hover { border-color: var(--accent); }
+.card .meta { font-size: .78rem; color: var(--muted); }
+.card b { font-family: var(--font-display); font-weight: 650; font-size: 1.02rem; }
+.card p { margin: 0; font-size: .88rem; color: var(--muted); }
+
+.results { display: flex; flex-direction: column; gap: 8px; }
+.result { padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); text-decoration: none; color: var(--fg); display: flex; flex-direction: column; gap: 2px; }
+.result:hover { border-color: var(--accent); }
+.result small { color: var(--muted); }
+.result mark { background: var(--accent-soft); color: var(--fg); padding: 0 2px; }
+.notice { padding: 10px 14px; border-radius: var(--radius); background: var(--warn-soft); color: var(--fg); font-size: .9rem; }
+.stats { display: flex; flex-wrap: wrap; gap: 24px; font-variant-numeric: tabular-nums; }
+.stats div { display: flex; flex-direction: column; }
+.stats b { font-family: var(--font-display); font-size: 1.6rem; }
+.stats span { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.pager { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .topbar { display: flex; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; align-items: center; gap: 10px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .topbar b { font-family: var(--font-display); flex: 1; }
+  .rail { position: fixed; z-index: 30; inset: 0 auto 0 0; width: min(88vw, 320px); transform: translateX(-100%); transition: transform .2s ease; box-shadow: 0 0 40px rgba(0,0,0,.25); padding-top: calc(20px + env(safe-area-inset-top, 0px)); }
+  body.nav-open .rail { transform: none; }
+  .scrim { position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.35); }
+  .contract dl { grid-template-columns: minmax(0, 1fr); }
+  .contract dt { border-bottom: 0; padding-bottom: 0; }
+  .testcase { grid-template-columns: minmax(0, 1fr); }
+  .testcase > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  h1 { font-size: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button class="btn" id="nav-toggle" aria-label="Open navigation" aria-expanded="false">Menu</button>
+  <b>AI-SDLC</b>
+  <button class="btn" id="theme-toggle-m" aria-label="Toggle colour theme">Theme</button>
+</div>
+<div class="app">
+  <nav class="rail" id="rail" aria-label="Curriculum">
+    <a class="brand" href="#home"><b>AI-SDLC</b><span>Agent &amp; Skill Engineering with Claude Code</span></a>
+    <div class="search"><label for="q" class="eyebrow">Search all modules</label><input id="q" type="search" placeholder="e.g. PreToolUse, N+1, ADR" autocomplete="off"></div>
+    <div class="navgroup"><h4>By level</h4><ul id="nav-levels"></ul></div>
+    <div class="navgroup"><h4>By artifact type</h4><ul id="nav-types"></ul></div>
+    <div class="rail-actions">
+      <div class="progress-meter"><span id="progress-text">0 of 0 exercises done</span><div class="progress-bar"><i id="progress-fill"></i></div></div>
+      <button class="btn primary" id="download">Download starter repo</button>
+      <button class="btn" id="theme-toggle">Switch theme</button>
+      <span class="progress-meter" id="build-info"></span>
+    </div>
+  </nav>
+  <main id="main" tabindex="-1"><div class="content" id="view"><p>Loading curriculum…</p></div></main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+window.CURRICULUM = {"builtAt":"2026-09-30T02:57:12.578Z","modules":[{"id":"00-example","level":1,"title":"Orientation: Project Memory and Context Engineering","summary":"Tour the AI-SDLC reference repository and give Claude Code the project knowledge every later agent depends on: a lean CLAUDE.md with on-demand imports, path-scoped rules for the Java code, and a context pack (domain, security, standards) that keeps PHI out of every prompt.","prerequisites":["Git and a terminal","Java 21 and Maven 3.9 installed","Claude Code CLI installed and authenticated (`claude --version`)"],"concepts":[{"heading":"Why context comes before agents","body_md":"A subagent starts with **no conversation history**. Per the docs it receives its own system prompt (the body of its `.claude/agents/\u003cname>.md` file), the task message the main session sends it, basic environment details, git status, and the **CLAUDE.md hierarchy**. That last item is the only project knowledge every agent gets for free.\n\nSo in practice the quality of every agent in this course is capped by three files you write in this module:\n\n- `AI-SDLC/CLAUDE.md`: what the repo is, the commands that prove a change works, and the non-negotiable rules (no PHI, tests must pass, never push).\n- `AI-SDLC/.claude/rules/*.md`: rules that load only when Claude works on matching paths.\n- `AI-SDLC/context/**`: longer reference material (architecture, standards, threat model, glossary) that agents read *when the task needs it*.\n\nA senior engineer onboarding to a codebase reads the README, the architecture doc, and the contributing guide before touching code. CLAUDE.md is where you tell Claude which of those to read, and when."},{"heading":"How CLAUDE.md loads (verified behaviour)","body_md":"From `build/CLAUDE_CODE_FACTS.md` §6:\n\n- Project memory lives in `./CLAUDE.md` or `./.claude/CLAUDE.md`. Personal overrides go in `./CLAUDE.local.md` (git-ignored).\n- Claude Code walks from the working directory **up** to the root and **concatenates** every CLAUDE.md it finds, root first. Nothing overrides; closer files are read last.\n- CLAUDE.md files in **subdirectories** load on demand, when Claude reads files in that directory.\n- `@path/to/file` imports another file, relative to the importing file, up to 4 hops deep. Imports are not expanded inside code spans or code blocks.\n- Target under 200 lines. Everything in CLAUDE.md costs tokens on *every* turn of *every* agent.\n\nThe design consequence: put **rules and commands** in CLAUDE.md, put **reference material** in `context/`, and import only the two or three files almost every task needs. Name the rest by path so agents can `Read` them when relevant."},{"heading":"Path-scoped rules with .claude/rules","body_md":"`.claude/rules/**/*.md` files are loaded as project instructions. The only frontmatter field Claude Code reads there is `paths` (a list of globs). A rule with `paths` applies only when Claude works with matching files; a rule without `paths` loads at launch like CLAUDE.md.\n\nUse this for stack-specific guidance that would be noise elsewhere. The Java conventions for `sample-app/` (records for DTOs, `OperationOutcome` via `GlobalExceptionHandler`, ids-only logging through `AuditLogger`) matter when editing `sample-app/src/**/*.java` and are irrelevant when the tester agent edits an eval dataset.\n\nKeep rules **testable**. \"Write clean code\" cannot be checked; \"New endpoints need MockMvc tests for success, 4xx, 401 and 403\" can be checked by the reviewer agent and by a human in code review."},{"heading":"The context pack and PHI","body_md":"Healthcare adds a constraint most tutorials skip: **anything an agent reads can end up in a prompt, a log, a commit message, or an MCP call to Jira or GitHub.** The context pack therefore does two jobs:\n\n1. **Informs**: `context/domain/fhir-lite-glossary.md` defines Patient, Observation, Bundle, OperationOutcome, MRN, and LOINC codes exactly as the sample app implements them, so agents stop inventing FHIR fields that do not exist here.\n2. **Constrains**: the same glossary classifies each field as PHI or not, and `context/security/phi-and-secrets-policy.md` states where PHI may never appear. Later modules enforce this with real mechanisms (`permissions.deny` rules and a `PreToolUse` hook), because an instruction alone is not a control.\n\n**Rule of thumb:** instructions describe intent, permissions and hooks enforce it. Write both."},{"heading":"What the reference repository contains","body_md":"`AI-SDLC/` is the Claude Code project root. It already contains the sample app and the shared configuration you build on:\n\n- `sample-app/`: Spring Boot 3.5 FHIR-lite API with 25 passing tests and one labelled teaching defect (`TEACHING-DEFECT(perf-n+1)` in `ObservationService.lastN`).\n- `.claude/settings.json`: permission `allow`/`ask`/`deny` rules and a `PreToolUse` hook that blocks secrets in file writes.\n- `.claude/agents/`, `.claude/skills/`: filled in by later modules.\n- `agents/\u003cname>/CONTRACT.md`: the Agent Contract for each roster agent (architect, developer, reviewer, tester, security, sre, orchestrator).\n- `workflows/`, `evaluations/`, `docs/`: workflow specs, the eval harness, ADRs, and runbooks.\n\nEvery exercise in the course edits or runs something in this tree. Nothing is hypothetical."}],"diagrams":[{"title":"What a subagent actually receives at start-up","mermaid":"flowchart LR\n  A[\"Agent file body\u003cbr/>(.claude/agents/NAME.md)\"] --> S((\"Subagent context\"))\n  T[\"Task message from main session\"] --> S\n  C[\"CLAUDE.md hierarchy\"] --> S\n  G[\"git status + env details\"] --> S\n  K[\"Preloaded skills (skills field)\"] --> S\n  H[\"Main-session history\"] -. \"not passed\" .-> S\n  O[\"Output style / auto memory\"] -. \"not passed\" .-> S"},{"title":"Where project knowledge lives","mermaid":"flowchart TD\n  CM[\"CLAUDE.md: rules and commands, loaded every turn\"] -->|\"@import\"| AO[\"context/architecture/overview.md\"]\n  CM -->|\"@import\"| GL[\"context/domain/fhir-lite-glossary.md\"]\n  CM -->|\"@import\"| PP[\"context/security/phi-and-secrets-policy.md\"]\n  CM -.->|\"named, read on demand\"| ST[\"context/standards/*.md\"]\n  R[\".claude/rules/sample-app-java.md\"] -->|\"paths: sample-app/src/**/*.java\"| J[\"Java edits only\"]"}],"comparisonTables":[{"title":"Where should this piece of knowledge go?","columns":["Mechanism","Loaded when","Good for","Bad for","Example in this repo"],"rows":[["`CLAUDE.md`","Every turn, every agent","Commands, hard rules, repo map","Long reference docs","`AI-SDLC/CLAUDE.md`"],["`@import` from CLAUDE.md","With CLAUDE.md","The 2-3 docs nearly every task needs","Docs only one agent needs","`@context/domain/fhir-lite-glossary.md`"],["`.claude/rules/*.md` with `paths`","When Claude works on matching files","Stack- or folder-specific conventions","Global rules","`.claude/rules/sample-app-java.md`"],["`context/**` file (not imported)","When an agent reads it","Standards, threat model, ADRs","Rules that must always apply","`context/standards/testing-standards.md`"],["Agent file body","Only in that subagent","Role-specific procedure","Project facts all agents need","`.claude/agents/reviewer.md` (module 05)"],["`CLAUDE.local.md`","Every turn, only on your machine","Personal preferences","Anything the team relies on","git-ignored"]]}],"exercises":[{"id":"00-claude-md","title":"Write a lean project CLAUDE.md with imports","objective":"Create `AI-SDLC/CLAUDE.md` that tells any agent what the repo is, which commands prove a change works, and which rules are non-negotiable, while importing only the three context files nearly every task needs. Verify that Claude Code actually loads it by asking a question only CLAUDE.md can answer.","startingFiles":[{"path":"AI-SDLC/CLAUDE.md","content":"# AI-SDLC\n\nThis is a Spring Boot project. Please write good code and tests.\n"}],"requiredStructure":"AI-SDLC/\n├── CLAUDE.md                                  # \u003c 200 lines, 3 @imports\n├── context/\n│   ├── architecture/overview.md\n│   ├── domain/fhir-lite-glossary.md\n│   └── security/phi-and-secrets-policy.md\n└── sample-app/                                # unchanged","implementation":[{"path":"AI-SDLC/CLAUDE.md","language":"markdown","content":"# AI-SDLC reference repository\n\nThis repository is a working AI-assisted SDLC system for a small FHIR-lite API. It contains Claude Code subagents, skills, hooks, workflows, evaluations, and the Java service they operate on.\n\n## Layout\n- `sample-app/`: Java 21 / Spring Boot 3.5 FHIR-lite Patient/Observation API. Build and test with `mvn -q -B test` from `sample-app/`.\n- `.claude/agents/`: subagents: architect, developer, reviewer, tester, security, sre, orchestrator.\n- `.claude/skills/`: skills (architecture-review, code-review, test-strategy, security-review, performance-review, production-rca, and workflow entry points).\n- `agents/\u003cname>/CONTRACT.md`: the Agent Contract each subagent must satisfy. Treat it as the spec.\n- `workflows/`: feature-delivery, bug-fix, incident-response.\n- `context/`: architecture, standards, security, domain. Read the relevant file before acting.\n- `evaluations/`: golden datasets and the eval harness.\n\n## Context to load on demand\n- Architecture: @context/architecture/overview.md\n- Domain terms and PHI classification: @context/domain/fhir-lite-glossary.md\n- Security and PHI policy: @context/security/phi-and-secrets-policy.md\n- Standards live in `context/standards/` (coding, testing, API, review). Read the one that matches the task; do not load all of them.\n\n## Rules\n1. Never put PHI or secrets in code, logs, prompts, test fixtures, commit messages, or MCP calls. Use synthetic data such as `MRN-000123`.\n2. Every change to `sample-app/` needs tests, and `mvn -q -B test` must pass before you report completion.\n3. Follow the layering in `context/standards/coding-standards.md`: controllers call services, services call repositories.\n4. Findings use the format in `context/standards/review-standards.md` (id, severity, category, location, evidence, recommendation).\n5. Agent handoffs go to `.ai-sdlc/runs/\u003crun-id>/NN-\u003cagent>.md` with the YAML front matter defined in `workflows/README.md`.\n6. Do not fix the `TEACHING-DEFECT(perf-n+1)` in `sample-app` unless the task explicitly asks for it; exercises depend on it.\n7. Never push, merge, or deploy. A human does that after review.\n\n## Commands\n- Test: `cd sample-app && mvn -q -B test`\n- Run locally: `cd sample-app && mvn spring-boot:run -Dspring-boot.run.profiles=local`\n- Evals (offline replay): `node evaluations/harness/run-evals.mjs --mode replay`\n","tag":"verified-format"},{"path":"AI-SDLC/.gitignore","language":"plaintext","content":".ai-sdlc/runs/\n.claude/settings.local.json\nCLAUDE.local.md\nevaluations/reports/live-*\nsample-app/target/\n.env\n.env.*\n","tag":"illustrative"}],"exampleInput":"cd AI-SDLC\nclaude -p \"Without running anything: what exact command runs the sample-app tests, and what must never appear in logs? Answer in two bullet points.\" --output-format json | jq -r '.result'","expectedOutput":"- Run `cd sample-app && mvn -q -B test` (tests must pass before reporting completion).\n- PHI must never appear in logs: log resource ids only, never MRN, names, birth dates, or observation values linked to a patient.","testCases":[{"name":"CLAUDE.md stays lean","input":"wc -l AI-SDLC/CLAUDE.md","expected":"Fewer than 200 lines (the reference file is about 40)."},{"name":"Exactly three imports","input":"grep -c '^- .*@context/' AI-SDLC/CLAUDE.md","expected":"3"},{"name":"Imported files exist","input":"for p in $(grep -o '@context/[^ ]*' AI-SDLC/CLAUDE.md | tr -d '@'); do test -f AI-SDLC/$p && echo ok $p; done","expected":"ok context/architecture/overview.md\nok context/domain/fhir-lite-glossary.md\nok context/security/phi-and-secrets-policy.md"},{"name":"Claude answers from memory, not by guessing","input":"The exampleInput command above","expected":"The answer names `mvn -q -B test` inside `sample-app` and the ids-only logging rule. If it says `./gradlew test` or `mvn test` without `-q -B`, CLAUDE.md was not loaded (check you ran it from inside AI-SDLC/)."},{"name":"Local overrides stay out of git","input":"grep -x 'CLAUDE.local.md' AI-SDLC/.gitignore","expected":"CLAUDE.local.md"}],"evaluationCriteria":["Every rule is checkable by a reviewer (no \"write clean code\").","Commands are copy-pasteable and correct for this repo.","Long reference material is linked or imported, not pasted inline.","PHI and secrets rules are stated explicitly and point to the policy file.","The file names the roster agents and where their contracts live."],"improvements":["Run `/memory` in an interactive session to confirm which memory files loaded.","Move the Commands section into a `context/standards/commands.md` if it grows past ten lines, and import it.","Add a subdirectory `sample-app/CLAUDE.md` for Maven-specific tips; it loads only when Claude reads files there."]},{"id":"00-path-scoped-rules","title":"Add a path-scoped rule for the Java code","objective":"Create `.claude/rules/sample-app-java.md` with a `paths` glob so the Java conventions load only when Claude works on `sample-app/src/**/*.java`. Show that a question about an eval JSON file does not pull the rule in, while a Java edit does.","startingFiles":[],"requiredStructure":"AI-SDLC/.claude/\n└── rules/\n    └── sample-app-java.md   # frontmatter: paths: [\"sample-app/src/**/*.java\"]","implementation":[{"path":"AI-SDLC/.claude/rules/sample-app-java.md","language":"markdown","content":"---\npaths:\n  - \"sample-app/src/**/*.java\"\n---\n\n# Java rules for sample-app\n\n- Java 21, Spring Boot 3.5, package `org.example.fhir`.\n- DTOs are Java records in `api/`; never return JPA entities from controllers.\n- Throw `FhirApiException` subclasses or use its factory methods; `GlobalExceptionHandler` turns them into `OperationOutcome`.\n- Log through `AuditLogger` for patient access. Log ids only.\n- New endpoints need MockMvc tests for success, 4xx, 401, and 403 (see `SecurityTest`).\n- No queries inside loops over entities (the one exception is the marked teaching defect).\n","tag":"verified-format"}],"exampleInput":"cd AI-SDLC\nclaude -p \"Add a GET /fhir/Patient/{id}/\\$summary endpoint plan (do not edit files). Which conventions from this repo apply to the controller and its tests?\" --permission-mode plan --output-format json | jq -r '.result'","expectedOutput":"Conventions that apply:\n1. Return a `PatientResource` record from `api/`, never the `Patient` JPA entity.\n2. Missing patient: throw via `FhirApiException` so `GlobalExceptionHandler` returns a 404 `OperationOutcome`.\n3. Record access through `AuditLogger` with the patient id only.\n4. MockMvc tests: 200 success, 404 unknown id, 401 without credentials, 403 wrong role if restricted.\n5. No per-row queries in a loop.","testCases":[{"name":"Frontmatter has only paths","input":"sed -n '1,4p' AI-SDLC/.claude/rules/sample-app-java.md","expected":"---\npaths:\n  - \"sample-app/src/**/*.java\"\n---"},{"name":"Rule is specific and checkable","input":"grep -c '^- ' AI-SDLC/.claude/rules/sample-app-java.md","expected":"6 bullet rules, each naming a concrete class, annotation, or test type."},{"name":"Java task picks up the rule","input":"The exampleInput command","expected":"Output mentions `AuditLogger`, `OperationOutcome`/`FhirApiException`, and 401/403 tests."},{"name":"No rule leakage for non-Java work","input":"claude -p \"Which conventions apply when editing evaluations/datasets/architecture-golden.json?\" --permission-mode plan","expected":"No mention of `AuditLogger` or MockMvc; answer refers to eval dataset conventions instead."}],"evaluationCriteria":["Uses `paths` as the only frontmatter key (the only one Claude Code reads for rules).","Glob matches the Java sources and nothing else.","Each rule references a real type in `sample-app` (verify with grep).","Does not duplicate content already in CLAUDE.md."],"improvements":["Add `.claude/rules/k8s-manifests.md` with `paths: [\"sample-app/k8s/**\"]` for resource-limit and probe rules the sre agent relies on.","Add a rule for `sample-app/src/main/resources/db/migration/**` stating that applied migrations are immutable."]},{"id":"00-context-pack","title":"Build the domain and PHI context pack","objective":"Write the FHIR-lite glossary with a PHI classification table and the PHI and secrets policy, then prove the pack changes agent behaviour: ask Claude to draft a log line for a patient lookup before and after the pack exists, and compare.","startingFiles":[{"path":"AI-SDLC/context/domain/fhir-lite-glossary.md","content":"# Glossary\n\nPatient: a patient.\nObservation: a measurement.\n"}],"requiredStructure":"AI-SDLC/context/\n├── domain/\n│   └── fhir-lite-glossary.md         # terms, business rules, PHI table\n└── security/\n    ├── phi-and-secrets-policy.md     # where PHI/secrets may never appear\n    └── threat-model.md               # STRIDE summary used by the security agent","implementation":[{"path":"AI-SDLC/context/domain/fhir-lite-glossary.md","language":"markdown","content":"# FHIR-lite domain glossary\n\nThe sample app (`sample-app/`) implements a deliberately small subset of HL7 FHIR R4 shapes. It is **not** a conformant FHIR server. Agents must use these terms exactly.\n\n| Term | Meaning in this repo |\n|---|---|\n| Resource | A JSON document with a `resourceType` field. Only `Patient`, `Observation`, `Bundle`, `OperationOutcome` exist. |\n| Patient | A person receiving care. Fields: `id`, `identifier[]` (MRN, system `urn:example:mrn`), `name[]` (`family`, `given[]`), `gender` (`male`, `female`, `other`, `unknown`), `birthDate` (ISO date), `active` (boolean). |\n| MRN | Medical Record Number. Unique per patient. Synthetic values only, format `MRN-` + 6 digits. |\n| Observation | A measurement about a patient. Fields: `id`, `status` (`registered`, `preliminary`, `final`, `amended`), `code` (LOINC `system`, `code`, `display`), `subject.reference` (`Patient/{id}`), `effectiveDateTime`, `valueQuantity` (`value`, `unit`). |\n| LOINC | Code system for observations, `http://loinc.org`. Common codes used in tests: `8867-4` heart rate, `8480-6` systolic BP, `29463-7` body weight. |\n| Bundle | Search result wrapper: `{ \"resourceType\": \"Bundle\", \"type\": \"searchset\", \"total\": n, \"entry\": [{ \"resource\": {...} }] }`. |\n| OperationOutcome | Error body: `{ \"resourceType\": \"OperationOutcome\", \"issue\": [{ \"severity\", \"code\", \"diagnostics\" }] }`. Returned for every 4xx/5xx. |\n| Subject reference | The string `Patient/{id}`. Observations must reference an existing Patient. |\n\n## Business rules\n\n1. A Patient must have exactly one MRN identifier; MRN is unique (409/422 on duplicate).\n2. `birthDate` cannot be in the future.\n3. An Observation's `subject` must resolve to an existing, `active` Patient.\n4. `status = final` Observations are immutable; corrections create an `amended` Observation.\n5. Delete is ADMIN-only and is a soft concern in real systems; here it is a hard delete used only in tests.\n6. Search results are always a `Bundle`, even when empty (`total: 0`).\n\n## PHI classification\n\n| Field | PHI? | May appear in logs? |\n|---|---|---|\n| Patient `id` (surrogate key) | No (opaque) | Yes |\n| MRN | **Yes** | No |\n| name, birthDate, gender | **Yes** | No |\n| Observation values linked to a patient | **Yes** | No (log observation id only) |\n| LOINC code | No | Yes |\n","tag":"illustrative"},{"path":"AI-SDLC/context/security/phi-and-secrets-policy.md","language":"markdown","content":"# PHI and secrets policy (agents and humans)\n\nThis policy applies to code, logs, prompts, eval datasets, commit messages, and anything an agent sends to an MCP server.\n\n## PHI\n- Never log PHI. Log resource ids, request ids, and outcome codes only (see `sample-app` `AuditLogger`).\n- Never paste real patient data into a prompt, a skill, an eval case, or a Jira/GitHub comment. Use synthetic data (`MRN-000123`, \"Test Patient\").\n- Error responses (`OperationOutcome.diagnostics`) must not echo request bodies containing PHI.\n- Agents must not read files under `sample-app/data/real/` or any path matching `**/*.phi.*` (enforced by `permissions.deny` in `.claude/settings.json`).\n\n## Secrets\n- No secrets in the repo. Database passwords come from environment variables locally and from a Kubernetes `Secret` in the cluster.\n- `.env`, `.env.*`, `**/secrets/**` are denied to agents via `permissions.deny`.\n- MCP server credentials are passed with `${VAR}` expansion in `.mcp.json`, never inline.\n- A `PreToolUse` hook blocks writes that contain likely secrets (see `.claude/hooks/`).\n\n## Authentication and authorization (sample app)\n- All `/fhir/**` endpoints require authentication. `/actuator/health/**` is public.\n- Roles: `CLINICIAN` (read/write Patient and Observation), `ADMIN` (everything, including DELETE).\n- Authorization is enforced server-side per endpoint; never trust client-supplied role claims.\n\n## Review severities\n`critical` (exploitable now, PHI exposure, auth bypass) · `high` (exploitable with effort, missing authZ on a write path) · `medium` (defence-in-depth gap) · `low` (hardening) · `info`.\n","tag":"illustrative"},{"path":"AI-SDLC/context/security/threat-model.md","language":"markdown","content":"# Threat model: FHIR-lite API (STRIDE summary)\n\n| Asset | Threat | STRIDE | Current control | Gap / agent check |\n|---|---|---|---|---|\n| Patient records | Unauthenticated read | Spoofing / Info disclosure | Spring Security, all `/fhir/**` authenticated | security agent verifies every new endpoint is covered by the filter chain |\n| Patient records | Clinician deletes data | Elevation of privilege | `DELETE` restricted to `ADMIN` | security agent checks role annotations/matchers on new write endpoints |\n| Search parameters | SQL injection via `family` / `identifier` | Tampering | Spring Data derived queries (parameterised) | reviewer and security flag any string-concatenated JPQL/SQL |\n| Logs | PHI leakage | Info disclosure | `AuditLogger` logs ids only | security agent greps for logging of request bodies or names |\n| DB credentials | Secret in repo/manifests | Info disclosure | env vars + k8s `Secret` | hook blocks secret-like strings; security agent scans manifests |\n| Availability | Unbounded search / N+1 | Denial of service | page size cap (planned) | sre / performance-review flags missing limits and N+1 |\n| Agent tooling | Prompt injection via repo or MCP content | Tampering / Elevation | permissions deny-list, human gates | see `docs/governance/prompt-injection.md` |\n","tag":"illustrative"}],"exampleInput":"cd AI-SDLC\nclaude -p \"Write the SLF4J log statement PatientService.read(id) should emit after loading a Patient. One line of Java, then one sentence explaining the choice.\" --permission-mode plan --output-format json | jq -r '.result'","expectedOutput":"Before the context pack (typical):\nlog.info(\"Loaded patient {} {} (MRN {})\", p.getGivenNames(), p.getFamilyName(), p.getMrn());\n\nAfter the context pack:\naudit.recordRead(\"Patient\", patient.getId());\nPatient names, MRN and birth date are PHI under context/domain/fhir-lite-glossary.md, so only the opaque resource id is logged, through AuditLogger.","testCases":[{"name":"PHI table covers every Patient field","input":"grep -E '^\\| (MRN|name, birthDate, gender|Patient `id`)' AI-SDLC/context/domain/fhir-lite-glossary.md | wc -l","expected":"3"},{"name":"Policy names the enforcing mechanisms","input":"grep -E 'permissions.deny|PreToolUse' AI-SDLC/context/security/phi-and-secrets-policy.md","expected":"At least one line referencing `permissions.deny` and one referencing the `PreToolUse` hook."},{"name":"Behaviour change","input":"Run exampleInput with and without the glossary import in CLAUDE.md","expected":"Without: log line contains name or MRN. With: log line contains only the id, via `AuditLogger`."},{"name":"No real data","input":"grep -rE 'MRN-[0-9]{6}' AI-SDLC/context | grep -v 'MRN-000'","expected":"No output: only synthetic MRN-000xxx values appear."}],"evaluationCriteria":["Glossary terms match the actual sample-app DTO field names.","Every PHI field has an explicit may-appear-in-logs answer.","Policy distinguishes intent (instructions) from enforcement (permissions, hooks).","Threat model rows map to a check a specific roster agent performs."],"improvements":["Add `context/domain/loinc-codes.md` listing the LOINC codes the tests use, so the tester agent stops inventing codes.","Add a `context/security/data-retention.md` once the app stores audit events.","Turn the PHI table into a machine-readable `phi-fields.json` that a hook can use to scan diffs."]}],"agentContracts":[],"checklist":["`AI-SDLC/CLAUDE.md` is under 200 lines and has exactly three `@context/...` imports that resolve.","`claude -p` run from `AI-SDLC/` answers the test command as `mvn -q -B test` inside `sample-app/`.","`.claude/rules/sample-app-java.md` uses only the `paths` frontmatter key.","The glossary classifies every Patient and Observation field as PHI or not.","The PHI policy names the enforcing mechanisms (deny rules, hook), not just the intent.","`CLAUDE.local.md` and `.ai-sdlc/runs/` are git-ignored.","`cd AI-SDLC/sample-app && mvn -q -B test` passes (25 tests)."]}]};
+</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = window.CURRICULUM || { modules: [], builtAt: "" };
+  var MODULES = DATA.modules || [];
+  var view = document.getElementById("view");
+  var FIELD_TABS = [
+    ["objective", "Objective"], ["startingFiles", "Starting files"], ["requiredStructure", "Required structure"],
+    ["implementation", "Implementation"], ["exampleInput", "Example input"], ["expectedOutput", "Expected output"],
+    ["testCases", "Test cases"], ["evaluationCriteria", "Evaluation criteria"], ["improvements", "Improvements"]
+  ];
+  var TYPES = [
+    ["agents", "Agents", /(^|\/)(\.claude\/agents\/|agents\/)/],
+    ["skills", "Skills", /(^|\/)(\.claude\/skills\/|\.claude\/commands\/|skills\/)/],
+    ["workflows", "Workflows", /(^|\/)workflows\//],
+    ["evals", "Evals", /(^|\/)evaluations\//],
+    ["contracts", "Contracts", null]
+  ];
+
+  /* ---------- storage (optional) ---------- */
+  var store = {
+    get: function (k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
+  };
+  var PKEY = "ai-sdlc-progress-v1";
+  var progress = {};
+  try { progress = JSON.parse(store.get(PKEY) || "{}") || {}; } catch (e) { progress = {}; }
+  function saveProgress() { store.set(PKEY, JSON.stringify(progress)); updateProgress(); }
+
+  /* ---------- helpers ---------- */
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function md(s) {
+    if (window.marked && marked.parse) { try { return marked.parse(String(s || ""), { mangle: false, headerIds: false }); } catch (e) {} }
+    return "<p>" + esc(s).replace(/\n\n/g, "</p><p>").replace(/\n/g, "<br>") + "</p>";
+  }
+  function slugPath(p) { return "f~" + String(p).replace(/[^A-Za-z0-9._-]/g, "~"); }
+  function el(html) { var d = document.createElement("div"); d.innerHTML = html; return d; }
+  var LANG_ALIAS = { yml: "yaml", sh: "bash", shell: "bash", js: "javascript", mjs: "javascript", md: "markdown", text: "plaintext", txt: "plaintext", html: "xml", dockerfile: "dockerfile", properties: "ini" };
+  function codeBlock(path, lang, content, tag) {
+    var l = LANG_ALIAS[String(lang || "").toLowerCase()] || String(lang || "plaintext").toLowerCase();
+    var tagChip = tag ? '<span class="chip ' + (tag === "verified-format" ? "tag-verified" : "tag-illustrative") + '">' + esc(tag) + "</span>" : "";
+    return '<figure class="code"><figcaption><span class="path" title="' + esc(path) + '">' + esc(path || lang || "snippet") + "</span>" + tagChip +
+      '<button class="copy" type="button">Copy</button></figcaption><pre><code class="language-' + esc(l) + '">' + esc(content) + "</code></pre></figure>";
+  }
+
+  /* ---------- indexes ---------- */
+  var exercises = [], files = [], contracts = [];
+  MODULES.forEach(function (m) {
+    (m.exercises || []).forEach(function (x) {
+      exercises.push({ m: m, x: x });
+      (x.implementation || []).forEach(function (f) { files.push({ m: m, x: x, f: f, kind: "implementation" }); });
+      (x.startingFiles || []).forEach(function (f) { files.push({ m: m, x: x, f: f, kind: "starting" }); });
+    });
+    (m.agentContracts || []).forEach(function (c) { contracts.push({ m: m, c: c }); });
+  });
+  function filesOfType(t) {
+    var re = null; TYPES.forEach(function (T) { if (T[0] === t) re = T[2]; });
+    if (!re) return [];
+    var seen = {}, out = [];
+    files.forEach(function (e) {
+      if (e.kind !== "implementation") return;
+      var p = e.f.path.replace(/^AI-SDLC\//, "");
+      if (!re.test(p) || /sample-app\//.test(p)) return;
+      if (t === "agents" && /skills\//.test(p)) return;
+      if (seen[e.f.path]) return; seen[e.f.path] = 1; out.push(e);
+    });
+    return out.sort(function (a, b) { return a.f.path < b.f.path ? -1 : 1; });
+  }
+
+  /* ---------- nav ---------- */
+  function buildNav() {
+    var lv = document.getElementById("nav-levels"), html = "";
+    MODULES.forEach(function (m) {
+      html += '<li><a href="#m-' + esc(m.id) + '" data-route="m-' + esc(m.id) + '"><span class="lv">L' + m.level + "</span><span>" + esc(m.title) + "</span></a></li>";
+    });
+    lv.innerHTML = html;
+    var tp = document.getElementById("nav-types"); html = "";
+    TYPES.forEach(function (T) {
+      var n = T[0] === "contracts" ? contracts.length : filesOfType(T[0]).length;
+      html += '<li><a href="#t-' + T[0] + '" data-route="t-' + T[0] + '"><span>' + T[1] + '</span><span class="count">' + n + "</span></a></li>";
+    });
+    tp.innerHTML = html;
+    document.getElementById("build-info").textContent = MODULES.length + " modules · " + exercises.length + " exercises" + (DATA.builtAt ? " · built " + DATA.builtAt.slice(0, 10) : "");
+  }
+  function markActive(route) {
+    document.querySelectorAll(".navgroup a").forEach(function (a) {
+      var r = a.getAttribute("data-route");
+      a.classList.toggle("active", r === route || (route.indexOf("x-") === 0 && r === "m-" + (findEx(route.slice(2)) || { m: {} }).m.id));
+    });
+  }
+  function updateProgress() {
+    var done = exercises.filter(function (e) { return progress[e.x.id]; }).length;
+    document.getElementById("progress-text").textContent = done + " of " + exercises.length + " exercises done";
+    document.getElementById("progress-fill").style.width = exercises.length ? (100 * done / exercises.length) + "%" : "0";
+  }
+  function findEx(id) { for (var i = 0; i < exercises.length; i++) if (exercises[i].x.id === id) return exercises[i]; return null; }
+  function findMod(id) { for (var i = 0; i < MODULES.length; i++) if (MODULES[i].id === id) return MODULES[i]; return null; }
+
+  /* ---------- views ---------- */
+  function renderHome() {
+    var levels = {};
+    MODULES.forEach(function (m) { (levels[m.level] = levels[m.level] || []).push(m); });
+    var h = '<div class="section"><span class="eyebrow">Curriculum</span><h1>AI-SDLC: Agent &amp; Skill Engineering with Claude Code</h1>' +
+      '<p class="lede">Build a working, reviewable AI engineering system for a Spring Boot FHIR-lite API: subagents with contracts, skills as tested assets, hooks and permissions as real human gates, and an evaluation harness that tells you when a prompt change made things worse.</p>' +
+      '<div class="stats"><div><b>' + MODULES.length + '</b><span>Modules</span></div><div><b>' + exercises.length + '</b><span>Exercises</span></div><div><b>' +
+      files.filter(function (f) { return f.kind === "implementation"; }).length + '</b><span>Repo files</span></div><div><b>' + contracts.length + "</b><span>Agent contracts</span></div></div></div>";
+    h += '<div class="section"><h2>Levels</h2><div class="cards">';
+    MODULES.forEach(function (m) {
+      var n = (m.exercises || []).length, d = (m.exercises || []).filter(function (x) { return progress[x.id]; }).length;
+      h += '<a class="card" href="#m-' + esc(m.id) + '"><span class="meta">Level ' + m.level + " · " + d + "/" + n + " exercises</span><b>" + esc(m.title) + "</b><p>" + esc(m.summary) + "</p></a>";
+    });
+    h += "</div></div>";
+    h += '<div class="section"><h2>How to read the tags</h2><div class="prose">' + md("Every code sample carries a tag. **verified-format** means the file's structure matches the Claude Code documentation as recorded in `build/CLAUDE_CODE_FACTS.md` (subagent files, `SKILL.md`, `settings.json`, `.mcp.json`, `CLAUDE.md`, `claude -p` invocations). **illustrative** means a pattern or convention of this course, such as Agent Contracts, workflow specs, eval datasets, and helper scripts. Illustrative files are real and runnable where they are code, but they are not Claude Code features.") + "</div></div>";
+    view.innerHTML = h;
+  }
+
+  function renderModule(m, focusEx) {
+    var idx = MODULES.indexOf(m), h = "";
+    h += '<div class="section"><span class="eyebrow">Level ' + m.level + " · " + esc(m.id) + "</span><h1>" + esc(m.title) + '</h1><p class="lede">' + esc(m.summary) + "</p>";
+    if ((m.prerequisites || []).length) {
+      h += '<div class="chips"><span class="eyebrow" style="align-self:center">Prerequisites</span>' + m.prerequisites.map(function (p) {
+        var pm = findMod(p); return pm ? '<a class="chip" href="#m-' + esc(pm.id) + '">' + esc(pm.title) + "</a>" : '<span class="chip">' + esc(p) + "</span>";
+      }).join("") + "</div>";
+    }
+    h += "</div>";
+    if ((m.concepts || []).length) {
+      h += '<div class="section"><h2>Concepts</h2>' + m.concepts.map(function (c) {
+        return '<div class="concept"><h3>' + esc(c.heading) + '</h3><div class="prose">' + md(c.body_md) + "</div></div>";
+      }).join("") + "</div>";
+    }
+    if ((m.diagrams || []).length) {
+      h += '<div class="section"><h2>Diagrams</h2>' + m.diagrams.map(function (d) {
+        return '<div><p class="diagram-title">' + esc(d.title) + '</p><div class="scroll-x diagram"><pre class="mermaid">' + esc(d.mermaid) + "</pre></div></div>";
+      }).join("") + "</div>";
+    }
+    if ((m.comparisonTables || []).length) {
+      h += '<div class="section"><h2>Comparisons</h2>' + m.comparisonTables.map(tableHtml).join("") + "</div>";
+    }
+    if ((m.exercises || []).length) {
+      h += '<div class="section"><h2>Exercises</h2>' + m.exercises.map(exerciseHtml).join("") + "</div>";
+    }
+    if ((m.agentContracts || []).length) {
+      h += '<div class="section"><h2>Agent contracts</h2>' + m.agentContracts.map(contractHtml).join("") + "</div>";
+    }
+    if ((m.checklist || []).length) {
+      h += '<div class="section"><h2>Checklist</h2><ul class="checklist">' + m.checklist.map(function (c) { return "<li><span>" + inline(c) + "</span></li>"; }).join("") + "</ul></div>";
+    }
+    h += '<div class="pager">' + (idx > 0 ? '<a class="btn" href="#m-' + esc(MODULES[idx - 1].id) + '">← ' + esc(MODULES[idx - 1].title) + "</a>" : "<span></span>") +
+      (idx < MODULES.length - 1 ? '<a class="btn" href="#m-' + esc(MODULES[idx + 1].id) + '">' + esc(MODULES[idx + 1].title) + " →</a>" : "") + "</div>";
+    view.innerHTML = h;
+    wireExercises();
+    if (focusEx) { var t = document.getElementById("x-" + focusEx); if (t) setTimeout(function () { t.scrollIntoView(); }, 30); }
+  }
+  function inline(s) { if (window.marked && marked.parseInline) { try { return marked.parseInline(String(s)); } catch (e) {} } return esc(s); }
+  function tableHtml(t) {
+    return '<div><p class="diagram-title">' + esc(t.title) + '</p><div class="scroll-x"><table class="cmp"><thead><tr>' + t.columns.map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") +
+      "</tr></thead><tbody>" + t.rows.map(function (r) { return "<tr>" + r.map(function (c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody></table></div></div>";
+  }
+  function listHtml(a) { return '<ul class="criteria">' + (a || []).map(function (s) { return "<li>" + inline(s) + "</li>"; }).join("") + "</ul>"; }
+  function exercisePanel(x, key) {
+    switch (key) {
+      case "objective": return '<div class="prose">' + md(x.objective) + "</div>";
+      case "startingFiles": return (x.startingFiles || []).length ? x.startingFiles.map(function (f) { return codeBlock(f.path, extOf(f.path), f.content); }).join("") : "<p>No starting files. You begin from the current state of the repository.</p>";
+      case "requiredStructure": return codeBlock("required structure", "plaintext", x.requiredStructure);
+      case "implementation": return (x.implementation || []).map(function (f) { return codeBlock(f.path, f.language, f.content, f.tag); }).join("");
+      case "exampleInput": return codeBlock("example input", guessLang(x.exampleInput), x.exampleInput);
+      case "expectedOutput": return codeBlock("expected output", guessLang(x.expectedOutput), x.expectedOutput);
+      case "testCases": return (x.testCases || []).map(function (t) {
+        return '<div class="testcase"><div class="name">' + esc(t.name) + '</div><div><span class="lbl">Input</span><pre>' + esc(t.input) + '</pre></div><div><span class="lbl">Expected</span><pre>' + esc(t.expected) + "</pre></div></div>";
+      }).join("");
+      case "evaluationCriteria": return listHtml(x.evaluationCriteria);
+      case "improvements": return listHtml(x.improvements);
+    }
+    return "";
+  }
+  function extOf(p) { var m = /\.([a-z0-9]+)$/i.exec(p || ""); if (/Dockerfile$/.test(p || "")) return "dockerfile"; return m ? m[1] : "plaintext"; }
+  function guessLang(s) { s = String(s || "").trim(); if (/^[\[{]/.test(s)) return "json"; if (/^(\$ |claude |mvn |node |curl |git |bash )/.test(s)) return "bash"; return "plaintext"; }
+  function exerciseHtml(x) {
+    var done = !!progress[x.id];
+    var tabs = FIELD_TABS.map(function (f, i) {
+      return '<button type="button" role="tab" data-key="' + f[0] + '" aria-selected="' + (i === 0) + '"><span class="n">' + (i + 1) + "</span>" + f[1] + "</button>";
+    }).join("");
+    return '<article class="exercise' + (done ? " is-done" : "") + '" id="x-' + esc(x.id) + '" data-ex="' + esc(x.id) + '"><header><div class="t"><span class="xid">' + esc(x.id) + '</span><h3>' + esc(x.title) + "</h3></div>" +
+      '<label class="done-toggle"><input type="checkbox" data-done="' + esc(x.id) + '"' + (done ? " checked" : "") + "> Done</label></header>" +
+      '<div class="tabs" role="tablist" aria-label="Exercise sections">' + tabs + '</div><div class="panel" role="tabpanel">' + exercisePanel(x, "objective") + "</div></article>";
+  }
+  function contractHtml(c) {
+    function row(k, v, cls) { return "<dt>" + k + '</dt><dd' + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</dd>"; }
+    return '<div class="contract" id="c-' + esc(c.agent) + '"><header><code>' + esc(c.agent) + "</code><span>" + esc(c.purpose) + "</span></header><dl>" +
+      row("Inputs", listHtml(c.inputs)) + row("Outputs", listHtml(c.outputs)) + row("Tools", listHtml(c.tools)) + row("Permissions", inline(c.permissions)) +
+      row("Must", listHtml(c.must)) + row("Must not", listHtml(c.mustNot)) + row("Failure conditions", listHtml(c.failureConditions)) +
+      row("Validation", inline(c.validation)) + row("Handoff format", inline(c.handoffFormat)) + row("Human gate", inline(c.humanGate), "gate") + "</dl></div>";
+  }
+  function wireExercises() {
+    view.querySelectorAll(".exercise").forEach(function (art) {
+      var ex = findEx(art.getAttribute("data-ex")); if (!ex) return;
+      var panel = art.querySelector(".panel");
+      art.querySelectorAll(".tabs button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          art.querySelectorAll(".tabs button").forEach(function (o) { o.setAttribute("aria-selected", String(o === b)); });
+          panel.innerHTML = exercisePanel(ex.x, b.getAttribute("data-key"));
+          enhance(panel);
+        });
+      });
+      var cb = art.querySelector("input[data-done]");
+      cb.addEventListener("change", function () {
+        if (cb.checked) progress[ex.x.id] = Date.now(); else delete progress[ex.x.id];
+        art.classList.toggle("is-done", cb.checked); saveProgress();
+      });
+    });
+  }
+
+  function renderType(t) {
+    var label = ""; TYPES.forEach(function (T) { if (T[0] === t) label = T[1]; });
+    var h = '<div class="section"><span class="eyebrow">Artifact type</span><h1>' + esc(label) + "</h1>";
+    if (t === "contracts") {
+      h += '<p class="lede">Every Agent Contract defined across the curriculum. The roster is fixed: architect, developer, reviewer, tester, security, sre, orchestrator.</p></div>';
+      h += contracts.map(function (e) { return '<div class="section"><span class="eyebrow">From <a href="#m-' + esc(e.m.id) + '">' + esc(e.m.title) + "</a></span>" + contractHtml(e.c) + "</div>"; }).join("");
+    } else {
+      var list = filesOfType(t);
+      h += '<p class="lede">' + list.length + " files in the reference repository. Each links back to the exercise that builds it.</p></div>";
+      h += '<div class="results">' + list.map(function (e) {
+        return '<a class="result" href="#' + slugPath(e.f.path) + '"><span><code>' + esc(e.f.path) + '</code></span><small>' + esc(e.x.title) + " · " + esc(e.m.title) + " · " + esc(e.f.tag) + "</small></a>";
+      }).join("") + "</div>";
+    }
+    view.innerHTML = h;
+  }
+  function renderFile(slug) {
+    var hits = files.filter(function (e) { return slugPath(e.f.path) === slug; });
+    if (!hits.length) return renderNotFound();
+    var e = hits.filter(function (h) { return h.kind === "implementation"; })[0] || hits[0];
+    var h = '<div class="section"><span class="eyebrow">' + (e.kind === "implementation" ? "Repository file" : "Starting file") + "</span><h1><code>" + esc(e.f.path.split("/").pop()) + "</code></h1>" +
+      '<p class="lede">Built in <a href="#x-' + esc(e.x.id) + '">' + esc(e.x.title) + "</a> (" + esc(e.m.title) + ").</p></div>";
+    h += codeBlock(e.f.path, e.f.language || extOf(e.f.path), e.f.content, e.f.tag);
+    view.innerHTML = h;
+  }
+  function renderSearch(q) {
+    q = q.trim(); var ql = q.toLowerCase(), out = [];
+    if (ql.length < 2) { view.innerHTML = '<div class="section"><h1>Search</h1><p class="lede">Type at least two characters.</p></div>'; return; }
+    function snip(text) {
+      var t = String(text || ""), i = t.toLowerCase().indexOf(ql); if (i < 0) return null;
+      var s = Math.max(0, i - 60), e = Math.min(t.length, i + ql.length + 90);
+      return (s > 0 ? "…" : "") + esc(t.slice(s, i)) + "<mark>" + esc(t.slice(i, i + ql.length)) + "</mark>" + esc(t.slice(i + ql.length, e)) + (e < t.length ? "…" : "");
+    }
+    function add(href, title, where, text) { var s = snip(text); if (s) out.push({ href: href, title: title, where: where, s: s }); }
+    MODULES.forEach(function (m) {
+      add("#m-" + m.id, m.title, "Module summary", m.title + " — " + m.summary);
+      (m.concepts || []).forEach(function (c) { add("#m-" + m.id, c.heading, m.title + " · concept", c.heading + " — " + c.body_md); });
+      (m.comparisonTables || []).forEach(function (t) { add("#m-" + m.id, t.title, m.title + " · table", t.title + " " + t.rows.map(function (r) { return r.join(" | "); }).join(" \n ")); });
+      (m.exercises || []).forEach(function (x) {
+        add("#x-" + x.id, x.title, m.title + " · exercise", x.title + " — " + x.objective);
+        (x.implementation || []).forEach(function (f) { add("#" + slugPath(f.path), f.path, x.title + " · file", f.path + "\n" + f.content); });
+        add("#x-" + x.id, x.title + " · expected output", m.title, x.expectedOutput);
+      });
+      (m.agentContracts || []).forEach(function (c) { add("#m-" + m.id, c.agent + " contract", m.title, [c.purpose].concat(c.must, c.mustNot, c.failureConditions, [c.humanGate]).join(" · ")); });
+      (m.checklist || []).forEach(function (c) { add("#m-" + m.id, "Checklist item", m.title, c); });
+    });
+    view.innerHTML = '<div class="section"><span class="eyebrow">Search</span><h1>' + out.length + " results for “" + esc(q) + '”</h1></div><div class="results">' +
+      out.slice(0, 200).map(function (r) { return '<a class="result" href="' + esc(r.href) + '"><b>' + esc(r.title) + "</b><small>" + esc(r.where) + "</small><span>" + r.s + "</span></a>"; }).join("") + "</div>";
+  }
+  function renderNotFound() { view.innerHTML = '<div class="section"><h1>Not found</h1><p class="lede">That link does not match a module, exercise, or file. <a href="#home">Go to the overview</a>.</p></div>'; }
+
+  /* ---------- enhancement: highlight, copy, mermaid ---------- */
+  var mermaidReady = false;
+  function isDark() {
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t) return t === "dark";
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function enhance(root) {
+    root.querySelectorAll("pre code").forEach(function (c) {
+      if (window.hljs && !c.dataset.hl) { try { hljs.highlightElement(c); } catch (e) {} c.dataset.hl = "1"; }
+    });
+    root.querySelectorAll("figure.code .copy").forEach(function (b) {
+      if (b.dataset.wired) return; b.dataset.wired = "1";
+      b.addEventListener("click", function () {
+        var code = b.closest("figure").querySelector("code"), text = code.textContent;
+        function ok() { b.textContent = "Copied"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1500); }
+        function fallback() { var r = document.createRange(); r.selectNodeContents(code); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Press Ctrl+C"; }
+        try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+      });
+    });
+    var ms = root.querySelectorAll("pre.mermaid:not([data-processed])");
+    if (ms.length && window.mermaid) {
+      try {
+        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: isDark() ? "dark" : "neutral", fontFamily: "Public Sans, system-ui, sans-serif" });
+        mermaid.run({ nodes: ms }).catch(function (e) { console.warn("mermaid", e); });
+      } catch (e) { console.warn("mermaid", e); }
+    }
+  }
+
+  /* ---------- router ---------- */
+  var lastRoute = "";
+  function route() {
+    var h = decodeURIComponent((location.hash || "#home").slice(1)) || "home";
+    lastRoute = h;
+    document.body.classList.remove("nav-open"); closeScrim();
+    if (h === "home") renderHome();
+    else if (h.indexOf("m-") === 0) { var m = findMod(h.slice(2)); m ? renderModule(m) : renderNotFound(); }
+    else if (h.indexOf("x-") === 0) { var e = findEx(h.slice(2)); e ? renderModule(e.m, e.x.id) : renderNotFound(); }
+    else if (h.indexOf("c-") === 0) { renderType("contracts"); }
+    else if (h.indexOf("t-") === 0) renderType(h.slice(2));
+    else if (h.indexOf("f~") === 0) renderFile(h);
+    else if (h.indexOf("s-") === 0) renderSearch(h.slice(2).replace(/_/g, " "));
+    else renderNotFound();
+    markActive(h);
+    enhance(view);
+    if (h.indexOf("x-") !== 0) window.scrollTo(0, 0);
+  }
+
+  /* ---------- zip download ---------- */
+  function download() {
+    var btn = document.getElementById("download");
+    if (!window.JSZip) { btn.textContent = "Zip library failed to load"; return; }
+    var zip = new JSZip(), impl = {};
+    files.forEach(function (e) { if (e.kind === "implementation") impl[e.f.path] = e.f.content; });
+    Object.keys(impl).forEach(function (p) { zip.file(p, impl[p]); });
+    files.forEach(function (e) {
+      if (e.kind !== "starting") return;
+      var p = impl[e.f.path] !== undefined ? "starting-files/" + e.x.id + "/" + e.f.path : e.f.path;
+      zip.file(p, e.f.content);
+    });
+    zip.file("AI-SDLC/STARTER_README.md", "# AI-SDLC starter repo\n\nGenerated from the curriculum SPA (" + MODULES.length + " modules, " + exercises.length + " exercises).\n\n" +
+      "Implementation files are at their real paths. Starting files that would overwrite an implementation file are under `starting-files/<exercise-id>/`.\n\n" +
+      "The Java sample app is included only where exercises embed its files; clone the full reference repository for the complete `sample-app/`.\n");
+    btn.textContent = "Building zip…";
+    zip.generateAsync({ type: "blob" }).then(function (blob) {
+      try {
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ai-sdlc-starter.zip";
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+        btn.textContent = "Download starter repo";
+      } catch (e) { btn.textContent = "Download blocked by this viewer"; }
+    }, function () { btn.textContent = "Zip failed, try again"; });
+  }
+
+  /* ---------- theme + mobile nav ---------- */
+  function toggleTheme() {
+    var next = isDark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next); store.set("ai-sdlc-theme", next);
+    route();
+  }
+  (function () { var t = store.get("ai-sdlc-theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); })();
+  var scrim = null;
+  function closeScrim() { if (scrim) { scrim.remove(); scrim = null; } document.getElementById("nav-toggle").setAttribute("aria-expanded", "false"); }
+  document.getElementById("nav-toggle").addEventListener("click", function () {
+    var open = !document.body.classList.contains("nav-open");
+    document.body.classList.toggle("nav-open", open);
+    this.setAttribute("aria-expanded", String(open));
+    if (open) { scrim = document.createElement("div"); scrim.className = "scrim"; scrim.addEventListener("click", function () { document.body.classList.remove("nav-open"); closeScrim(); }); document.body.appendChild(scrim); }
+    else closeScrim();
+  });
+  document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+  document.getElementById("theme-toggle-m").addEventListener("click", toggleTheme);
+  document.getElementById("download").addEventListener("click", download);
+  var qt = null;
+  document.getElementById("q").addEventListener("input", function () {
+    var v = this.value; clearTimeout(qt);
+    qt = setTimeout(function () { if (v.trim().length >= 2) renderSearch(v); else if (lastRoute) route(); enhance(view); }, 180);
+  });
+  window.addEventListener("hashchange", route);
+
+  buildNav(); updateProgress(); route();
+})();
+</script>
+</body>
+</html>

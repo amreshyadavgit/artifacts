@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -q -B test)",
+      "Bash(mvn -q -B test *)",
+      "Bash(git diff *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(node evaluations/harness/run-evals.mjs *)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(kubectl apply *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/secrets/**)",
+      "Read(./sample-app/data/real/**)",
+      "Read(./**/*.phi.*)",
+      "Bash(git push --force *)",
+      "Bash(kubectl delete *)",
+      "Bash(rm -rf *)"
+    ],
+    "defaultMode": "default"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secrets.mjs\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}
