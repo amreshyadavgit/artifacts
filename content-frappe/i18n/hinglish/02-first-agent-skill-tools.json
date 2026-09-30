@@ -1,0 +1,196 @@
+{
+  "id": "02-first-agent-skill-tools",
+  "title": "Bench par Tumhara Pehla Agent, Skill aur Tools",
+  "summary": "Frappe bench par AI-SDLC system ke pehle working pieces banao aur test karo: ek reviewer subagent (v1 snapshot ke roop mein rakha jaata hai jise aage ke modules improve aur evaluate karte hain), ek explain-endpoint skill jo spice_lite whitelisted method ko /api/method route se us SQL tak trace karti hai jo Frappe sach mein bhejta hai, aur ek run-tests skill jo pre-approved commands aur ek tested parser ke saath bench run-tests chalati hai, kyonki tests fail hone par bhi bench 0 se exit karta hai. Phir ek subagent-scoped Claude Code hook se reviewer ke tools restrict karo jo bench console, execute aur migrate block karta hai, aur sab kuch claude -p se headless test karo.",
+  "prerequisites": [
+    "00-example",
+    "01-foundations",
+    "Ek working bench jisme spice_lite test.localhost par installed ho (`AI-SDLC-frappe/sample-app/scripts/setup-bench.sh`); `bench --site test.localhost run-tests --app spice_lite` 46 tests pass karta hai",
+    "Claude Code CLI installed aur authenticated (`claude --version`)",
+    "PATH par Python 3.11 aur Node 22; `jq` installed (`--output-format json` results padhta hai)"
+  ],
+  "concepts": [
+    {
+      "heading": "Subagent file ki anatomy",
+      "body_md": "Subagent **YAML frontmatter wali ek Markdown file** hai. Do keys required hain:\n\n- `name`: identity (`reviewer`). Filename ka match hona zaroori nahi, aur subfolders ise nahi badalte. Claude Code hooks ise `agent_type` ke roop mein dekhte hain.\n- `description`: Claude ko kab delegate karna chahiye. Main session kaam route karne ke liye har description padhta hai, isliye ise trigger ki tarah likho: kya karta hai aur kab (\"Reviews code changes in the spice_lite Frappe app. Use after code changes.\").\n\nIs module mein use hone wali optional keys: `tools`, `disallowedTools`, `model` (`sonnet`, `opus`, `haiku`, `fable`, poora id, ya `inherit`), `permissionMode`, `maxTurns`, `skills`, `hooks`. Subagent keys **camelCase** hain. Unknown keys **chupchaap ignore** hoti hain: agent file mein `allowed-tools:` (skill wali spelling) ya `max_turns:` kuch nahi karta aur koi error nahi deta.\n\n### File kahan rehti hai, yeh decide karta hai ki kise milti hai\n\nEk hi `name` ke liye upar wali entry jeet-ti hai: managed settings `.claude/agents/` > `--agents` JSON flag > project `.claude/agents/` (working directory ke sabse paas) > `~/.claude/agents/` > plugin `agents/`. Practically:\n\n- Team agents `AI-SDLC-frappe/.claude/agents/` mein rehte hain aur code ki tarah review hote hain, us DocType JSON ke bagal mein jise woh review karte hain.\n- `--agents '{...}'` **test harness** hai: yeh file chhue bina ek session ke liye project agent ko override karta hai.\n- Do versions side by side ke liye do naam chahiye. Finished repository mein pehle se module 05 ka `reviewer` hai, isliye yeh module v1 ko `reviewer-v1` ke roop mein install karta hai.\n\nNayi files hot-reload hoti hain, siwaay nayi bani `agents` directory ke pehle agent ke, jise restart chahiye."
+    },
+    {
+      "heading": "Body hi poora system prompt hai",
+      "body_md": "Markdown body us subagent ke liye Claude Code system prompt ko **replace** karta hai. Start-up par use sirf milta hai: uska body, main session ka likha task message, CLAUDE.md hierarchy, git status, basic environment details, aur `skills:` mein listed koi bhi skills. Use tumhari conversation, output style ya auto memory **nahi** milti.\n\nFrappe codebase par iska matlab hai ki agent ko pata hai bench kahan hai (`/home/user/frappe-bench`), kaunsi site safe hai (`test.localhost`) aur ki `site_config.json` off limits hai, sirf isliye kyonki `AI-SDLC-frappe/CLAUDE.md` aisa kehti hai. Use pata hai ki DocType JSON, `hooks.py` aur `patches.txt` change ka hissa hain, sirf tab jab body use batata hai.\n\n### Ise likhna\n\n- **Pehle role aur scope**: \"`sample-app/spice_lite/` mein `spice_lite` app ka senior Frappe aur Python code reviewer\". Specialization hi subagent ko `general-purpose` se behtar banata hai.\n- **Ek procedure** jise woh bina guess kiye follow kar sake: `git diff HEAD -- sample-app`, badli hui files padho *aur* agar chhue gaye hon toh DocType JSON aur `hooks.py`, named standards check karo.\n- **Path se repository awareness**: `context/standards/frappe-coding-standards.md` aur `review-standards.md` ko paste karne ki jagah unka naam lo.\n- **Ek output format** jise koi parse kar sake. v1 sirf \"report the problems you find\" kehta hai, aur kuch nahi. Yeh jaan-boojh kar hai: module `09-agent-evaluation` ko ek naive baseline chahiye.\n\nBody ka har sentence us agent ke har turn par tokens khata hai. Jo facts har agent ko chahiye woh CLAUDE.md mein jaate hain; body mein role, procedure aur output rehta hai."
+    },
+    {
+      "heading": "Bench par tool selection: allowlists, aur console aur execute alag kyon hain",
+      "body_md": "`tools` ek **allowlist** hai. Ise **chhod do** toh subagent har woh tool inherit karta hai jo subagents ko available hai, MCP tools samet. Reviewer v1 yahi karta hai, isliye ek \"reviewer\" Edit, Write kar sakta hai, aur jo bhi Bash permission rules allow karein chala sakta hai.\n\n`disallowedTools` ek **denylist** hai, aur specifier tool ko narrow nahi karta: `disallowedTools: Bash(bench *)` **poora** Bash hata deta hai. Tool list se tum Bash ko scope nahi kar sakte.\n\nBench par Bash ek tool nahi, bahut alag blast radius wala ek parivaar hai:\n\n| Command | Kya kar sakta hai |\n|---|---|\n| `bench --site test.localhost run-tests` | `FrappeTestCase` classes chalata hai, jo har class ke baad roll back hoti hain; Link targets ke test records commit hote hain |\n| `bench --site test.localhost list-apps` | read-only |\n| `bench --site X console` | Administrator ke roop mein IPython shell: koi bhi Python, koi bhi SQL, koi permission checks nahi |\n| `bench --site X execute <dotted.fn>` | koi bhi function Administrator ke roop mein call karta hai aur **commit** karta hai (`spice_lite.demo.seed_demo` API secrets rotate karta hai) |\n| `bench --site X migrate` | DocType JSON sync karta hai, `patches.txt` chalata hai, shared site ka schema badalta hai |\n\n`console` aur `execute` isliye khatarnaak hain kyonki woh *site par sabse oonchi privilege ke saath general-purpose code execution* hain, isliye nahi ki agent ka intent kya hai. `AI-SDLC-frappe/.claude/settings.json` unhe `ask` ke under rakhta hai; `drop-site` aur `reinstall` ko `deny` ke under.\n\nIsliye practically: read-only agents ko `tools: Read, Grep, Glob, Bash` aur ek Claude Code hook milta hai jo Bash ko named commands tak narrow karta hai; code review karne wali kisi cheez ko `console` ya `execute` ki zaroorat nahi. Tool list batati hai *kaunse* tools; Claude Code hooks aur permission rules batate hain *kaunsi calls*."
+    },
+    {
+      "heading": "Permissions: permissionMode, parent ka mode, aur layered controls",
+      "body_md": "Subagent `permissionMode` declare kar sakta hai: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` ya `bypassPermissions`. Read-only reviewer ke liye `dontAsk` attractive hai: jo bhi prompt karta woh deny hota hai, aur `permissions.allow` se allowed commands (jaise `.claude/settings.json` mein `Bash(git diff *)` aur `Bash(bench --site test.localhost run-tests *)`) ab bhi chalte hain.\n\nLekin subagent ka `permissionMode` **ignore hota hai jab parent session `bypassPermissions`, `acceptEdits` ya `auto` mein chalta hai**, aur subagent `bypassPermissions` tak escalate nahi kar sakta jab tak parent pehle se usme na ho. Recent versions naye terminal sessions `auto` mein start karte hain, isliye tumhari `dontAsk` line aksar effect mein nahi hoti.\n\nIsiliye yeh module controls ko layer karta hai:\n\n1. `tools` woh hata deta hai jo agent kabhi use nahi kar sakta (koi Edit nahi, koi Write nahi).\n2. **Agent ke apne frontmatter mein** ek `PreToolUse` Claude Code hook chalta hai, parent chahe kisi bhi mode mein ho. `reviewer-bash-guard.mjs` `git diff/log/show/status` aur safe arguments wale `bench --site test.localhost run-tests` ke alawa sab ke liye 2 se exit karta hai, aur apne message mein `console`, `execute` aur `migrate` ka naam leta hai. Precondition: Claude Code project agent ke frontmatter hooks tabhi chalata hai jab folder ek interactive session mein trusted ho chuka ho; kabhi trusted na hue folder mein `claude -p` run unhe skip karta hai.\n3. Settings mein `permissions.deny` (`Read(**/site_config.json)`, `Bash(bench drop-site *)`) har jagah apply hota hai.\n4. `permissionMode` aakhri, best-effort layer hai.\n\nYahan dono tarah ke hook ko confuse mat karo: guard ek **Claude Code hook** hai (Claude Code event par chalne wala Node script). Iska `hooks.py` ke **Frappe hook** se koi lena-dena nahi. Jo agent ab bhi Edit aur Write inherit karta hai uske headless tests ke liye `claude -p ... --permission-mode plan` chalao."
+    },
+    {
+      "heading": "Context injection: bench par CLAUDE.md, preloaded skills, aur !`cmd`",
+      "body_md": "Kisi agent ya skill ke start hone se **pehle** uske saamne repository knowledge rakhne ke teen tareeke:\n\n- **CLAUDE.md**: har subagent ke liye load hoti hai (built-in Explore aur Plan ko chhod kar). `AI-SDLC-frappe/CLAUDE.md` har agent ko bench path, test command aur PHI rules deti hai.\n- **Agent frontmatter mein `skills:`**: listed skills start-up par inject hoti hain. Module 05 tester aur developer ko `skills: [run-tests]` deta hai. `disable-model-invocation: true` wali skill preload nahi ho sakti, isliye run-tests default rakhti hai.\n- **SKILL.md body mein `` !`command` ``**: skill invoke hone par chalta hai; uska output placeholder ko replace karta hai. Frappe repo par kaam ke injections woh facts hain jo files mein ya site par rehte hain:\n  - `grep -rn -A1 \"@frappe.whitelist\" sample-app/spice_lite/spice_lite --include=*.py`: har whitelisted method aur uske allowed verbs;\n  - `python3 ${CLAUDE_SKILL_DIR}/scripts/doctype_summary.py`: DocType JSON se padhi har DocType ki ek line (naming, `search_index`, `unique`, Links, role ke hisaab se DocPerm rows);\n  - `cd /home/user/frappe-bench && bench --site test.localhost list-apps`: prove karta hai ki site aur uska database jawab dete hain, app versions aur branches ke saath.\n\nSharp edges:\n\n- **Non-zero exit poori skill abort kar deta hai** (`grep` ka exit 1 tolerate hota hai). `bench run-tests` kabhi inject mat karo. `list-apps` inject karna jaan-boojh kar fail-fast hai: agar Postgres down hai toh skill turant ruk jaati hai.\n- Command **permission rules ke against check hota hai**; ise skill ke `allowed-tools` mein pre-approve karo. `allowed-tools` pre-approve karta hai, restrict nahi karta.\n- Injected JSON facts database ke baare mein galat ho sakte hain. DocType JSON kehta hai ki `SL Encounter.patient` par `search_index: 1` hai; `pg_indexes` aisa koi index nahi dikhata (agla concept). Jo sasta aur sach ho woh inject karo; verified observations ko supporting file mein rakho.\n\n`$ARGUMENTS` poori argument string hai, `$0` pehla argument (0-based), aur `arguments: [module, test]` named `$module` aur `$test` deta hai."
+    },
+    {
+      "heading": "Observation se bani reference file, memory se nahi",
+      "body_md": "\"Is endpoint ko explain karo\" wale jawab ka sabse kamzor hissa aksar SQL hota hai: model khushi se `frappe.get_list` ke liye plausible SQL likh dega. `explain-endpoint` skill ise `reference.md` se avoid karti hai, jiska SQL section `docs/tutorials/level-2/tools/capture_sql.py` se **real site par capture** kiya gaya tha. Tool `Database._log_query` ko wrap karta hai (Frappe har executed statement ke baad ise call karta hai; Postgres par isme `cursor.query` hota hai, woh text jo psycopg2 ne bheja), method ko `clinician@spice-lite.test` ke roop mein do baar call karta hai, statements print karta hai aur sab roll back kar deta hai.\n\nCapture ne kya dikhaya, jisme se kuch bhi spice_lite code mein nahi hai:\n\n- `search_patients` bhejta hai `... where \"tabSL Patient\".\"last_name\" ilike '<family>%%' ... limit 50 offset 0`: Frappe Postgres par `like` ko `ilike` bana deta hai, aur `EXPLAIN` dikhata hai ki iske liye `last_name` b-tree use nahi hota, jabki `fhir.py:78` ka ek comment kehta hai ki hota hai.\n- `lastn` warm process par har subject ke exactly 2 statements leta hai (1 → 2, 2 → 4, 5 → 10), har ek `select *` bina `LIMIT` ke.\n- Postgres par har insert `select table_name from information_schema.tables ...` bhi chalata hai: Frappe ka apna `doc_events[\"*\"][\"on_update\"]` (`frappe/hooks.py:166`) `table_exists` call karta hai, aur Postgres `get_tables()` apna cache flag ignore karta hai.\n- `SL Patient.country` aur `SL Encounter.patient` par `search_index: 1` hai lekin **koi index nahi**: Frappe v15 Postgres indexes ka naam bare field name par rakhta hai (`CREATE INDEX IF NOT EXISTS \"patient\"`), aur woh naam pehle se `tabSL Observation` aur `tabAddress Template` ke the.\n- Cold process 9 se 12 statements aur jodta hai (roles, User, User Permissions, DocType meta).\n\nIsliye practically: supporting files **provenance ke saath observations** (command, site, date) rakhti hain, aur skill ke rules kehte hain ki unhe cite karo, ya baaki sab ko \"not observed\" label karo."
+    },
+    {
+      "heading": "Headless testing aur iteration",
+      "body_md": "Agent aisa code hai jise tum seedhe unit-test nahi kar sakte, isliye tum fixed inputs par uska behaviour test karte ho. Yahan fixed inputs `docs/tutorials/level-2/patches/` ke do labelled patches hain:\n\n- `02-review-exercise.patch`: `search_patients` ke search terms log karta hai aur `frappe.get_list` ko `frappe.get_all` se badal deta hai. Ise apply karne ke baad bhi **saare 46 tests pass hote hain**. Sirf review ise pakadta hai.\n- `02-final-without-value-regression.patch`: `final` Observation ko bina value ke save hone deta hai. Exactly ek test fail hota hai: `TestSLObservation.test_final_requires_value_and_unit`.\n\nInhe `AI-SDLC-frappe/` se `git apply --directory=\"$(git rev-parse --show-prefix)\" <patch>` ke saath apply karo. Repository ki subdirectory ke andar plain `git apply` un paths ko **skip** kar deta hai jo directory ke bahar resolve hote hain, kuch print nahi karta aur 0 se exit karta hai (`-v` `Skipped patch` dikhata hai).\n\nRunner `claude -p` hai:\n\n| Flag | Kyon |\n|---|---|\n| `--output-format json` | `result`, `subtype`, `is_error`, `num_turns`, `total_cost_usd`, `session_id`, `usage` |\n| `--max-turns 10` | loop ko cap karta hai; limit hit hone par `subtype: error_max_turns` milta hai |\n| `--permission-mode plan` | un agents ke liye read-only run jo ab bhi Edit/Write inherit karte hain |\n| `--agent reviewer` | agent ko main thread ke roop mein chalao |\n| `--agents '{\"reviewer\": {...}}'` | ek session ke liye agent override karo |\n| `--output-format stream-json --verbose` | har message, us `Agent` tool call samet jisne delegate kiya |\n\n`-p` mode mein skill prompt mein `/run-tests` daal kar chalti hai. Loop: **ek** cheez badlo, wahi command usi patch par dobara chalao, `result`, `num_turns` aur `total_cost_usd` compare karo, use `docs/tutorials/level-2/README.md` mein log karo. Jis cheez ko model nahi chahiye woh bina model ke test hoti hai: parser **captured bench output** ke against, Claude Code hook piped JSON ke saath."
+    }
+  ],
+  "diagrams": [
+    {"title": "/run-tests invoke hone par kya hota hai"},
+    {"title": "Route se SQL tak ek whitelisted method (explain-endpoint kya trace karti hai)"},
+    {"title": "Reviewer ki Bash call kin layers se guzarti hai"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Bench par agent kya kar sakta hai, uske controls",
+      "columns": ["Control", "Kahan", "Granularity", "Parent auto/acceptEdits/bypass mein bachta hai?", "Kiske liye use karo"],
+      "rows": [
+        ["`tools` allowlist", "Subagent frontmatter", "Poore tools", "Haan", "Read-only agents: `Read, Grep, Glob, Bash`"],
+        ["`disallowedTools`", "Subagent frontmatter", "Poore tools (`Bash(bench *)` poora Bash hata deta hai)", "Haan", "Edit/Write ke alawa sab inherit karo"],
+        ["`permissionMode`", "Subagent frontmatter", "Session behaviour", "Nahi: `bypassPermissions`, `acceptEdits`, `auto` ke under ignore", "Unattended read-only agents ke liye `dontAsk`"],
+        ["`hooks` (`PreToolUse`)", "Subagent frontmatter", "Individual calls (`tool_input.command` inspect karta hai)", "Haan (folder trusted hone ke baad)", "Sirf `bench --site test.localhost run-tests` aur git reads allow karo; `console`, `execute`, `migrate` block karo"],
+        ["`permissions.allow/ask/deny`", "`.claude/settings.json`", "Rule se calls (`Bash(bench --site * console)`)", "Deny rules haan", "Project guardrails: console/execute/migrate ke liye `ask`, drop-site/reinstall aur site_config reads ke liye `deny`"],
+        ["Skill `allowed-tools`", "SKILL.md frontmatter", "Rules, jab tak skill active hai", "Restriction bilkul nahi hai", "/run-tests ke liye `bench --site test.localhost run-tests *` pre-approve karna"],
+        ["Frappe roles aur DocPerm", "DocType JSON, migrate se synced", "Har DocType aur role ke hisaab se", "n/a (site ke andar)", "Site user ko kya karne deti hai; bench console aur execute ise poori tarah bypass karte hain"]
+      ]
+    },
+    {
+      "title": "Subagent ya skill?",
+      "columns": ["Sawaal", "Subagent (`.claude/agents/`)", "Skill (`.claude/skills/`)"],
+      "rows": [
+        ["Context", "Fresh: body, task message, CLAUDE.md, git status, preloaded skills", "Current conversation (jab tak `context: fork` na ho)"],
+        ["Invocation", "Description se delegation, `@agent-reviewer`, `--agent`", "`/explain-endpoint spice_lite.api.fhir.lastn` ya description se auto-load"],
+        ["Tool control", "`tools`, `disallowedTools`, `permissionMode`, `hooks`", "`allowed-tools` (pre-approve), `disallowed-tools` (remove), `hooks`"],
+        ["Key spelling", "camelCase (`disallowedTools`, `maxTurns`)", "hyphenated (`allowed-tools`, `argument-hint`) plus `when_to_use`"],
+        ["Kiske liye best", "Apne judgement aur tool boundary wala role (reviewer)", "Repeatable procedure (whitelisted method explain karna, bench tests chalana)"],
+        ["Is module mein", "`reviewer-v1.md`, `reviewer-v1-restricted.md`", "`explain-endpoint`, `run-tests`"]
+      ]
+    }
+  ],
+  "exercises": {
+    "02-first-agent-reviewer-v1": {
+      "title": "Reviewer v1 banao aur use headless test karo",
+      "objective": "Pehla subagent likho, ek jaan-boojh kar simple `reviewer` jisme sirf `name`, `description`, `model` aur ek chhota body ho. Ise module 05 ke reviewer ke bagal mein `reviewer-v1` ke roop mein install karo, ek labelled patch apply karo jise test suite nahi pakadta, aur `claude -p` se prove karo ki main session use delegate karta hai aur woh dono defects dhoondhta hai. `evaluations/agent-versions/reviewer-v1.md` ko unchanged rakho: module 09 ise v2 se compare karta hai.",
+      "testCases": [
+        {"name": "Frontmatter mein exactly v1 keys hain"},
+        {"name": "v1 jaan-boojh kar broad hai: koi tools line nahi", "expected": "0 (agent har tool inherit karta hai; exercise 02-restrict-tools-and-hook ise narrow karti hai)"},
+        {"name": "Installed copy sirf name mein alag hai"},
+        {"name": "Plain git apply chupchaap patch skip kar deta hai"},
+        {"name": "Patch lagta hai aur suite green rehta hai"},
+        {"name": "Delegation sach mein hua"},
+        {"name": "Run turn budget ke andar khatam hua", "expected": "\"subtype\": \"success\", \"is_error\": false, num_turns zyada se zyada 10"},
+        {"name": "Dono defects report hue", "expected": "Dono counts kam se kam 1."},
+        {"name": "Plan mode ne ise read-only rakha", "expected": "Patch se sirf ` AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py | 4 +++-` (git repository root se paths print karta hai)."}
+      ],
+      "evaluationCriteria": [
+        "`description` batata hai ki agent kya karta hai aur use kab delegate karna hai.",
+        "Body ek system prompt hai: role, numbered procedure, kahan dekhna hai (`git diff`, DocType JSON, `hooks.py`, CLAUDE.md).",
+        "v1 valid hai lekin jaan-boojh kar naive: koi `tools` line nahi aur koi structured output nahi. Snapshot ko improve mat karo; improvements baad ke versions mein jaate hain.",
+        "Headless command sirf documented flags use karta hai (`-p`, `--permission-mode`, `--max-turns`, `--output-format`).",
+        "Learner samjha sakta hai ki green suite plus prose review is baat ka evidence kyon nahi hai ki change safe hai."
+      ],
+      "improvements": [
+        "Wahi command teen baar chalao aur `result` fields diff karo: yahi baseline noise hai jo module 09 measure karta hai.",
+        "Files edit kiye bina ek run ke liye agent override karo: `claude -p ... --agents '{\"reviewer-v1\": {\"description\": \"Reviews spice_lite changes.\", \"prompt\": \"You are a reviewer. Reply with findings only.\", \"tools\": [\"Read\", \"Grep\", \"Glob\"]}}'`.",
+        "`color: blue` jodo taaki interactive session mein reviewer aasani se dikhe."
+      ]
+    },
+    "02-explain-endpoint-skill": {
+      "title": "Real SQL se bani reference file ke saath explain-endpoint skill likho",
+      "objective": "`.claude/skills/explain-endpoint/` banao: ek SKILL.md jo `$ARGUMENTS` ke roop mein dotted method ya `/api/method/...` path leti hai, whitelisted-method map, DocType JSON se padhi DocType summary aur request badalne wale Frappe hook keys inject karti hai, aur ek `reference.md` link karti hai jiska SQL `capture_sql.py` se real site par capture kiya gaya. Ise `spice_lite.api.fhir.lastn` par invoke karo aur check karo ki jawab route, whitelist, permissions, controller aur `doc_events`, SQL aur tests ko real `path:line` citations aur 2-statements-per-subject count ke saath trace karta hai.",
+      "testCases": [
+        {"name": "Skill frontmatter hyphenated skill keys use karta hai"},
+        {"name": "Har injection chalta hai aur pre-approved hai"},
+        {"name": "DocType summary JSON permissions padhti hai"},
+        {"name": "Reference SQL fresh capture se match karta hai"},
+        {"name": "Capture peeche kuch nahi chhodta", "expected": "Identical counts: tool `finally` mein roll back karta hai."},
+        {"name": "JSON mein search_index Postgres mein index nahi hai"},
+        {"name": "Jawab real locations aur count cite karta hai", "expected": "Kam se kam 3 matching lines."},
+        {"name": "Skill read-only rehti hai", "expected": "Skill chalane ke baad koi output nahi."}
+      ],
+      "evaluationCriteria": [
+        "Description dono input forms (dotted method, `/api/method/...`) ka naam leti hai taaki \"what SQL does lastn run?\" ke liye auto-invocation kaam kare.",
+        "Har injection sasta hai, fail hone par safe hai (grep exit 1 tolerate hota hai) aur pre-approved hai; kisi ko bench nahi chahiye.",
+        "reference.md Frappe source ko file aur line se cite karta hai aur batata hai ki SQL kaise aur kab observe kiya gaya.",
+        "Skill Claude ko kehti hai ki jo SQL reference.md mein nahi hai use invent karne ki jagah \"not observed\" label kare.",
+        "Learner un do framework behaviours ko samjha sakta hai jo capture ne dikhaye (har insert par `information_schema` query, missing Postgres indexes)."
+      ],
+      "improvements": [
+        "`paths: [\"sample-app/spice_lite/**/api/*.py\"]` jodo taaki skill sirf tab auto-activate ho jab Claude API code par kaam kare.",
+        "Wahi methods MariaDB site (`mariadb.localhost`) par capture karo aur ek column jodo: `ilike` `like` ban jaata hai, aur index names per table hote hain.",
+        "Trace ko main context se bahar rakhne ke liye skill ko `context: fork` aur `agent: Explore` ke saath chalao (Explore CLAUDE.md load nahi karta, isliye skill mein bench path ka naam lo)."
+      ]
+    },
+    "02-run-tests-skill": {
+      "title": "Agent ko ek tool do: run-tests skill aur bench output ka parser",
+      "objective": "`/run-tests [module [test]]` banao: `allowed-tools` se exactly `cd`, `bench --site test.localhost run-tests`, `list-apps`, parser aur `git status` commands pre-approve karo, `!` se `bench list-apps` aur changed files inject karo, named arguments validate karo, aur bench ke output ko ek zero-dependency Python parser se compact verdict mein badlo jo real bench se captured output ke against tested ho. Ise ek labelled regression pakadne ke liye use karo jo final Observation ko bina value ke save hone deta hai.",
+      "testCases": [
+        {"name": "Parser tests bina bench ke pass hote hain"},
+        {"name": "Failing run par bench 0 se exit karta hai (parser ki wajah)"},
+        {"name": "Zero tests pass nahi hai"},
+        {"name": "Regression par live pipeline"},
+        {"name": "Regression patch exactly ek test todta hai"},
+        {"name": "Bench kabhi inject nahi hota, list-apps hota hai", "expected": "Exactly do injections: !`cd /home/user/frappe-bench && bench --site test.localhost list-apps` aur !`git status --short -- sample-app`. !`...` ke andar koi `run-tests` nahi."},
+        {"name": "Sirf zaroori commands pre-approved hain", "expected": "6 (bench tak cd, run-tests, list-apps, arguments ke saath aur bina parser, git status); koi console, execute ya migrate nahi"},
+        {"name": "Koi PHI ya msgprint text summary tak nahi pahunchta", "expected": "0 (wahi pattern raw fixture mein 14 lines ginta hai: 13 'Message:' lines aur ek tb_locals `self = <` line; summary sirf count report karti hai, `Not shown: 13 'Message:' line(s).` ke roop mein)"},
+        {"name": "Unsafe argument reject hota hai", "expected": "Ek reply jo kehta hai ki argument reject hua; koi bench command nahi chala."}
+      ],
+      "evaluationCriteria": [
+        "`allowed-tools` compound command ke har hisse ke liye ek rule list karta hai, YAML list form mein kyonki rules mein spaces hain.",
+        "Failing test skill ko abort nahi kar sakta: bench normal Bash call ke roop mein chalta hai, aur sirf `list-apps` aur `git status` inject hote hain.",
+        "Verdict parser ke exit code se aata hai, aur learner un teen bench behaviours ka naam le sakta hai jo bench ke apne exit code ko bekaar banate hain (failures 0 se exit, zero tests 0 se exit, bina summary ke crash).",
+        "Parser stdlib-only Python hai, noise ke counts print karta hai lekin kabhi `Message:` lines, tracebacks ki source lines ya locals nahi, aur documented provenance wale real captured output ke against tested hai.",
+        "`$module` aur `$test` shell tak pahunchne se pehle validate hote hain."
+      ],
+      "improvements": [
+        "`--junit-xml-output` support jodo: check karo ki bench venv mein zaroori XML runner hai ya nahi aur text ki jagah XML parse karo.",
+        "Module 10 (`.claude/settings.json` ka owner) ko propose karo ki `permissions.allow` mein `Bash(cd /home/user/frappe-bench)` jode, taaki tester aur developer agents ke preloaded use ko prompt na chahiye.",
+        "Ek `--json` output mode jodo aur CI mein `structured_output` paane ke liye ise `claude -p --json-schema` ke saath use karo."
+      ]
+    },
+    "02-restrict-tools-and-hook": {
+      "title": "Reviewer ke tools restrict karo aur ek Claude Code hook ko uske liye scope karo",
+      "objective": "Reviewer v1 par iterate karo: ek `tools` allowlist (koi Edit ya Write nahi), `permissionMode: dontAsk`, `maxTurns: 15`, verdict ke saath findings-table output, aur agent ke apne frontmatter mein ek `PreToolUse` Claude Code hook jodo jo sirf read-only git aur `bench --site test.localhost run-tests` allow kare, aur `bench console`, `execute` aur `migrate` block kare. Hook ko piped JSON se test karo, phir headless prove karo ki reviewer na bench console khol sakta hai na file edit kar sakta hai.",
+      "testCases": [
+        {"name": "Hook unit tests pass hote hain"},
+        {"name": "Hook bench console ko exit 2 se block karta hai"},
+        {"name": "Hook execute aur migrate bhi block karta hai"},
+        {"name": "Hook run-tests aur git diff ko exit 0 se allow karta hai"},
+        {"name": "Hook allowed form ke andar chaining block karta hai"},
+        {"name": "Allowlist mein koi write tools aur koi Agent nahi"},
+        {"name": "Hook agent mein scoped hai, settings mein nahi"},
+        {"name": "Headless run: koi edits nahi", "expected": "Patch se sirf ` AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py | 4 +++-`; comment line add nahi hui. Result blocked `bench --site test.localhost console` ka zikr karta hai."},
+        {"name": "Parent mode permissionMode ko override karta hai, hook phir bhi tikta hai", "expected": "Ab bhi reviewer-bash-guard se blocked: acceptEdits ke under `permissionMode: dontAsk` ignore hota hai, subagent ka PreToolUse Claude Code hook nahi (folder ek baar interactively trusted hona chahiye)."}
+      ],
+      "evaluationCriteria": [
+        "`tools` ek explicit allowlist hai; learner bata sakta hai ki `disallowedTools: Bash(bench *)` poora Bash kyon hata deta.",
+        "Hook fail closed hota hai (unparseable input 2 se exit), chaining, redirection aur substitution block karta hai, aur apne message mein console, execute aur migrate ka naam leta hai.",
+        "Sirf `test.localhost` aur `--app spice_lite` / `--module spice_lite.*` selections pass hoti hain; koi doosri site ya `--junit-xml-output /tmp/x` blocked hai.",
+        "Learner un teen parent modes ka naam le sakta hai jinke under `permissionMode` ignore hota hai, aur frontmatter hooks ki trust precondition.",
+        "Tutorial ka iteration log change aur v1 se observed fark record karta hai."
+      ],
+      "improvements": [
+        "Exit 2 ki jagah `permissionDecisionReason` ke saath JSON `hookSpecificOutput.permissionDecision: \"deny\"` return karo, aur compare karo ki agent ko kya dikhta hai.",
+        "Agent ke frontmatter mein ek `Stop` Claude Code hook jodo (yeh `SubagentStop` ban jaata hai) jo 2 se exit kare jab final message mein findings table ya verdict line na ho.",
+        "Module 05 ke `agents/tool-guard.mjs` se compare karo, jo allowed prefixes arguments ke roop mein leta hai, aur decide karo ki doosre agent ko kaunsa reuse karna chahiye."
+      ]
+    }
+  },
+  "checklist": [
+    "`AI-SDLC-frappe/evaluations/agent-versions/reviewer-v1.md` ke frontmatter mein sirf `name`, `description`, `model` hain aur exercises ke baad yeh unchanged hai.",
+    "`claude -p \"Use the reviewer-v1 subagent ...\" --output-format stream-json --verbose` `subagent_type` `reviewer-v1` ke saath ek `Agent` tool call dikhata hai.",
+    "Patches `git apply --directory=\"$(git rev-parse --show-prefix)\"` se apply hote hain, aur `git diff --stat -- sample-app` confirm karta hai ki har ek laga.",
+    "`02-review-exercise.patch` apply hone par bhi `bench --site test.localhost run-tests --app spice_lite` 46 OK report karta hai, aur v1 review logged search terms aur `frappe.get_all` dono ka naam leta hai.",
+    "Dono skills ka har `!` command us skill ke `allowed-tools` mein listed hai aur bench up hone par clean checkout par 0 (ya grep ka 1) se exit karta hai.",
+    "`/explain-endpoint spice_lite.api.fhir.lastn` `fhir.py` loop lines cite karta hai aur har subject ke 2 statements report karta hai; uska SQL fresh `capture_sql.py` run se match karta hai.",
+    "`python3 -m unittest discover -s .claude/skills/run-tests/scripts -p 'test_*.py'` bina bench ke 12 mein se 12 pass karta hai.",
+    "Regression patch ke saath `/run-tests` `test_final_requires_value_and_unit` aur `NOT READY` report karta hai, jabki bench khud 0 se exit hua.",
+    "`node --test docs/tutorials/level-2/examples/reviewer-bash-guard.test.mjs` 8 mein se 8 pass karta hai.",
+    "Restricted reviewer install hone ke baad woh `bench console`, `execute` ya `migrate` nahi chala sakta ya files edit nahi kar sakta, `--permission-mode acceptEdits` ke saath bhi.",
+    "Dono patches revert ho gaye: `git status --short -- sample-app` kuch print nahi karta aur suite 46 tests pass karta hai."
+  ]
+}

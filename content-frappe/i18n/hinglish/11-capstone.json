@@ -1,0 +1,213 @@
+{
+ "id": "11-capstone",
+ "title": "Capstone: Frappe Bench par Apna Personal AI-SDLC Engineering System Banao",
+ "summary": "Modules 00 se 10 ko ek aise system mein jodo jise tum Frappe bench par chala sako aur jis par bharosa kar sako: AI-SDLC-frappe/ ke har folder ko uske purpose, module aur format tag se map karo; wiring prove karo, bench-facing pieces samet (spice_lite layout, patches.txt modules, DocType folders, bench list-apps), ek zero-dependency check se jo sre ke Bash guard aur uski preloaded skill ke beech ek real seam bhi dhoondhta hai; ek feature (OBS-51, fixture aur patch ke saath ek naya DocType) aur ek country-site incident (100-subject lastn ward board jo gunicorn ko saturate karta hai) ko orchestrator, har agent aur har human gate se trace karo; aur end mein system ko ek measured checklist ke saath apne spice_next_core-style bench par le jao.",
+ "prerequisites": [
+  "08-workflow-orchestration",
+  "09-agent-evaluation",
+  "10-governance",
+  "05-agent-roster",
+  "04-skills-security-performance-rca",
+  "`AI-SDLC-frappe/sample-app/scripts/setup-bench.sh` se bana bench (Frappe v15, PostgreSQL 16, site `test.localhost`)",
+  "Node 22, Python 3.11, agent runs ke liye authenticated Claude Code CLI"
+ ],
+ "concepts": [
+  {
+   "heading": "Ek system, saat layers, ek external bench",
+   "body_md": "Har pichhle module ne ek layer banaya. Capstone unke beech ke seams ke baare mein hai, kyonki wahi jagah hai jahan kaam karne wale parts ka set ek kaam karne wala system nahi rehta.\n\n| Layer | Files | Kis sawaal ka jawab deta hai |\n|---|---|---|\n| Knowledge | `CLAUDE.md`, `.claude/rules/`, `context/**` | Har agent bina pooche kya jaanta hai, bench kahan hai samet? |\n| Capability | `.claude/skills/**`, `.mcp.json`, `mcp/` | Kaunse procedures aur tools exist karte hain? |\n| Actors | `.claude/agents/*.md`, `agents/*/CONTRACT.md`, `agents/tool-guard.mjs` | Kaun kaunsa bench command chala sakta hai aur kaunsa path edit kar sakta hai? |\n| Sequencing | `orchestrator.md`, entry-point skills, `workflows/*.md` | Kis order mein, kin conditions aur retries ke saath? |\n| Enforcement | `.claude/settings.json`, `.claude/hooks/`, `workflows/gates.settings.json` | Har call par kya block, ask ya check hota hai? |\n| Measurement | `evaluations/`, `skills/*/tests/` | Kya change ne agent ya skill ko behtar ya badtar banaya? |\n| Governance | `docs/governance/`, `scripts/governance/`, `company-ai/` | Upar ki sab cheezon mein, aur DocType JSON, `patches.txt` aur `hooks.py` mein changes kaun approve karta hai? |\n\nFrappe system ki ek aur dependency hai jo Java edition mein nahi hai: **bench repository ke bahar rehta hai**. `/home/user/frappe-bench` par `apps/spice_lite` `sample-app/spice_lite` ka symlink hai, site `test.localhost` par app installed honi chahiye, aur agent jo bhi test chalata hai woh `bench --site test.localhost run-tests` se jaata hai. Agar symlink kisi aur copy ki taraf point kare, toh agents ek tree edit karte hain aur doosra test karte hain.\n\nLayers ek doosre ko **naam aur path** se reference karti hain, aur Claude Code mein kuch bhi tumhare liye in references ko check nahi karta. Ek `skills:` entry jo missing skill ka naam le, ek Claude Code hook command jo moved script ki taraf point kare, ek workflow step jo aise agent ka naam le jise orchestrator spawn nahi kar sakta, ya ek `patches.txt` line jiska module kabhi likha hi nahi gaya, yeh sab chup-chaap ya sabse bure waqt par fail hote hain: unknown frontmatter fields ignore hote hain, missing hook script ek non-blocking error hai, aur missing patch module sirf country site par `bench migrate` ke waqt fail hota hai. Toh practically system ko apne seams ka apna check chahiye, jo CI mein aur har workflow run se pehle chale: `scripts/capstone/verify-system.mjs` (exercise `11-verify-system`)."
+  },
+  {
+   "heading": "Orchestrator aur uske human gates, reconciled",
+   "body_md": "Module 08 ne orchestrator aur uska contract banaya (dekho `08-workflow-orchestration` aur `agents/orchestrator/CONTRACT.md`; yeh module koi naya contract nahi jodta). Woh **main thread** ki tarah chalta hai: `claude --agent orchestrator --settings workflows/gates.settings.json --permission-mode default`. Docs ke do facts design ko uthate hain: uske `tools` mein `Agent(architect, developer, reviewer, tester, security, sre)` list sirf isliye enforce hoti hai kyonki woh main-thread agent hai, aur roster agents `Agent` omit karte hain (aur use `disallowedTools` mein list karte hain) taaki tree ek level deep rahe. Orchestrator ke paas na Bash hai na Edit, isliye woh kabhi `bench` nahi chala sakta.\n\nModule 08 workflow gates ko G1, G1b, G2, G3 aur G-M number karta hai; module 10 governance layers ko G1 se G10 number karta hai. Yeh wahi controls hain, do taraf se dekhe hue:\n\n- **G1 plan approval** = `Agent(developer)` par `ask` rule. Har developer launch, har rework samet, ek permission prompt hai.\n- **G1b test-site schema** = developer ke tool-guard mein `?bench --site test.localhost migrate` (yeh `permissionDecision: \"ask\"` return karta hai), plus `ask` rules aur `guard-bench.mjs` (governance G2). Tum exactly dekhte ho ki kaunsi site migrate ho rahi hai.\n- **G2 findings** = orchestrator ka `status: needs-human` ke saath rukna. Yeh ek **prompt instruction hai, built-in feature nahi**. Iska mechanical backstop agla `Agent(developer)` prompt aur PR hai.\n- **G-M mitigation** = insaan ke alawa koi country site nahi badalta: orchestrator ke paas Bash nahi, sre ka guard sirf `test.localhost` par read-only diagnostics allow karta hai, aur `supervisorctl`, `redis-cli`, `purge-jobs`, `execute` aur `console` har agent ki pahunch se bahar hain.\n- **G3 merge** = branch protection ke under PR review, `**/doctype/**`, `patches.txt`, `hooks.py`, `fixtures/**` par CODEOWNERS, aur `ai-change-gate` check apni `ai-config` (G7) aur `schema` (G8) categories ke saath.\n\nGated workflows `default` mode mein chalao. `dontAsk` mein har `ask` denial ban jaata hai, isliye headless run design se G1 par ruk jaata hai. Kaunsa gate mechanism hai aur kaunsa convention, yeh apne system ke baare mein bol paana sabse zaroori cheez hai."
+  },
+  {
+   "heading": "Ek feature trace karna: OBS-51 har layer se",
+   "body_md": "Committed run `workflows/examples/feature-observation-code-vocabulary/` (module 08) mein handoffs, teen real patches aur bench output hain. Capstone view (`docs/capstone/walkthrough-feature.md`) jodta hai ki har pal kya act karta hai:\n\n1. **Pehle**: clean app tree, `verify-system.mjs --bench` WIRED, is run ke do evaluated agents (02 par architect, 08 par reviewer) ke liye eval replay green.\n2. **`/feature OBS-51 ...`**: skill `disable-model-invocation: true` hai, `SubagentStop` handoff hook register karti hai, `git status --short -- sample-app` inject karti hai.\n3. **01 se 03**: requirements; architect core vocabulary plus shipped fixtures decide karta hai, country apps fixture se codes jodti hain (ARC-1: fixtures har migrate par force-import hote hain); har Frappe surface ke liye ek row wala plan.\n4. **G1**: `subagent_type: developer` ke saath `Agent` ke liye permission prompt.\n5. **04**: developer ka guard `bench --site test.localhost run-tests` allow karta hai aur `migrate` ke liye ask karta hai (**G1b**); `Ran 53 tests ... OK` quote hota hai kyonki `bench run-tests` failures par exit 0 karta hai.\n6. **scope**: `SubagentStop` hook real diff par `security-scope.mjs` chalata hai aur `SECURITY STEP: MANDATORY (rules 1, 3, 4, 5)` likhta hai.\n7. **05 + 06 parallel mein**: TST-1 (non-idempotent patch), TST-2 aur SEC-1 (ek Clinician DocPerm row, do taraf se dekhi hui).\n8. **G2**, phir **07** rework (G1 aur G1b phir se), `Ran 56 tests ... OK`; **08** reviewer low findings ke saath APPROVE; **09** report.\n9. **G3**: PR DocType JSON, `hooks.py`, `patches.txt` aur ek fixture touch karta hai, isliye `check-ai-change-approval.mjs` tab tak fail hota hai jab tak schema owner head commit approve na kare (governance G8), aur merge ke baad har country site apni window mein migrate hoti hai (G9).\n\nEvals aur governance alag tarah apply hote hain: governance **har run ki har tool call** par act karta hai; evaluation **system mein changes** par act karta hai (naye reviewer prompt ko PR merge se pehle replay aur live comparison pass karna hoga)."
+  },
+  {
+   "heading": "Ek incident trace karna: koi agent country site ko touch nahi karta",
+   "body_md": "Incident run (`docs/capstone/example-runs/incident-lastn-ward-board/`) module 04 ke evidence pack se INC-2026-0922-01 replay karta hai. 08:00 UTC se, Clinic KE-C-017 ke 20 ward tablets har 30 s mein 100 subjects ke saath `lastn` call kar rahe the. `lastn` har subject par `frappe.get_doc` plus ek unbounded `frappe.get_all(fields=[\"*\"])` chalata hai (`api/fhir.py:155-184`), aur CHG-5102 ne abhi-abhi har patient ko lagbhag 423 heart-rate readings di thi: har call par 200 statements aur lagbhag 42,300 rows, 9 sync gunicorn workers mein se ek 14 s se 120 s se zyada tak busy. Desk, login aur integrations ne 504 aur 502 return kiye; `default` par telephony reminder job har paanch minute mein time out hua.\n\nSystem step by step kya karta hai:\n\n- **01 brief (08:14)**: orchestrator on-call report mein named patient ko hata deta hai, 08:12 restart record karta hai, aur decide karta hai ki **security chalega**: ek naya integration client jo ek shared token par ward ke heart rates padhta hai \"unexpected access\" pattern hai, jo spec ki condition hai.\n- **02 sre + 03 security parallel mein**: `build-timeline.mjs` exit 0 (125 events, time zones applied: Error Log rows +03:00 site time mein hain), `count-queries.mjs` `lastn` shape ko N+1 flag karta hai, paanch hypotheses ranked; M1 (tablets off), M2 (ward board ke liye nginx 429), M3 (telephony rollback, low confidence). Security: evidence mein koi PHI nahi, SEC-001 `get_all` User Permissions ignore karta hai, SEC-002 20 tablets ke liye ek token.\n- **G-M round 1**: telephony team 08:20 par rollback karti hai. **04** verify karta hai: resolved nahi, bad deploy rejected.\n- **G-M round 2** (spec jo aakhri allow karta hai): 08:31 par tablets off. **05**: 08:34 par recovered, queue 08:48 tak khud drain hui, `pg_stat_statements` 118,400 per-subject calls, har ek 423 rows; database aur OOM rejected.\n- **06** fix ko `/bug-fix BUG-71` ko handover karta hai, ek alag run apne gates ke saath. **07** postmortem golden RCA se match karta hai aur `needs-human` rehta hai.\n\nRetry `workflows/README.md` ka numbering rule dikhata hai: repeated step agla free number leta hai, isliye spec ke 05/06 ban gaye 06/07."
+  },
+  {
+   "heading": "Wiring verify karna: seams par checks, bench samet",
+   "body_md": "Har module ne apne layer ke liye ek checker ship kiya: `check-agents.mjs`, `check-roster-flat.mjs`, `check-mcp-config.mjs`, `check-patches.mjs`, `lint-doctype-json.mjs`, `check-agent-policy.mjs`, `validate-skill-library.mjs`, `check-handoff.mjs`, eval harness. `verify-system.mjs` in sabko chalata hai aur woh cross-layer checks jodta hai jo inme se kisi ke nahi hain:\n\n- har `skills:` entry ek preloadable SKILL.md tak resolve hoti hai; har Claude Code hook script path (settings aur frontmatter) exist karta hai aur har hook event documented hai;\n- Frappe permission floor: `site_config.json` aur `common_site_config.json` reads denied, migrate asked, `drop-site` aur `reinstall` denied, koi allow rule nahi jo `console` ya `execute` grant kare;\n- workflow step tables sirf roster agents aur existing skills ka naam leti hain; CLAUDE.md `@imports` resolve hote hain;\n- **guard reach**: har script jo preloaded skill agent ko chalane ko kehti hai, us agent ka guard pass karti hai. Check `agents/tool-guard.mjs` se real `checkBash` import karta hai aur use `${CLAUDE_SKILL_DIR}` expand karke command deta hai, wahi form jo Claude Code sach mein chalata hai;\n- **app**: `hooks.py` `app_name` aur har dotted path, `modules.txt` packages, har `patches.txt` line jo `def execute()` wale module tak resolve ho, har DocType folder `__init__.py`, JSON, controller class (`SL Patient` se `SLPatient`) aur test ke saath;\n- **`--bench` ke saath**: `apps/spice_lite` is repo ki app hai, `sites/apps.txt` use list karta hai, `bench --site test.localhost list-apps` use aur uske `required_apps` dikhata hai (shared container mein `flock /tmp/spice-bench.lock` ke under), CLAUDE.md same bench ka naam leti hai, aur har eval hallucination trap `<bench>/apps/frappe` mein false hai.\n\nIs repository par yeh 0 WARN ke saath WIRED report karta hai. Pehle ek report karta tha, aur woh WARN ek real seam tha: `performance-review` ne apne query-count test ke liye `bench --site test.localhost run-tests *` pre-approve kiya tha, lekin sre ka guard `run-tests` block karta hai. Har part apna checker pass karta tha; saath mein, jo sre apni preloaded skill ka step 3.1 follow karta woh exit 2 ke saath block ho jata. Fix ek explicitly liya gaya design decision tha: measurement tester ka kaam hai. `performance-review` ab `bench` pre-approve nahi karti, test khud kabhi nahi chalati, aur tester ke liye apne handoff mein query-count test request daalti hai, taaki sre read-only rahe. Toh practically: `verify-system.mjs` ko CI mein `CI=1 bench --site test.localhost run-tests --app spice_lite` ke bagal mein chalao, aur FAIL row ko broken build treat karo."
+  },
+  {
+   "heading": "Apne bench par le jaana: kya carry over hota hai aur kya nahi",
+   "body_md": "System ko course bench ke `spice_lite` se `spice_next_core`-style bench par le jaana zyadatar knowledge aur command swap hai, redesign nahi.\n\n**Bina badle carry over hota hai**: saat roles aur unka separation of duties, handoff format aur `check-handoff.mjs`, orchestrator aur uske gate rules, `tool-guard.mjs` (sirf uske arguments badalte hain), governance Claude Code hooks, eval harness aur scoring, `verify-system.mjs` (yeh `--app-dir`, `--bench` aur `--site` leta hai).\n\n**Badalna zaroori hai**, is order mein (`docs/capstone/personalize-checklist.md`):\n\n1. `CLAUDE.md`: bench path, dev site, bench user, bench ki har app uske `required_apps` ke saath; personal paths `CLAUDE.local.md` mein.\n2. Tumhare DocType, `patches.txt`, `hooks.py` aur country-app fixture paths ke liye `.claude/rules/*.md` `paths`.\n3. Tumhare DocTypes se generated `context/**` (`doctype_summary.py` har DocType ke naming, indexes, Links aur DocPerm rows print karta hai), har patient-linked field ke liye PHI table ke saath.\n4. Country apps aur integration apps: har ek `verify-system --app-dir` ki app rows pass kare; decide karo ki agents kaunsi edit kar sakte hain.\n5. v15 par PostgreSQL 16: apne bench par D-2, D-6 aur D-10 re-check karo; eval traps ko apne Frappe source ki taraf point karo.\n6. Agent guards aur settings: `test.localhost` ke bajaye tumhari dev site, `guard-bench.mjs` ke liye `SPICE_TEST_SITE` samet (settings `env` block; default `test.localhost`); har ask aur deny rakho.\n7. Evals tumhare apne decisions, diffs aur incidents se re-seed; synthetic recordings delete.\n8. `**/doctype/**`, `patches.txt`, `hooks.py`, fixtures aur har country app ke liye CODEOWNERS.\n\n`scripts/capstone/stack-inventory.mjs` ise measurable banata hai: yeh app ke bahar ki har file list karta hai jo ab bhi `spice_lite`, course bench ya invented Kenya deployment mention karti hai, per component, aur `--max N` \"kya hum done hain?\" ko ek exit code mein badal deta hai."
+  }
+ ],
+ "diagrams": [
+  {"title": "Component map: layers aur bench ek doosre ko kaise reference karte hain"},
+  {"title": "System se guzarta incident INC-2026-0922-01"},
+  {"title": "Kahan gate mechanism hai aur kahan convention"}
+ ],
+ "comparisonTables": [
+  {
+   "title": "Component map: folder group, purpose, module, format tag (poori table docs/capstone/README.md mein)",
+   "columns": ["Path", "Purpose", "Kis module mein bana", "Tag"],
+   "rows": [
+    ["`CLAUDE.md`, `.claude/rules/`", "project memory (bench path, site, commands, 9 rules); Python aur DocType JSON, `patches.txt`, `hooks.py` ke liye path-scoped rules", "00-example", "verified-format"],
+    ["`context/**`", "architecture, Frappe standards, threat model, PHI aur site_config policy, PHI table wali glossary", "00-example", "illustrative"],
+    ["`agents/CONTRACT_TEMPLATE.md`, `docs/foundations/`", "Agent Contract template; anatomy aur primitive exercises (Claude Code hook vs Frappe hook)", "01-foundations", "illustrative"],
+    ["`evaluations/agent-versions/reviewer-v1.md`", "pehla reviewer, v1 snapshot ki tarah frozen", "02-first-agent-skill-tools", "verified-format"],
+    ["`.claude/skills/explain-endpoint/`, `run-tests/`", "route se SQL tracing; bench run-tests plus ek parser, kyonki failures par exit code 0 hota hai", "02-first-agent-skill-tools", "verified-format (SKILL.md), illustrative (scripts)"],
+    ["`.claude/skills/architecture-review/`, `code-review/`, `test-strategy/` + `skills/<name>/`", "core vs country app vs integration app; Frappe diff review; FrappeTestCase test plans; golden cases", "03-skills-architecture-code-test", "verified-format (SKILL.md), illustrative (assets)"],
+    ["`.claude/skills/security-review/`, `performance-review/`, `production-rca/` + `skills/<name>/`", "bench probes; measured `lastn` N+1 aur uska patch; RCA method aur INC-2026-0922-01 evidence pack", "04-skills-security-performance-rca", "verified-format (SKILL.md), illustrative (assets)"],
+    ["`.claude/agents/{architect,developer,reviewer,tester,security,sre}.md`", "bench-scoped Claude Code hooks ke saath chhe specialists", "05-agent-roster", "verified-format"],
+    ["`agents/<name>/CONTRACT.md`, `agents/tool-guard.mjs`, `agents/check-agents.mjs`", "contracts, per-agent write scope aur bench allowlist (`?migrate` ask karta hai, console kabhi nahi), conformance checker", "05-agent-roster", "illustrative"],
+    ["`.mcp.json`, `mcp/`, `ticket-intake`, `scripts/automation/`", "GitHub, Jira aur PHI-safe `spice-site` server; deterministic `patches.txt`, DocType JSON aur PHI-logging gates", "06-mcp-and-tooling-architecture", "verified-format (.mcp.json, SKILL.md), illustrative (baaki)"],
+    ["`workflows/composition/`", "execution modes, depth limits, `security-scope.mjs` (diff se MANDATORY/SKIP)", "07-agent-composition", "illustrative"],
+    ["`.claude/agents/orchestrator.md`, `feature`/`bug-fix`/`incident` skills, `workflows/`, `check-handoff.mjs`", "main-thread orchestrator, entry points, specs, OBS-51 example run, handoff Claude Code hook", "08-workflow-orchestration", "verified-format (agent, skills, gates.settings.json), illustrative (specs, hook script)"],
+    ["`evaluations/`", "golden tasks, v15 source ke against verified Frappe hallucination traps, harness, rubrics, reports", "09-agent-evaluation", "illustrative"],
+    ["`.claude/settings.json`, `.claude/hooks/`, `docs/governance/`, `company-ai/`, `scripts/governance/`", "bench/git/MCP rules, `guard-bench`, `guard-outbound`, `flag-injection`, gates G1 se G10, CODEOWNERS, plugin packaging, validators", "10-governance", "verified-format (settings, plugin.json), illustrative (baaki)"],
+    ["`README.md`, `docs/capstone/`, `scripts/capstone/`", "entry point, component map, walkthroughs, incident run, verify-system, stack inventory", "11-capstone", "illustrative"],
+    ["`sample-app/`", "Frappe v15 app `spice_lite`, `setup-bench.sh`, Docker stack, KNOWN_DEFECTS", "shared", "Claude Code file nahi"]
+   ]
+  },
+  {
+   "title": "Workflow gates (module 08) vs governance layers (module 10)",
+   "columns": ["Workflow gate", "Kab", "Mechanism", "Mechanism ya convention", "Governance layer"],
+   "rows": [
+    ["G1 plan approval", "har developer launch", "`workflows/gates.settings.json` mein `ask: [\"Agent(developer)\"]`", "mechanism (permission prompt)", "G1, plan mode ke bajaye permission `ask` ki tarah implemented"],
+    ["G1b test-site schema", "DocType JSON ya `patches.txt` changes wala developer step", "developer guard mein `?bench --site test.localhost migrate`, `ask` rules, `guard-bench.mjs`", "mechanism", "G2 site badalne wala bench command"],
+    ["G2 findings", "tester/security ke baad aur review ke baad", "orchestrator `needs-human` return karta hai", "convention; backstop agla G1 prompt aur PR hai", "koi nahi"],
+    ["G-M mitigation", "incidents, 02-sre ke baad", "orchestrator ke paas Bash nahi; sre guard `test.localhost` par read-only; site badalne wale bench commands ask ya deny", "mechanism", "G2, G6 kabhi allowed nahi, G9 shared site migrate"],
+    ["G3 merge", "har run ke end mein", "PR review, `git push` ask, `gh pr merge` deny, CODEOWNERS, `check-ai-change-approval.mjs`", "mechanism", "G7 AI-config merge, G8 schema merge"],
+    ["hamesha on", "har tool call", "`block-secrets`, `guard-bench`, `guard-outbound`, `flag-injection`, `site_config` deny, `Edit(./.claude/**)` ask, managed floor", "mechanism (flag-injection advisory hai)", "G3, G4, G5, G6, G10"]
+   ]
+  },
+  {
+   "title": "Apne bench par le jaana: kya carry over hota hai aur kya tum rewrite karte ho",
+   "columns": ["Component", "Carry over hota hai", "Apne bench ke liye rewrite karo", "Kaunsa check prove karta hai"],
+   "rows": [
+    ["Memory", "structure, rules 1, 2, 5, 9", "bench path, site, `required_apps` ke saath app list, commands, rule 8", "`verify-system` claude-md aur bench rows"],
+    ["Rules aur context", "file layout, PHI policy structure", "`paths` globs, `doctype_summary.py` se glossary aur PHI table", "`stack-inventory --terms` memory aur context rows"],
+    ["App", "checks", "har core, country aur integration app ke liye `--app-dir`", "`verify-system` app-layout, hooks-py, modules, patches, doctypes"],
+    ["Agents", "roles, har role ke tools, models, gates", "guard site names aur write scopes, `guard-bench.mjs` mein `TEST_SITE`", "`node agents/check-agents.mjs`, guard-reach rows"],
+    ["Workflows aur MCP", "steps, gates, retry policy, handoff format", "security-scope paths, triage table, `spice-site` URL", "`verify-system` workflows, handoffs, mcp"],
+    ["Evals", "harness, scoring, gates", "tumhare apne decisions, diffs aur incidents se datasets", "live recordings par `run-evals.mjs --mode replay`; tumhare Frappe source par `--verify-traps`"],
+    ["Governance", "gate script, Claude Code hooks, managed floor", "CODEOWNERS paths aur approver lists", "real PR par `check-ai-change-approval.mjs`"]
+   ]
+  }
+ ],
+ "exercises": {
+  "11-verify-system": {
+   "title": "Prove karo ki poora system wired hai, bench samet, aur jo seam woh dhoondhta hai use explain karo",
+   "objective": "`scripts/capstone/verify-system.mjs` likho, ek zero-dependency Node script jo `AI-SDLC-frappe/` ka har cross-layer reference check kare (roster aur contracts, flat delegation, preloaded skills, Claude Code hook script paths aur events, Frappe permission floor, G1 gate settings, `.mcp.json`, workflow step tables, CLAUDE.md imports, har agent ke real Bash guard ke under skill scripts, `spice_lite` layout, `hooks.py` dotted paths, `modules.txt`, `patches.txt` modules, DocType folders, committed example runs, eval replay, module checkers) aur, `--bench` ke saath, bench khud (`apps/spice_lite`, `sites/apps.txt`, shared lock ke under `bench --site test.localhost list-apps`, bench ke Frappe source ke against eval traps). Ise broken fixtures aur ek fake bench ke against test karo, `--bench` ke saath aur bina chalao, aur prove karo ki jo ek WARN yeh report karta hai woh real hai. `AI-SDLC-frappe/README.md` aur `docs/capstone/README.md` likho taaki naya engineer ise dhoondh kar chala sake.",
+   "testCases": [
+    {"name": "Checker ke apne tests pass hote hain", "expected": "34/34 passed, exit 0 (missing contract, name mismatch, missing ya non-preloadable skill, specialist mein Agent, orchestrator list mein sre missing, Bash wala orchestrator, bad settings JSON, missing hook script, PreCommit event, missing common_site_config deny, console ke liye allow rule, missing tool-guard, bina Agent(developer) ka gate, bina type ka url, missing stdio script, workflow mein qa-bot, unknown skill, unresolved @import, sre guard ke bahar skill script (real tool-guard), allowed-tools WARN, missing modules.txt, app_name mismatch, missing def tak hooks.py path, bina package ka modules.txt, bina module ya execute ka patch, bina test ya galat class wala DocType, invalid example handoff, fake bench PASS aur WARN, bina spice_lite ka fake bench, bina spice_lite ka apps.txt, usage errors, is repo par do runs)"},
+    {"name": "Repository aur bench dono WIRED", "expected": "`verify-system: 47 pass, 0 warn, 0 fail, 0 skip -> WIRED`, phir `bench` row (`apps/spice_lite -> sample-app/spice_lite; ... list-apps): frappe, spice_lite`) aur `eval-traps` row (`51 checks verified, 0 failed`)"},
+    {"name": "sre tests nahi chala sakta, isliye test request tester ke paas jaati hai"},
+    {"name": "Bina test ka schema change pakda jata hai", "expected": "`FAIL    doctypes       sl_observation_code: missing test_sl_observation_code.py`, exit 1. Test file present hone par rows padhti hain `2 patches.txt entries, each resolving to a module with def execute()` aur `5 DocType folder(s)`"},
+    {"name": "Har repo test ke saath full run", "expected": "Likhte waqt 24: 23 *.test.mjs files (--test ke saath chalne wale node:test suites) plus app ka `python3 -m unittest discover` (Ran 9 tests); koi FAIL rows nahi"},
+    {"name": "README quickstart commands exist karte hain"}
+   ],
+   "evaluationCriteria": [
+    "Har check real formats padhta hai (frontmatter `skills:` lists, settings `hooks` event map, `.mcp.json` `mcpServers`, `hooks.py`, `modules.txt`, `patches.txt` sections, DocType JSON), is repo ki file list hard-code nahi karta.",
+    "Guard reach usi `checkBash` se judge hota hai jo PreToolUse Claude Code hook chalata hai, `${CLAUDE_SKILL_DIR}` expand karke, kisi string comparison se nahi jo guard se disagree kar sake.",
+    "Bench optional hai: bina `--bench` ke Node ke bahar kuch spawn nahi hota; uske saath, bench call shared lock hold karti hai aur kabhi site badalne wala command nahi chalati.",
+    "Missing optional component (eval harness nahi, example runs nahi) SKIP hai; missing required component (roster agent, contract, gate settings, patch module) FAIL hai; design tension jo phir bhi kaam kare (skill aisa command pre-approve kare jise agent ka guard block karta hai) WARN hai.",
+    "Har FAIL row us file aur exact reference ka naam leti hai jo broken hai, taaki fix obvious ho.",
+    "README.md naye engineer ko bina course padhe bench build karne, verify, tests, evals aur gated workflow chalane deta hai."
+   ],
+   "improvements": [
+    "`verify-system.mjs` ko `CI=1 bench --site test.localhost run-tests --app spice_lite` ke bagal mein required CI check ki tarah jodo (`docs/governance/` ka `ai-change-gate` workflow template hai).",
+    "`check-handoff.mjs` ko sikhao ki jo sre handoff aisa query count report kare jo usne measure nahi kiya, usme `## Test request (for the tester)` section require kare, taaki tester step skip na ho sake.",
+    "`--bench` ke saath, `spice-site` MCP server ke read-only API user se `patches.txt` ko site ke Patch Log se compare karo, taaki test site par kabhi na chali line country migrate se pehle dikh jaye.",
+    "Check karo ki har `agents/<name>/CONTRACT.md` un skills ka naam leta hai jo uski agent file preload karti hai."
+   ]
+  },
+  "11-feature-run": {
+   "title": "OBS-51 ko poore system se chalao aur har gate ka hisaab do",
+   "objective": "OBS-51 (Observation codes ke liye controlled vocabulary: naya DocType, `Data` se `Link`, fixture, patch) ke liye feature-delivery workflow ek fresh branch mein chalao, orchestrator ko main thread rakh kar, aur ek gate log banao: har step ke liye, kaunsa agent chala, kaunsa mechanism fire hua (Claude Code hook, permission prompt, migrate prompt, orchestrator stop, PR gate), aur kaunsa handoff aaya. Apne run folder ko `workflows/examples/feature-observation-code-vocabulary/` ke committed example se compare karo aur har difference explain karo. Dikhao ki evals (module 09) aur governance (module 10) kahan act hue, PR ko chahiye schema approval samet.",
+   "testCases": [
+    {"name": "Tumhare run ka har handoff valid hai", "expected": "Har file ki ek PASS line, exit 0"},
+    {"name": "G1 har developer launch par ek baar fire hua, G1b har migrate par ek baar", "expected": "Pehla aur aakhri number barabar hain (reference run mein 2: 04 aur 07), aur G1b har us developer step par ek baar aata hai jisne DocType JSON badla"},
+    {"name": "Security step diff ne decide kiya, plan ne nahi", "expected": "`SECURITY STEP: MANDATORY (rules 1, 3, 4, 5)` (permissions array, hooks.py, ignore_permissions, patch mein get_all)"},
+    {"name": "PR ko schema approval chahiye, AI-config approval nahi", "expected": "`FAIL  ai-change-gate`, sirf `Frappe schema / hooks.py / patches / fixtures` category `[missing]` listed, exit 1; listed schema approver se head commit par APPROVED review ke saath, `PASS  ai-change-gate`, exit 0"},
+    {"name": "Run ke baad tests pass hote hain, aur shared site clean hai", "expected": "Branch par `Ran 56 tests ... OK` (agar test.localhost par nayi table nahi chahiye thi toh scratch site par chalao); main par wapas switch karke scratch site migrate karne ke baad, `Ran 46 tests ... OK`"},
+    {"name": "Kisi agent ne push nahi kiya", "expected": "`fatal: ambiguous argument` ya sirf tumhara apna push: transcript mein kisi agent ka approved `git push` prompt nahi dikhta"}
+   ],
+   "evaluationCriteria": [
+    "Gate log har gate ke liye ek real mechanism ka naam leta hai (prompt, migrate prompt, Claude Code hook exit code, `needs-human` stop, PR gate) aur batata hai ki kaunsa convention hai (G2).",
+    "Committed example se har difference explain hai (alag finding ids, skipped step, reworks ki alag sankhya, test.localhost ke bajaye scratch site).",
+    "Log record karta hai ki kaunse evaluated agents (architect, reviewer) chale aur run se pehle kis replay result ne unhe clear kiya.",
+    "Learner ne G1 ka jawab 01 se 03 padhne ke baad diya, reflex se nahi (log plan ki ek detail quote karta hai, jaise patch section ya hooks.py mein fixture key).",
+    "G3 row CODEOWNERS paths aur approval gate ki schema category, dono ka naam leti hai."
+   ],
+   "improvements": [
+    "Run se pehle aur baad `/usage` gate log mein save karo aur `docs/governance/model-and-cost-policy.md` ke run budget se compare karo.",
+    "Tester ne jo non-idempotent patch pakda (TST-1), uske liye `evaluations/datasets/reviewer-golden.json` mein ek golden task jodo, patch ko uska diff banakar.",
+    "Plain `claude --settings workflows/gates.settings.json` session mein `/feature` se rerun karo aur record karo ki handoff hook same tarah fire hua ya nahi (us mode mein sirf skill ka `hooks` registration active hai, aur `Agent(...)` allowlist enforce nahi hoti)."
+   ]
+  },
+  "11-incident-run": {
+   "title": "Kenya site ke lastn ward-board incident ko system se guzaro",
+   "objective": "Production-rca evidence pack ke against INC-2026-0922-01 ke liye `/incident` chalao, dono mitigation gates par on-call engineer aur incident commander ka role nibhao, aur run folder banao: incident brief, parallel sre aur security triage, do verification steps, bug-fix handover, postmortem aur run report. Har handoff ko `check-handoff.mjs` pass karna hoga, sirf woh evidence cite karna hoga jo uske step ke waqt exist karta tha (Error Log ka +03:00 site time convert karke), PHI bahar rakhna hoga, aur site badalne wala har action insaan par chhodna hoga. Apne postmortem ko production-rca golden RCA se compare karo.",
+   "testCases": [
+    {"name": "Har handoff valid hai (CLI)", "expected": "8 PASS lines, exit 0"},
+    {"name": "Active run ke dauran Claude Code hook sre ka inline handoff accept karta hai", "expected": "0; message mein iske bajaye `status: done` ho toh exit 2 aur stderr `status \"done\" must be one of complete | blocked | needs-human`"},
+    {"name": "Run mein koi PHI nahi", "expected": "Koi output nahi: on-call report mein named patient 01 mein hata diya gaya (SLP-03902 jaise document names opaque hain aur reh sakte hain)"},
+    {"name": "Kisi agent ne mitigation execute nahi ki", "expected": "2 (dono mitigations human outcomes ki tarah recorded hain), phir 4: har sre handoff `none (read-only; handoff returned inline and saved by the orchestrator)` list karta hai"},
+    {"name": "Postmortem golden RCA se agree karta hai"},
+    {"name": "Step 02 ne apne chalne ke baad ka evidence use nahi kiya", "expected": "1 (woh DBA se snapshot maangta hai) aur 0 (08:00 se 08:31 ke numbers pehli baar 05 mein aate hain)"},
+    {"name": "verify-system example run cover karta hai"}
+   ],
+   "evaluationCriteria": [
+    "Har step sirf woh evidence cite karta hai jiska timestamp uske chalne se pehle ka hai (08:17 par 02 ke paas na `pg_stat_statements` hai na kernel log; 05 ke paas dono hain), aur Error Log rows UTC par rakhi gayi hain, +03:00 site time par nahi.",
+    "Security run-or-skip decision spec condition aur evidence ke ek fact (ek shared token, har 30 s mein ward ke reads) se justified hai, guess se nahi.",
+    "Hypotheses evidence for aur against ke saath ranked hain; bad deploy, OOM, database aur Redis specific lines ke saath rejected hain (har SIGKILL se pehle `WORKER TIMEOUT`, bina asar ka rollback, Redis memory flat).",
+    "Mitigations insaan ke liye confidence levels ke saath options hain, kabhi agent ke liye gaye actions nahi; web restart aur gunicorn workers jodna explicitly fixes ki tarah recommend nahi kiye gaye.",
+    "Bug-fix handover CLAUDE.md rule 8 exception, prior-art patch, regression test ka naam, mandatory security step, aur jo scope se bahar rehta hai (D-7, D-8, indexes) batata hai.",
+    "Retry numbering `workflows/README.md` follow karti hai aur run ka README use explain karta hai."
+   ],
+   "improvements": [
+    "`evaluations/suites.json` mein is incident ko golden task banakar ek `sre` suite jodo (must mention: `api/fhir.py:155`, CHG-5103, SIGKILL se pehle WORKER TIMEOUT; forbidden claims: OOM, telephony deploy ko cause maanna, queue purge karna).",
+    "Prior-art patch ke saath scratch site par `/bug-fix BUG-71` handover chalao aur uski run report ko 08-run-report.md se link karo.",
+    "`workflows/incident-response.md` ke queue-backlog incident type (`long` queue timeout se zyada chalne wala job) ke liye doosra evidence pack likho aur use same workflow se chalao."
+   ]
+  },
+  "11-move-to-your-bench": {
+   "title": "System ko ek measured checklist ke saath apne real spice_next_core-style bench par le jao",
+   "objective": "AI-SDLC system ko course bench ke `spice_lite` se apne bench par le jaane ka plan banao aur shuru karo (worked target: `required_apps` se declared country apps aur integration apps ke saath ek `spice_next_core` core app, PostgreSQL 16 par ek disposable dev site). `stack-inventory.mjs` se measure karo ki kaunsi files reference system encode karti hain, checklist order mein apply karo (CLAUDE.md bench aur site paths, tumhare DocType paths ke rules, tumhare DocTypes se generated context pack, country aur integration apps, Postgres 16 checks, guards aur settings, workflows aur MCP, tumhare apne incidents se re-seeded evals, CODEOWNERS), aur har step ko ek command se prove karo. Deliverable hai tumhari bhari hui checklist, ek terms file, pehle aur baad ke inventory numbers, aur tumhare bench ke against `verify-system` WIRED.",
+   "testCases": [
+    {"name": "Inventory tool tests pass hote hain"},
+    {"name": "Baseline record hai", "expected": "Likhte waqt course repository par 242 (files badhne ke saath yeh badhta hai); apna baseline checklist mein record karo"},
+    {"name": "Memory, context aur agents move ho gaye"},
+    {"name": "Tumhare bench ki har app app checks pass karti hai", "expected": "Har app ke liye 0 (bina module ki `patches.txt` line, ya bina test ka DocType folder, country migrate todne se pehle yahan dikh jaata hai)"},
+    {"name": "Moved system ab bhi tumhare bench ke against wired hai", "expected": "`-> WIRED`, exit 0; `bench` row tumhari core app aur har `required_apps` entry list karti hai; koi WARN nahi ki CLAUDE.md alag bench ka naam leti hai"},
+    {"name": "Agents dev site par test kar sakte hain, test.localhost par nahi", "expected": "Har file mein 0, phir tumhari dev site (guard-bench.mjs SPICE_TEST_SITE padhta hai; uska test.localhost default rehta hai); fixtures update karne ke baad `node .claude/hooks/guard-bench.test.mjs` aur `node agents/check-agents.test.mjs` ab bhi pass hote hain"},
+    {"name": "Done matlab ek number", "expected": "Jab zyada se zyada 10 files reference system mention karein (course docs aur purane example runs jo tumne rakhne chune) tab exit 0, usse pehle exit 1"}
+   ],
+   "evaluationCriteria": [
+    "Checklist aise ordered hai ki har step ka check pass ho sake: agents se pehle memory aur context, evals se pehle agents.",
+    "Har item ek named file ka concrete edit hai, use prove karne wale command ke saath; bench aur site paths CLAUDE.md mein, personal wale CLAUDE.local.md mein.",
+    "Context pack real DocType JSON (`doctype_summary.py`) se generated hai, aur PHI table har app ke har patient-linked field ko cover karti hai, search parameters samet.",
+    "Country apps aur integration apps apne `required_apps` ke saath listed hain, har ek app checks pass karti hai, aur developer ka write scope sirf un apps ka naam leta hai jin par owning teams ne haami bhari.",
+    "Site-secret aur bench deny rules move ke baad bhi bina badle rehte hain; sirf site names aur paths badalte hain.",
+    "Golden tasks team ke apne decisions, diffs aur incidents se re-seed hote hain, course wale translate nahi hote."
+   ],
+   "improvements": [
+    "`stack-inventory.mjs` se ek checklist skeleton emit karwao (har matching file ke liye ek checkbox) taaki kuch miss na ho.",
+    "Bench-neutral parts (orchestrator, handoff hook, tool-guard, verify-system) ko `company-ai/` ke bagal mein doosre plugin ki tarah package karo, aur har project mein sirf bench aur app knowledge rakho.",
+    "Ek `verify-system` run mein kai apps ke liye `--app-dir` support jodo, taaki country deployment ka poora app set ek table mein check ho."
+   ]
+  }
+ },
+ "agentContracts": [],
+ "checklist": [
+  "`node scripts/capstone/verify-system.mjs` aur `node scripts/capstone/verify-system.mjs --bench /home/user/frappe-bench` dono `-> WIRED` print karte hain aur exit 0 karte hain, aur pehla CI mein chalta hai.",
+  "`node scripts/capstone/verify-system.test.mjs` 34/34 pass karta hai aur `node scripts/capstone/stack-inventory.test.mjs` 9/9 pass karta hai.",
+  "Tum woh WARN explain kar sakte ho jo yeh check pehle report karta tha (sre ke guard ne woh `run-tests` command block kiya jo uski preloaded `performance-review` ne pre-approve kiya tha) aur kyon ab query count tester skill ki test request se measure karta hai.",
+  "Tum G1, G1b, G2, G-M aur G3 mein se har ek ke liye use enforce karne wale mechanism ka naam le sakte ho aur bata sakte ho ki kaunsa convention hai.",
+  "Har workflow run `default` permission mode mein `claude --agent orchestrator --settings workflows/gates.settings.json` se shuru hota hai.",
+  "Feature run ke saare handoffs `node .claude/hooks/check-handoff.mjs .ai-sdlc/runs/<run-id>` pass karte hain, aur DocType JSON, `patches.txt` ya `hooks.py` touch karne wala PR schema-owner approval ka intezaar karta hai.",
+  "`node .claude/hooks/check-handoff.mjs docs/capstone/example-runs/incident-lastn-ward-board` 8 PASS lines print karta hai.",
+  "Incident run mein kisi agent ne country site nahi badli; restart aur dono mitigations human actions ki tarah recorded hain.",
+  "Incident postmortem trigger, root cause, numbers aur PA-1..PA-8 par `skills/production-rca/tests/expected/INC-2026-0922-01-rca.md` se agree karta hai.",
+  "Run ke baad aane wale agent ya skill changes apne PR se pehle eval replay (aur live comparison) se guzarte hain, jo AI-config gate require karta hai.",
+  "`AI-SDLC-frappe/README.md` naye engineer ko bina course padhe `setup-bench.sh` se bench build karne, verify, tests, evals aur gated workflow chalane deta hai.",
+  "Tumhari move checklist mein ek baseline aur ek current `stack-inventory` number hai, aur `verify-system --app-dir ... --bench ...` tumhare apne bench ke against WIRED hai."
+ ]
+}
