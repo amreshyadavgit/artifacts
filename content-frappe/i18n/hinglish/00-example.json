@@ -1,0 +1,131 @@
+{
+  "id": "00-example",
+  "title": "Orientation: Frappe App par Project Memory aur Context Engineering",
+  "summary": "AI-SDLC repository ke Frappe edition ka tour karo aur Claude Code ko woh project knowledge do jis par aage ka har agent depend karta hai: ek lean CLAUDE.md jo jaanta hai ki bench kahan hai aur kaunse commands prove karte hain ki change kaam karta hai, Python aur DocType JSON ke liye path-scoped rules, aur ek context pack jo PHI aur site_config secrets ko har prompt se bahar rakhta hai.",
+  "prerequisites": [
+    "Ek working bench: `AI-SDLC-frappe/sample-app/scripts/setup-bench.sh` (Frappe v15, PostgreSQL 16)",
+    "Git aur terminal",
+    "Claude Code CLI installed aur authenticated (`claude --version`)"
+  ],
+  "concepts": [
+    {
+      "heading": "Agents se pehle context kyon",
+      "body_md": "Ek subagent **bina conversation history** ke start hota hai. Docs ke hisaab se use milta hai: apna system prompt (uski `.claude/agents/<name>.md` file ka body), main session ka bheja hua task message, basic environment details, git status, aur **CLAUDE.md hierarchy**. Yeh aakhri cheez hi woh akela project knowledge hai jo har agent ko free mein milta hai.\n\nFrappe codebase par yeh aur bhi zyada matter karta hai, kyonki engineer ko jo knowledge chahiye woh aisi jagahon par bikhri hai jinke baare mein koi generic model assume nahi karta:\n\n- **bench** repo ke bahar rehta hai (yahan `/home/user/frappe-bench`), isliye jo agent sirf repo dekhta hai woh tests chalane wala command bhi nahi dhoondh sakta;\n- behaviour sirf Python mein nahi, **DocType JSON** (`permissions`, `search_index`, `autoname`), **`hooks.py`** aur **patches** mein bhi chhupa hota hai;\n- secrets **`site_config.json`** mein padhe hain, usi code ke bagal mein jis par agent kaam kar raha hai.\n\nIsliye practically, is course ke har agent ki quality un teen cheezon se capped hai jo tum is module mein likhoge:\n\n- `AI-SDLC-frappe/CLAUDE.md`: repo kya hai, bench aur site kahan hain, kaunse commands prove karte hain ki change kaam karta hai, aur non-negotiable rules.\n- `AI-SDLC-frappe/.claude/rules/*.md`: rules jo sirf tab load hote hain jab Claude matching paths par kaam karta hai (Python vs DocType JSON).\n- `AI-SDLC-frappe/context/**`: reference material (architecture, Frappe coding standards, threat model, glossary) jo agents tab padhte hain jab task ko zaroorat ho."
+    },
+    {
+      "heading": "CLAUDE.md kaise load hota hai (verified behaviour)",
+      "body_md": "`build/CLAUDE_CODE_FACTS.md` §6 se:\n\n- Project memory `./CLAUDE.md` ya `./.claude/CLAUDE.md` mein rehti hai. Personal overrides `./CLAUDE.local.md` mein jaate hain (git-ignored). Agar *tumhara* bench path `/home/user/frappe-bench` se alag hai toh use likhne ki sahi jagah yahi hai.\n- Claude Code working directory se root tak **upar** chalta hai aur jo bhi CLAUDE.md milta hai use **concatenate** karta hai, root pehle. Kuch bhi override nahi hota; paas wali files baad mein padhi jaati hain.\n- **Subdirectories** ki CLAUDE.md files on demand load hoti hain, jab Claude us directory ki files padhta hai.\n- `@path/to/file` doosri file import karta hai, importing file ke relative, 4 hops tak. Imported files usi CLAUDE.md ke saath load hoti hain jo unhe import karti hai. Code spans ya code blocks ke andar imports expand nahi hote.\n- 200 lines se kam ka target rakho. CLAUDE.md ka har shabd *har* agent ke *har* turn par tokens khata hai.\n\nDesign ka nateeja: **rules aur commands** CLAUDE.md mein rakho, **reference material** `context/` mein rakho, sirf woh do-teen files import karo jinki lagbhag har task ko zaroorat hai, aur baaki ka path naam se likh do. Frappe code ki standards file lambi hai aur sirf tab matter karti hai jab code likha ja raha ho, isliye CLAUDE.md use import karne ki jagah uska naam leti hai."
+    },
+    {
+      "heading": "Do rule files: Python aur DocType JSON",
+      "body_md": "`.claude/rules/**/*.md` files project instructions ki tarah load hoti hain. Wahan Claude Code sirf ek frontmatter field padhta hai: `paths` (globs ki list). `paths` wala rule sirf tab apply hota hai jab Claude matching files ke saath kaam karta hai.\n\nFrappe app ko do alag rule sets chahiye:\n\n- **`spice-lite-python.md`** (`paths: sample-app/spice_lite/**/*.py`): request paths mein `frappe.get_all` nahi, `frappe.get_list`; parameterised SQL; koi `allow_guest` nahi; sirf names wali audit logging; `api/mappers.py` ko `import frappe` se free rakho.\n- **`doctype-json.md`** (`paths` jo `**/doctype/**/*.json`, `patches.txt`, `hooks.py` cover kare): schema ya data changes ke saath patch ship hota hai, filtered fields par `search_index`, documents ka naam kabhi PHI se mat rakho, permission-array changes ka security review hota hai, naye `hooks.py` keys ko ADR chahiye.\n\nDoosri file woh hai jisme generic agents galti karte hain: woh DocType JSON field edit karte hain aur patch bhool jaate hain, ya `permissions` wide kar dete hain aur kisi ko pata nahi chalta. Har rule ko **testable** rakho: reviewer check kar sakta hai ki \"jo DocType JSON change kisi field ka type badalta hai uske saath `patches.txt` mein patch ship hota hai\"; \"Frappe best practice follow karo\" koi check nahi kar sakta."
+    },
+    {
+      "heading": "\"Hook\" ke do matlab",
+      "body_md": "Yeh course dono tarah ke hooks use karta hai, isliye shabd alag rehne chahiye:\n\n| | Frappe hook | Claude Code hook |\n|---|---|---|\n| Kahan rehta hai | `spice_lite/hooks.py` | `.claude/settings.json` ya agent/skill frontmatter |\n| Kab chalta hai | document event, install, migrate, scheduler tick | Claude Code event jaise `PreToolUse` |\n| Kaise chalta hai | Frappe site ke andar Python | developer machine par shell command |\n| Yahan example | `after_install = \"spice_lite.install.after_install\"` | `Edit|Write` par `block-secrets.mjs` |\n\nCLAUDE.md ka rule 5 har agent ko bolta hai ki \"Frappe hook\" ya \"Claude Code hook\" kaho, kabhi sirf \"hook\" nahi. Yeh pedantic lagta hai jab tak koi agent `hooks.py` mein `doc_events` entry nahi jod deta, kyonki ticket ne bola tha \"ek hook add karo jo secrets block kare\"."
+    },
+    {
+      "heading": "Context pack, PHI, aur site_config",
+      "body_md": "**Jo bhi agent padhta hai woh prompt, log, commit message, ya Jira/GitHub ko MCP call mein pahunch sakta hai.** Context pack do kaam karta hai:\n\n1. **Jaankari deta hai**: `context/domain/spice-lite-glossary.md` `SL Patient`, `SL Encounter`, `SL Observation`, `SL Country`, MRN, LOINC codes aur FHIR-lite shapes ko bilkul waise define karta hai jaise `spice_lite` unhe implement karta hai, saath mein spice-style platform ke country-app aur integration-app patterns bhi.\n2. **Rok lagata hai**: glossary har field ko PHI ya non-PHI classify karti hai (search terms bhi PHI hain), aur `context/security/phi-and-secrets-policy.md` batati hai ki PHI kahan kabhi nahi dikhna chahiye: logs, Error Log, `frappe.throw` messages, prompts, eval data.\n\nFrappe ek aur asset jodta hai: `site_config.json` aur `common_site_config.json` mein database password aur `encryption_key` hota hai. Policy inhe padhne se mana karti hai, aur `.claude/settings.json` `permissions.deny` mein `Read(**/site_config.json)` se ise enforce karta hai. `PreToolUse` Claude Code hook `block-secrets.mjs` un writes ko block karta hai jinme site_config secrets, Frappe API tokens, ya passwords wale database URLs hon.\n\n**Thumb rule:** instructions intent batati hain, permissions aur Claude Code hooks use enforce karte hain. Dono likho."
+    },
+    {
+      "heading": "Reference repository mein kya hai",
+      "body_md": "`AI-SDLC-frappe/` Claude Code project root hai. Isme pehle se yeh hai:\n\n- `sample-app/spice_lite/`: ek real Frappe v15 app (chaar DocTypes, FHIR-lite whitelisted API, ek patch, PostgreSQL 16 aur MariaDB par pass hone wale 37 integration aur 9 unit tests) ek labelled teaching defect (`lastn()` mein `TEACHING-DEFECT(perf-n+1)`) aur `sample-app/docs/KNOWN_DEFECTS.md` mein documented paanch discovered defects ke saath.\n- `sample-app/scripts/setup-bench.sh`: idempotent script jisne woh bench banaya jo har exercise use karti hai.\n- `.claude/settings.json`: `bench --site test.localhost run-tests` ke liye `allow`, `migrate`/`console`/`execute` ke liye `ask`, `site_config.json` reads, `drop-site` aur `reinstall` ke liye `deny`, plus block-secrets Claude Code hook.\n- `.claude/agents/`, `.claude/skills/`, `agents/`, `workflows/`, `evaluations/`, `docs/`: aage ke modules inhe bharte hain.\n\nIs course ka Java edition yahi system ek Spring Boot app par sikhata hai; dono roster, skills, handoff format aur evaluation approach share karte hain, isliye tum dono ko side by side compare kar sakte ho."
+    }
+  ],
+  "diagrams": [
+    {"title": "Subagent ko start-up par asal mein kya milta hai"},
+    {"title": "Frappe edition mein project knowledge kahan rehti hai"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Frappe knowledge ka yeh tukda kahan jaana chahiye?",
+      "columns": ["Knowledge", "Mechanism", "Wahan kyon", "Is repo mein example"],
+      "rows": [
+        ["Tests kaise chalayein, bench kahan hai", "`CLAUDE.md`", "Har agent ko har turn par chahiye", "`bench --site test.localhost run-tests --app spice_lite`"],
+        ["DocTypes, fields, PHI classification", "CLAUDE.md se `@import`", "Lagbhag har task domain ko chhoota hai", "`@context/domain/spice-lite-glossary.md`"],
+        ["get_list vs get_all, SQL parameters, whitelist rules", "`paths` ke saath `.claude/rules/spice-lite-python.md`", "Sirf tab relevant jab Python edit ho", "`paths: sample-app/spice_lite/**/*.py`"],
+        ["Patches, search_index, permissions array", "`paths` ke saath `.claude/rules/doctype-json.md`", "Sirf schema aur `hooks.py` edits ke liye relevant", "`**/doctype/**/*.json` par `paths`"],
+        ["Poore coding, testing, API, review standards", "`context/standards/*.md` (naam liya, import nahi)", "Lambe hain; woh agent padhta hai jiske task ko zaroorat ho", "`context/standards/frappe-coding-standards.md`"],
+        ["Tumhara personal bench path", "`CLAUDE.local.md`", "Machine-specific, git-ignored", "`Bench: /opt/bench/spice`"],
+        ["site_config.json kabhi mat padho", "`permissions.deny` (plus ek CLAUDE.md rule)", "Instruction control nahi hota", "`Read(**/site_config.json)`"]
+      ]
+    }
+  ],
+  "exercises": {
+    "00-claude-md": {
+      "title": "Aisi CLAUDE.md likho jo jaanti ho ki bench kahan hai",
+      "objective": "Stub `AI-SDLC-frappe/CLAUDE.md` ko aisi file se replace karo jo kisi bhi agent ko batati hai ki `spice_lite` kya hai, bench aur site kahan hain, kaunse commands prove karte hain ki change kaam karta hai (integration tests, unit tests, migrate), aur kaunse rules non-negotiable hain, aur sirf woh teen context files import karti hai jinki lagbhag har task ko zaroorat hai. Verify karo ki Claude Code sach mein ise load karta hai: aisa sawaal poocho jiska jawab sirf CLAUDE.md de sakti hai.",
+      "testCases": [
+        {"name": "CLAUDE.md lean rehti hai", "expected": "200 se kam lines (reference file lagbhag 45 lines ki hai)."},
+        {"name": "Bilkul teen imports jo resolve hote hain"},
+        {"name": "Documented test command sach mein kaam karta hai"},
+        {"name": "Claude memory se jawab deta hai, guess se nahi", "expected": "Jawab mein `bench --site test.localhost run-tests --app spice_lite` aur dono config files aati hain. Agar woh integration tests ke liye `pytest` ya `python manage.py test` suggest kare, toh CLAUDE.md load nahi hui (ise AI-SDLC-frappe/ ke andar se run karo)."},
+        {"name": "Local overrides git se bahar rehte hain"}
+      ],
+      "evaluationCriteria": [
+        "Bench location, site name aur bench user likhe hain, aur ek personal override path (`CLAUDE.local.md`) offer kiya gaya hai.",
+        "Commands copy-paste karne layak aur is bench ke liye sahi hain (run karke verify kiye gaye).",
+        "\"Hook\" wali ambiguity rules mein resolve ki gayi hai.",
+        "Secrets rules `site_config.json` aur `common_site_config.json` ka naam saaf leti hain.",
+        "Lamba reference material import kiya gaya ya naam liya gaya hai, inline paste nahi."
+      ],
+      "improvements": [
+        "Agar tumhara bench path aur site `/home/user/frappe-bench` aur `test.localhost` se alag hain toh unhe `CLAUDE.local.md` mein daalo.",
+        "App-internal tips (test users, `tests/utils.py` helpers) ke saath `sample-app/spice_lite/CLAUDE.md` jodo; yeh sirf tab load hoti hai jab Claude wahan ki files padhta hai.",
+        "Interactive session mein `/memory` chalao aur confirm karo ki kaunsi memory files load hui."
+      ]
+    },
+    "00-path-scoped-rules": {
+      "title": "Python aur DocType JSON ke liye alag rules",
+      "objective": "`paths` globs ke saath `.claude/rules/spice-lite-python.md` aur `.claude/rules/doctype-json.md` banao, taaki Python conventions `.py` edits ke liye load hon aur patch/permission rules DocType JSON, `patches.txt` aur `hooks.py` ke liye. Dikhao ki DocType field change patch rule ko kheench laata hai.",
+      "testCases": [
+        {"name": "Frontmatter mein sirf paths"},
+        {"name": "Globs real files ko match karte hain", "expected": "5 (chaar DocType JSON files plus patches.txt)"},
+        {"name": "DocType task patch rule pick karta hai", "expected": "Output mein `patches.txt`, `search_index` ka zikr hai, aur yeh ki `national_id` PHI hai."},
+        {"name": "Har Python rule ek real symbol ka naam leta hai"}
+      ],
+      "evaluationCriteria": [
+        "Sirf `paths` frontmatter key use karta hai.",
+        "Python aur schema rules alag hain taaki har ek sirf wahan load ho jahan matter karta hai.",
+        "Har rule real code ke against checkable hai (`log_access`, `get_list`, `patches.txt`).",
+        "CLAUDE.md ko duplicate nahi karta."
+      ],
+      "improvements": [
+        "Country app mein `**/fixtures/*.json` ke liye rule jodo (Custom Field aur Property Setter fixtures bhi schema changes hain).",
+        "Jab app mein client code aa jaye tab `**/*.js` form scripts ke liye rule jodo."
+      ]
+    },
+    "00-context-pack": {
+      "title": "Domain, PHI aur secrets context pack banao",
+      "objective": "PHI table (search terms samet) ke saath spice_lite glossary, PHI aur secrets policy (`site_config.json` samet), aur threat model likho. Phir prove karo ki pack behaviour badalta hai: pack banne se pehle aur baad Claude se patient search ke liye audit call draft karwao.",
+      "testCases": [
+        {"name": "PHI table search terms cover karti hai"},
+        {"name": "Policy site_config aur enforce karne wale mechanisms ka naam leti hai", "expected": "Kam se kam 3 lines."},
+        {"name": "Real code pehle se policy follow karta hai", "expected": "Calls sirf document names aur counts pass karti hain, kabhi `family` ya `identifier` nahi."},
+        {"name": "Behaviour change", "expected": "Bina pack: log line mein `family=` ya `identifier=`. Pack ke saath: sirf names aur ek count ke saath `log_access(...)`."},
+        {"name": "Koi real data nahi", "expected": "Koi output nahi: sirf synthetic MRN-000xxx values dikhti hain."}
+      ],
+      "evaluationCriteria": [
+        "Glossary field names real DocType JSON se match karte hain (`mrn`, `last_name`, `effective_datetime`, …).",
+        "Search terms PHI classify kiye gaye hain, jo generic policies miss kar deti hain.",
+        "Secrets section `site_config.json`, `common_site_config.json`, aur API key/secret tokens cover karta hai.",
+        "Threat model ki har row ek check se map hoti hai jo koi named roster agent karta hai."
+      ],
+      "improvements": [
+        "`context/domain/country-apps.md` jodo jo batata hai ki country app `spice_lite` ko kaise customise karta hai (Custom Fields, Property Setters, `doc_events`).",
+        "PHI table ko `phi-fields.json` mein badlo taaki ek Claude Code hook diffs mein un fields ki nayi logging scan kar sake.",
+        "Policy ki un jagahon ki list mein jahan PHI nahi pahunchna chahiye, Error Log aur Version DocTypes jodo, saath mein ek query jo reviewer check karne ke liye chala sake."
+      ]
+    }
+  },
+  "checklist": [
+    "`AI-SDLC-frappe/CLAUDE.md` 200 lines se kam hai, bench path aur site ka naam leti hai, aur usme teen `@context/...` imports hain jo resolve hote hain.",
+    "Bench directory se `bench --site test.localhost run-tests --app spice_lite` pass hota hai (Ran 46 tests, OK).",
+    "`python -m unittest discover -s spice_lite/tests/unit -t .` bina bench ke pass hota hai (9 tests).",
+    "Dono rule files sirf `paths` frontmatter key use karti hain aur unke globs real files match karte hain.",
+    "Glossary har DocType field aur search terms ko PHI ya non-PHI classify karti hai.",
+    "`site_config.json` reads `.claude/settings.json` mein deny hain, sirf prose mein discourage nahi.",
+    "Tumhari files mein Frappe hooks aur Claude Code hooks ko kabhi sirf \"hooks\" nahi kaha gaya."
+  ]
+}

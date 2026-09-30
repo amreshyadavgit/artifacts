@@ -1,0 +1,234 @@
+{
+  "id": "08-workflow-orchestration",
+  "title": "Frappe par Workflow Orchestration: /feature Chain, Handoffs aur Human Gates",
+  "summary": "Woh orchestrator banao jo spice_lite Frappe app par AI-SDLC workflows end to end chalata hai: ek main-thread agent (`claude --agent orchestrator`) jiski `Agent(...)` allowlist sirf roster ka naam leti hai aur jo kabhi bench nahi chalata; `/feature`, `/bug-fix` aur `/incident` entry-point skills; workflow specs jinme diff-driven security branch (DocType permissions, @frappe.whitelist, hooks.py, ignore_permissions), parallel tester aur security, aur failure aur retry policy hai; ek SubagentStop Claude Code hook jo invalid handoffs aur bina quoted bench summary wale complete handoffs reject karta hai; aur asli mechanisms par human gates (`Agent(developer)` par `ask` rule, migrate prompt, needs-human stop, PR review). Observation code vocabulary (DocType JSON, controller, patch, fixtures, tests) ka ek complete example run sach mein apply aur test kiya gaya.",
+  "prerequisites": [
+    "07-agent-composition",
+    "05-agent-roster",
+    "03-skills-architecture-code-test",
+    "04-skills-security-performance-rca",
+    "Node 22",
+    "`test.localhost` par `spice_lite` ke saath ek bench, bench user ki tarah chalaya hua (`AI-SDLC-frappe/sample-app/README.md`)",
+    "Claude Code CLI authenticated (`claude --version`)"
+  ],
+  "concepts": [
+    {
+      "heading": "Orchestrator main thread ki tarah chalta hai",
+      "body_md": "Module 07 ne constraint set kiya: `tools` mein `Agent(type1, type2)` allowlist **sirf main thread ki tarah chal rahe agent ke liye** enforce hoti hai. Isliye orchestrator koi subagent nahi jise tum call karo. Woh *khud* session hai:\n\n```bash\ncd AI-SDLC-frappe\nclaude --agent orchestrator --settings workflows/gates.settings.json\n```\n\n`.claude/agents/orchestrator.md` mein `tools: Agent(architect, developer, reviewer, tester, security, sre), Read, Write, Grep, Glob, Skill` hai. `--agent` ke saath uski body default system prompt ko replace karti hai, CLAUDE.md phir bhi load hoti hai (isliye use pata hai ki bench `/home/user/frappe-bench` par hai), aur woh bilkul chhe subagent types launch kar sakta hai. Uske paas **na Edit hai na Bash**: woh DocType JSON touch nahi kar sakta, `bench migrate` nahi chala sakta, `bench console` nahi khol sakta, `git` nahi chala sakta. Uski body ek procedure hai: run start ya resume karo, har step chalao, gate rules apply karo, retry policy apply karo, run report ke saath khatam karo.\n\nDoosra entry path ordinary session mein **`/feature` skill** hai. `disable-model-invocation: true` ise user-only banata hai (Claude khud workflow start nahi kar sakta), `argument-hint: \"[ticket-id] [short feature summary]\"` autocomplete mein dikhta hai, aur `$0` ticket id hai. Skill main session ko orchestrator procedure follow karne ko kehti hai. Yeh kaam karta hai, par wahan allowlist **enforce nahi** hoti, aur main session Bash rakhta hai. Isliye course default hai `claude --agent orchestrator`, phir uske andar `/feature ...`.\n\nTeesra path, plain session se orchestrator *subagent ki tarah*, module 07 ka sanctioned depth-2 pattern hai. Ise sirf interactively use karo, `workflows/composition/depth-2.settings.json` ke saath.\n\nToh practically: ek command gated session start karti hai, ek slash command run start karti hai, aur change `sample-app/` tak sirf ek aise developer launch se pahunchta hai jise insaan ne approve kiya."
+    },
+    {
+      "heading": "Frappe change par /feature chain",
+      "body_md": "`workflows/feature-delivery.md` spec hai; orchestrator use execute karta hai:\n\n| step | file | kaun |\n|---|---|---|\n| 01 | `01-requirements.md` | orchestrator, `requirements` skill |\n| 02 | `02-architect.md` | architect (`architecture-review` preloaded): core vs country app vs integration app, patch aur fixture ki zaroorat |\n| 03 | `03-implementation-plan.md` | orchestrator, `implementation-plan` skill: har Frappe surface ki ek row |\n| 04 | `04-developer.md` | developer, gate G1 ke baad; migrate prompt G1b |\n| 05 + 06 | `05-tester.md`, `06-security.md` | parallel; security diff par conditional |\n| 07.. | `07-developer.md` | rework, max 2 |\n| next | `NN-reviewer.md` | reviewer (`code-review`) |\n| last | `NN-run-report.md` | orchestrator |\n\nEk Frappe feature paanch surfaces tak touch karta hai jo requirements se PR tak ek saath visible rehne chahiye: **DocType JSON** (fields, `permissions`, `search_index`), **controller**, `patches.txt` mein listed ek **patch**, **tests**, aur **fixtures** ya `hooks.py`. Plan mein har surface ki ek row hai; developer ka `## Artifacts` har file list karta hai; reviewer Python, DocType JSON, `patches.txt`, `hooks.py` aur fixtures ek hi pass mein review karta hai (`context/standards/review-standards.md`).\n\nRun folder rules (`workflows/README.md`): run id `YYYY-MM-DD-<feat|bug|inc>-<slug>`, files `NN-<agent>.md` ya `NN-<skill>.md`, `.ai-sdlc/runs/.active` active run mark karta hai, architect, developer aur tester apna handoff khud likhte hain, reviewer, security aur sre use inline return karte hain aur orchestrator use verbatim save karta hai.\n\n`workflows/examples/feature-observation-code-vocabulary/` OBS-51 ka complete run hai: shipped fixtures ke saath naya `SL Observation Code` DocType, `SL Observation.code` ko `Data` se `fetch_from` ke saath `Link` mein badalna, ek controller unit check, aur ek `[post_model_sync]` backfill patch. Iske developer aur tester steps `spice_lite` par apply kiye gaye aur course bench ki scratch site par chalaye gaye: developer ka pehla diff 53 tests pass hua, tester ke teen naye tests ne ek non-idempotent patch (8480-6 par `DuplicateEntryError`) aur create/write wali Clinician DocPerm row expose ki, security ne wahi row high flag ki, aur rework 56 tests pass hua."
+    },
+    {
+      "heading": "Handoffs interface hain, aur ek Claude Code hook unhe enforce karta hai",
+      "body_md": "Subagent ek final message return karta hai, aur agla agent fresh context ke saath start hota hai. Handoff file steps ke beech **akela** channel hai, isliye uska format request nahi, enforce kiya jaata hai.\n\nFormat (`workflows/README.md`): YAML front matter `run_id`, `step`, `agent`, `status` (`complete | blocked | needs-human`), `inputs`, `next`, phir `## Summary`, `## Findings` (table `id | severity | category | location | evidence | recommendation`), `## Decisions`, `## Open questions`, `## Artifacts`.\n\n`.claude/hooks/check-handoff.mjs` **`SubagentStop`** par matcher `architect|developer|reviewer|tester|security|sre` ke saath chalta hai. Hook input mein `agent_type` aur `last_assistant_message` hote hain. Yeh handoff dhoondhta hai (`HANDOFF: <path>` line, inline document, ya active run mein agent ki sabse nayi file) aur check karta hai field values, file prefix vs `step`, `run_id` vs folder aur `.active`, ki `inputs` exist karte hain aur pehle ke steps hain, paanch sections, finding severities, aur ki `blocked`/`needs-human` ke saath ek concrete open question ho. Do rules Frappe-specific hain:\n\n- **Test evidence**: `status: complete` wale developer ya tester handoff ko `Ran N tests` (N > 0) aur `OK` quote karna hi hoga, aur `FAILED (` quote nahi karna chahiye. `bench run-tests` failures par 0 se exit karta hai jab tak `CI` set na ho, aur galat `--test` naam `Ran 0 tests` / `OK` print karta hai; dono is bench par verify kiye gaye.\n- **Security scope record**: jab developer valid handoff ke saath stop hota hai, hook `git diff HEAD -- sample-app` plus untracked files par `security-scope.mjs` chalata hai aur `.ai-sdlc/runs/<run-id>/security-scope.txt` likhta hai. Orchestrator ke paas Bash nahi hai; yahi file hai jisse deterministic diff check us tak pahunchta hai.\n\nFailure par hook stderr par reasons ke saath **exit 2** karta hai: `SubagentStop` ke liye exit 2 stop ko block karta hai, isliye subagent continue karta hai aur apna handoff fix karta hai. Exit 1 sirf non-blocking error log karta. Orchestrator ki retry policy (ek retry, phir `needs-human`) backstop hai.\n\nYeh orchestrator ke frontmatter `hooks` mein registered hai (frontmatter hooks tab bhi fire hote hain jab agent `--agent` se main session ki tarah chalta hai, par sirf tab jab folder interactively trust ho chuka ho) aur `feature`, `bug-fix` aur `incident` skills ke frontmatter `hooks` mein (jo kabhi-trust-na-hue `claude -p` run mein bhi use hote hain). Active run ke bahar hook kuch enforce nahi karta, isliye ad-hoc `@agent-reviewer` use kaam karta rehta hai."
+    },
+    {
+      "heading": "Asli mechanisms par bane human gates",
+      "body_md": "\"Approval ka wait karo\" jaisi instruction gate nahi hai: agar model continue karna decide kare toh use kuch nahi rokta. Yahan har gate ya toh Claude Code ke enforce kiye mechanism par tika hai, ya aise stop par jise insaan ka reply chahiye.\n\n**G1, plan approval, har developer launch se pehle.** `workflows/gates.settings.json` mein `{\"permissions\": {\"ask\": [\"Agent(developer)\"]}}` hai, jo `--settings` se load hota hai. Permission rules `Agent(name)` support karte hain, aur `ask` Claude Code se tool call chalne se pehle insaan ko prompt karwata hai. Insaan 01, 02 aur 03 padhta hai (har DocType JSON, `patches.txt` aur `hooks.py` row aur security-scope prediction samet) aur accept ya reject karta hai. Rework launches bhi usi prompt se guzarte hain, isliye fix loop bina nigrani ke nahi chal sakta.\n\n**G1b, test-site schema.** DocType JSON change ke liye tests pass hone se pehle `bench --site test.localhost migrate` chahiye. Woh command developer ke bash guard mein ek `ask` entry hai (module 05) aur `.claude/settings.json` mein ek `ask` rule (module 10), isliye insaan dekhta hai ki kaunsi site migrate ho rahi hai. Rejected migrate par developer `needs-human` return karta hai; orchestrator kabhi workaround ki tarah `console`, `execute` ya `reload-doc` suggest nahi karta.\n\n**G2, findings.** Parallel tester aur security steps ke baad aur code review ke baad, orchestrator kisi bhi `blocked` status, kisi bhi `critical`/`high` finding, ya bina fix-or-ticket decision wale `medium` par `needs-human` ke saath stop hota hai. Jab do findings ka root cause same ho toh woh batata hai (example mein TST-2 aur SEC-1 same DocPerm row hain).\n\n**G3, merge.** Run `next: human` ke saath khatam hota hai. Koi agent push ya merge nahi karta: `.claude/settings.json` mein `git push` ek `ask` rule hai aur `gh pr merge` denied hai. Ek insaan branch protection aur `**/doctype/**`, `patches.txt` aur `hooks.py` ke CODEOWNERS ke under PR review karta hai (module 10), aur har country site apni release window mein `bench migrate` chalati hai.\n\nBackground subagents ke prompts main session mein surface hote hain. Gated workflows `default` mode mein chalao; kaunse modes prompts suppress karte hain yeh module 10-governance hai.\n\nToh practically: G1 aur G1b prompts hain, G2 ek stop hai, G3 ek PR hai. Har ek transcript mein ya GitHub par evidence chhodta hai."
+    },
+    {
+      "heading": "Conditional aur parallel steps, failure aur retry",
+      "body_md": "**Conditional security.** Orchestrator `security-scope.txt` padhta hai. `SECURITY STEP: MANDATORY (rules ...)` ya missing file ka matlab security chalega; `SECURITY STEP: SKIP (...)` run report mein skip reason ki tarah copy hota hai. Chhe rules (module 07): DocType `permissions` ya `permlevel`, whitelisted method ya `spice_lite/api/`, `hooks.py`, `ignore_permissions`, tests ke bahar joda gaya `frappe.db.sql`/`get_all`/`qb`/`db.count`, permission fixtures. Example run mein file kehti hai `MANDATORY (rules 1, 3, 4, 5)`: naye DocType ka `permissions` array, `hooks.py` mein `fixtures` key, aur patch mein `ignore_permissions` plus `frappe.get_all`. `implementation-plan` skill G1 par jawab predict karti hai taaki insaan step force kar sake.\n\nBaaki conditions bhi yahi pattern follow karti hain: bug-fix architect ko sirf DocType, patch, public-contract ya multi-module change ke liye chalata hai; incident security ko sirf 401/403 anomalies ya data exposure ke liye chalata hai.\n\n**Parallel tester aur security.** Dono same turn mein pre-assigned files `05-tester.md` aur `06-security.md` ke saath launch hote hain. Tester sirf test files likhta hai (uska write-scope guard), security kuch nahi likhta, aur dono mein se koi migrate nahi karta. G2 tabhi evaluate hota hai jab dono wapas aa jaayein.\n\n**Failure aur retry policy** (har spec mein ek table hai):\n\n| failure | response |\n|---|---|\n| invalid handoff, ya bina quoted `Ran N tests` / `OK` ke `complete` | hook exit 2; phir task mein hook ke error ke saath ek retry; phir `needs-human` |\n| tester ya reviewer se `blocked` | blocking finding ids ke saath developer rework, max 2 |\n| teesra rework chahiye | `needs-human`: plan galat hai, code nahi |\n| G1 prompt ya migrate prompt rejected | stop; insaan 01 ya 03 edit karta hai, ya scratch site deta hai |\n| agent error ya empty result | ek baar retry, phir `needs-human` |\n| session interrupted | same entry point dobara chalao; pehle incomplete step se resume karo |\n\nCaps utne hi matter karte hain jitne retries. Jo orchestrator hamesha retry karta rahe woh ek bure plan ko bade bill, noisy diff, aur paanch baar migrate hui test site mein badal deta hai."
+    },
+    {
+      "heading": "Teen workflows, ek orchestrator",
+      "body_md": "Orchestrator ki body workflow-agnostic hai. Differences `workflows/*.md` aur entry-point skills mein rehte hain:\n\n- **`/feature`**: `feature-delivery.md` (upar).\n- **`/bug-fix`**: `bug-fix.md`. Pehle evidence: `requirements` skill bug mode mein chalti hai (observed, expected, synthetic data ke saath `spice_lite.tests.utils.call` se reproduction, regression test `test_<bugid>_<behaviour>`). Developer fix se pehle red run (`FAILED (failures=1)`) aur baad mein green run quote karta hai. Worked inputs: BUG-63 open defect D-3 hai (bina offset ke FHIR datetimes, CLAUDE.md rule 8 se explicitly allowed kyonki ticket uska naam leta hai); BUG-57 \"family search Postgres par case-sensitive hai\" reproduce nahi ho sakta, kyonki frappe Postgres par `like` ko `ilike` mein badal deta hai, aur \"cannot reproduce\" ke saath `blocked` sahi outcome hai.\n- **`/incident`**: `incident-response.md`. sre `production-rca` ke saath lead karta hai; security parallel mein sirf auth ya exposure symptoms ke liye join karta hai. Spec mein do common Frappe incidents ki triage table hai: slow whitelisted method (`lastn`: har subject ke liye 2 SQL calls, 100 subjects ke liye 200, is bench par measure kiya) aur RQ queue backlog (workers aur har queue ke jobs ke liye `bench --site <site> doctor`, `show-pending-jobs` jiske kwargs redact karne zaroori hain, `logs/worker.error.log`, `RQ Job` list). Mitigation gate G-M ek human action hai: sre ka bash guard `test.localhost` par sirf read-only diagnostics allow karta hai. Code fixes `05-bug-fix-handover.md` mein `/bug-fix` command ki tarah aage jaate hain.\n\nTeeno entry points ka frontmatter shape same hai: `disable-model-invocation: true`, ek `argument-hint`, `allowed-tools` jo `Read Grep Glob Bash(date *)` plus dynamic context lines ke liye `Bash(git status *)` tak limited hai (skills invocation par `date +%F` aur `git status --short -- sample-app` chalati hain), aur `SubagentStop` hook. `requirements` aur `implementation-plan` skills model-invocable hain taaki orchestrator unhe Skill tool se call kar sake.\n\nToh practically: chautha workflow (jaise country sites par Frappe minor-version upgrade) ek naya spec plus ek naya entry-point skill hai. Orchestrator, hook aur gates bina badlaav ke reuse hote hain."
+    }
+  ],
+  "diagrams": [
+    {"title": "Frappe par feature delivery: steps, diff-driven security, parallel review, gates"},
+    {"title": "Developer stop par SubagentStop hook"},
+    {"title": "Handoff status orchestrator ko drive karta hai"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Orchestrator chalane ke teen tareeke",
+      "columns": ["Mode", "Command", "Agent(...) allowlist", "Roster ki depth", "Kab use karein"],
+      "rows": [
+        ["Main thread (default)", "`claude --agent orchestrator --settings workflows/gates.settings.json`, phir `/feature ...`", "Enforced: sirf chhe roster types; Bash nahi, isliye bench nahi", "1", "Har real workflow run, interactive ya headless"],
+        ["Main-session skill", "`claude --settings workflows/gates.settings.json`, phir `/feature ...`", "Enforced nahi: main session koi bhi type launch kar sakta hai aur Bash rakhta hai", "1", "Existing session mein quick runs; kamzor scope accept karo"],
+        ["Orchestrator as subagent", "`claude --settings workflows/composition/depth-2.settings.json`, phir `@agent-orchestrator ...`", "Ignored; `deny: Agent(general-purpose)` bharpaai karta hai", "2 (limit 2 par Agent withheld)", "Sirf interactive; kabhi headless nahi (background children ka wait nahi hota)"]
+      ]
+    },
+    {
+      "title": "Human gates aur unke mechanisms",
+      "columns": ["Gate", "Kab", "Mechanism", "Hone ka evidence", "Details"],
+      "rows": [
+        ["G1 plan approval", "Har developer launch, rework samet", "`workflows/gates.settings.json` mein `permissions.ask: [\"Agent(developer)\"]`", "Session transcript mein permission prompt aur jawab; `03-implementation-plan.md` status `needs-human`", "Yeh module"],
+        ["G1b test-site schema", "DocType JSON, `patches.txt` ya fixture changes wala developer step", "Developer ke bash guard mein `?bench --site test.localhost migrate`; `.claude/settings.json` mein `ask` rule", "Transcript mein migrate prompt; developer handoff mein quoted migrate output", "Modules 05 aur 10"],
+        ["G2 findings", "Tester/security ke baad aur review ke baad", "Orchestrator `needs-human` ke saath stop hota hai; rework G1 ko dobara trigger karta hai", "Agle handoff aur run report mein decision recorded", "Yeh module; severities `context/standards/review-standards.md` mein"],
+        ["G3 merge", "Run ka end", "PR review; `git push` `ask` hai, `gh pr merge` denied; DocType JSON, `patches.txt`, `hooks.py` ke liye branch protection aur CODEOWNERS", "Non-author ka approved PR", "Module 10-governance"],
+        ["Handoff validity", "Run ke dauraan har roster subagent stop", "`SubagentStop` Claude Code hook, exit 2", "Subagent transcript mein hook reason", "Yeh module"]
+      ]
+    }
+  ],
+  "exercises": {
+    "08-orchestrator-main-thread": {
+      "title": "Orchestrator agent, uska contract aur gate settings banao",
+      "objective": "Orchestrator ko verified-format agent ki tarah likho jo main thread ki tarah chalne ke liye hai: sirf chhe roster agents ka naam lene wali `Agent(...)` allowlist, Read/Write/Grep/Glob/Skill aur koi Edit ya Bash nahi (woh kabhi bench nahi chalata), frontmatter mein SubagentStop Claude Code hook, aur ek body jo procedure hai (start/resume, step chalao, conditional step ke liye `security-scope.txt` padho, parallel steps, migrate prompt samet gate rules, retry policy, finish). Uska Agent Contract, handoff front matter ke saath `workflows/README.md`, aur gate G1 ke liye `workflows/gates.settings.json` likho. Prove karo ki `--agent` mode mein allowlist enforce hoti hai.",
+      "testCases": [
+        {"name": "Contract validate hota hai"},
+        {"name": "Roster conformance check pass hota hai (module 05 tool)"},
+        {"name": "Topology lint pass hota hai"},
+        {"name": "Frontmatter sirf documented subagent fields use karta hai", "expected": "color: description: effort: hooks: maxTurns: model: name: tools: (har key FACTS subagent field table mein hai)"},
+        {"name": "Governance policy orchestrator ko accept karti hai"},
+        {"name": "Main thread ki tarah allowlist enforced", "expected": "Orchestrator report karta hai ki Explore aisa agent type nahi jise woh launch kar sake (uski Agent(...) list mein nahi) aur uski jagah roster agent offer karta hai. ~/.claude/projects/*/*/subagents/ ke neeche koi Explore transcript nahi dikhta."},
+        {"name": "Gate settings ask rule ke saath valid JSON hain"}
+      ],
+      "evaluationCriteria": [
+        "Tools bilkul allowlisted Agent(...) plus Read, Write, Grep, Glob, Skill hain; koi Edit, Bash ya MCP tools nahi, isliye orchestrator kabhi bench nahi chala sakta.",
+        "Body explicit stop conditions (rejected migrate prompt samet) wala executable procedure hai, persona description nahi.",
+        "Contract ka har must/mustNot apna enforcement batata hai, aur contract imaandari se kehta hai ki kaunse rules conventions hain (run-folder Write scope, security decision khud).",
+        "Gate settings file mein sirf ask rule hai, isliye woh project settings ke upar layer hoti hai bina unhe kamzor kiye."
+      ],
+      "improvements": [
+        "`initialPrompt` jodo (main-thread agents ke liye documented field) jo session start par teeno workflows list kare.",
+        "Orchestrator ke frontmatter mein PreToolUse Claude Code hook se run-folder Write scope enforce karo, module 05 ka `agents/tool-guard.mjs write-scope .ai-sdlc/runs/` reuse karke.",
+        "Workflow machines ke liye ek dedicated settings file mein `\"agent\": \"orchestrator\"` rakho taaki akela `claude` orchestrator start kare."
+      ]
+    },
+    "08-feature-workflow": {
+      "title": "Observation code vocabulary ke liye /feature end to end chalao",
+      "objective": "`feature`, `requirements` aur `implementation-plan` skills aur feature-delivery spec likho, phir `/feature OBS-51` ko saare gates se guzaaro ek aise Frappe change par jisme har surface hai (naya DocType JSON aur controller, ek badla hua DocType, controller rule, fixture plus `hooks.py` key, `[post_model_sync]` patch, tests): G1 par developer aur G1b par migrate approve karo, dekho ki tester aur security parallel chalte hain kyonki `security-scope.txt` MANDATORY kehta hai, G2 par findings decide karo, rework chalne do, aur ek valid run folder ke saath khatam karo jo `workflows/examples/feature-observation-code-vocabulary/` ke shape se match kare.",
+      "testCases": [
+        {"name": "Tumhare run ka har handoff valid hai", "expected": "Har file ke liye PASS (01 se run report tak), exit=0"},
+        {"name": "Example run valid aur complete hai"},
+        {"name": "Security decision diff se record hota hai", "expected": "SECURITY STEP: MANDATORY (rules 1, 3, 4, 5) (example ke security-scope.txt wali same line)"},
+        {"name": "Example ka developer diff sach mein pass hota hai", "expected": "Executing spice_lite.patches.v0_2.backfill_observation_codes ... Success, phir Ran 53 tests aur OK"},
+        {"name": "Run cleanly khatam hua"},
+        {"name": "Orchestrator ne run folder ke bahar kuch nahi likha", "expected": "Koi output nahi: sirf developer aur tester ne files badli, sab sample-app/ ke neeche (.ai-sdlc/ git-ignored hai)."},
+        {"name": "G1 rejection run ko rokta hai", "expected": "Run folder mein 01, 02 aur 03 (status needs-human) hain aur koi 04-developer.md nahi; orchestrator poochta hai ki 01 ya 03 mein kya badalna hai."},
+        {"name": "Entry point user-only hai"}
+      ],
+      "evaluationCriteria": [
+        "Run report ka har step bilkul ek spec step se map hota hai, chala hua ya `security-scope.txt` ke reason ke saath skipped.",
+        "Tester aur security same turn mein launch hue, aur G2 dono ke return hone ke baad evaluate hua; overlapping findings ek root cause ki tarah report hui.",
+        "Har developer launch (pehla aur rework) accepted Agent(developer) prompt se guzra, aur har migrate G1b prompt se.",
+        "Developer aur tester handoffs asli bench summary quote karte hain; koi bhi `FAILED (` ke saath `complete` claim nahi karta.",
+        "Final diff mein schema change ke liye `patches.txt` mein ek patch hai, aur 01-requirements.md ka har AC ek named test se prove hota hai."
+      ],
+      "improvements": [
+        "Step 01 ko `/ticket-intake OBS-51` (module 06) se feed karo taaki requirements PHI redaction ke saath MCP ke through asli ticket se aayein.",
+        "Planning wala hissa headless chalao (`claude --agent orchestrator -p \"/feature ...\" --max-budget-usd 3`) aur G1 par ruko; interactively continue karo.",
+        "`evaluations/` mein ek golden workflow task jodo jo example run folder replay kare aur gate decisions score kare (module 09)."
+      ]
+    },
+    "08-handoff-hook": {
+      "title": "SubagentStop hook se handoff format aur test evidence enforce karo",
+      "objective": "`check-handoff.mjs` banao, ek SubagentStop Claude Code hook jo latest handoff validate kare (inline final message, `HANDOFF:` pointer, ya active run mein agent ki sabse nayi file), aise `complete` developer ya tester handoff ko block kare jo passing bench summary quote na kare, developer ke stop hone par git diff se `security-scope.txt` likhe, aur kuch bhi galat ho toh reasons ke saath exit 2 kare. Ek test script likho jo ise real SubagentStop payloads ke saath subprocess ki tarah chalaye, temporary git projects samet. Phir ise ek invalid reviewer handoff aur ek aisa developer handoff do jo sirf \"exit 0\" kehta hai, aur padho ki woh subagent ko kya reasons deta hai.",
+      "testCases": [
+        {"name": "Test suite pass hota hai"},
+        {"name": "Invalid reviewer handoff exit 2 ke saath block hota hai", "expected": "stderr par chaar reasons (status, missing Open questions, missing columns, severity) aur exit=2"},
+        {"name": "Exit 0 test evidence ki tarah accept nahi hota", "expected": "Ek reason: status \"complete\" needs the quoted bench summary, aur exit=2"},
+        {"name": "Failing run par bench sach mein 0 se exit karta hai", "expected": "Ran 0 tests in 0.000s\n\nOK\nexit=0 (aur bina CI set kiye, failures wala run bhi 0 se exit karta hai)"},
+        {"name": "Non-roster agents pass through hote hain", "expected": "exit=0 (built-in agents workflow steps nahi hain)"},
+        {"name": "CLI run folder validate karta hai"},
+        {"name": "Hook wahan registered hai jahan workflow chalta hai"},
+        {"name": "Live: agent ko apna handoff fix karna padta hai", "expected": "Transcript mein hook reason `status \"complete\" needs the quoted bench summary` dikhta hai, uske baad `Ran N tests` aur `OK` quote karta handoff; run folder mein `security-scope.txt` aata hai."}
+      ],
+      "evaluationCriteria": [
+        "Sirf exit 2 se block karta hai (woh exit code jo SubagentStop ko block karta hai); malformed stdin 1 se exit karta hai taaki toota payload kabhi run ko atkaye nahi.",
+        "Har reason field aur allowed values ka naam leta hai, taaki subagent bina guess kiye fix kar sake.",
+        "Active run ke bahar kuch enforce nahi karta, isliye ad-hoc roster use kaam karta rehta hai; `security-scope.txt` sirf valid developer handoff ke baad likhta hai.",
+        "Tests hook ko SubagentStop-shaped JSON ke saath subprocess ki tarah chalate hain, security-scope record ke liye temporary git repositories samet, sirf internals import karke nahi.",
+        "Zero dependencies, Node 22 ESM."
+      ],
+      "improvements": [
+        "stderr ke bajaye stdout par `{\"decision\": \"block\", \"reason\": ...}` JSON return karo, jo SubagentStop ke liye exit 2 ka documented alternative hai.",
+        "PHI check jodo: synthetic `MRN-000xxx` range ke bahar MRN-shaped values aur `frappe.form_dict` dump jaisi dikhne wali har cheez reject karo.",
+        "Module 10 se kaho ki same handler `.claude/settings.json` mein register kare taaki woh un sessions ko bhi cover kare jo bina skills ke run start karte hain."
+      ]
+    },
+    "08-bugfix-and-incident": {
+      "title": "Same orchestrator par bug-fix aur incident workflows jodo",
+      "objective": "`bug-fix` aur `incident` entry-point skills aur unke workflow specs likho, orchestrator, handoff format, Claude Code hook aur gates bina badle reuse karke. `spice_lite` ki asli `lastn` latency problem (har subject ke liye 2 SQL calls) par `/incident` chalao, confirm karo ki security recorded reason ke saath skip hota hai aur mitigation insaan par chhoda jaata hai, fix `/bug-fix` ko handover karo, aur ek aisi report par ek baar `/bug-fix` chalao jo Postgres par reproduce nahi hoti.",
+      "testCases": [
+        {"name": "Entry points hints ke saath user-only hain"},
+        {"name": "Evidence number asli hai", "expected": "`for s in subject_list:` loop ke andar marker line, phir `Ran 1 test` aur `OK` (pinning test assert karta hai ki har extra subject par kam se kam 2 extra queries hoti hain)"},
+        {"name": "Security skip record hota hai", "expected": "Ek line jo batati hai ki 03 security reason ke saath skip hua (latency symptom, koi permission anomaly ya exposure nahi)."},
+        {"name": "Agent ne koi site change nahi kiya", "expected": "test.localhost par sirf read-only diagnostics (doctor, show-pending-jobs, bench logs ka tail ya grep) aur read-only git; koi migrate, execute, console, set-config ya disable-scheduler nahi. Mitigation insaan ne report kiya."},
+        {"name": "Run folder valid", "expected": "Har file ke liye PASS, exit=0"},
+        {"name": "Bug-fix non-reproducible bug ko refuse karta hai", "expected": "04-developer.md \"cannot reproduce\" ke saath `blocked` hai aur ek quoted passing reproduction hai (`call(fhir.search_patients, family=...lower())` patients return karta hai: frappe Postgres par like ko ilike mein badalta hai); koi production code nahi badla."},
+        {"name": "Teaching defect guarded", "expected": "Plan `lastn()` ya TEACHING-DEFECT(perf-n+1) marker ko touch nahi karta (CLAUDE.md rule 8); sirf aisi report jo explicitly lastn performance ke baare mein ho, jaise BUG-64, kar sakti hai."}
+      ],
+      "evaluationCriteria": [
+        "Dono skills orchestrator procedure aur Claude Code hook reuse karti hain; orchestrator.md mein koi workflow-specific logic nahi joda gaya.",
+        "Har spec mein ek mermaid diagram, har step ke agent, inputs, outputs aur gate wali steps table, conditional branches, aur failure aur retry table hai.",
+        "Incident workflow kabhi kisi agent ko site-changing command nahi deta; mitigation handoff mein recorded human action hai, aur paste kiye gaye `show-pending-jobs` kwargs redacted hain.",
+        "Bug-fix spec dono bench summaries quoted ke saath red-then-green regression test maangta hai, aur \"cannot reproduce\" ko valid outcome maanta hai."
+      ],
+      "improvements": [
+        "Chauthe workflow ki tarah `/frappe-upgrade` jodo (spec + entry-point skill) jo country sites ko ek-ek karke `bench migrate` se guzaare, yeh prove karne ke liye ki orchestrator workflow-agnostic hai.",
+        "Paste kiye output ke bajaye incident metrics read-only MCP server (module 06) se lao.",
+        "RQ-backlog incident drill likho: scratch site par short timeout ke saath synthetic jobs enqueue karo aur sre ko `bench doctor` output padhne do."
+      ]
+    }
+  },
+  "agentContracts": [
+    {
+      "purpose": "`spice_lite` Frappe app ke liye ek workflow run (feature delivery, bug fix, ya incident response) execute karo jaisa `workflows/` mein specified hai: roster agents ko specified order mein launch karo, conditional aur parallel steps chalao, har human gate par ruko, failure aur retry policy apply karo, aur ek complete, auditable run folder rakho. Yeh isliye exist karta hai taaki sequencing aur gate decisions ek accountable role le jo code nahi badal sakta, `bench` nahi chala sakta, ya site migrate nahi kar sakta. Yeh khud kuch implement, review, test ya approve nahi karta, aur kabhi decide nahi karta ki koi human gate skip ho sakta hai.",
+      "inputs": [
+        "Insaan se entry point aur uske arguments: ticket, bug ya incident id aur one-line summary ke saath `/feature`, `/bug-fix` ya `/incident` (required).",
+        "Workflow spec `workflows/feature-delivery.md`, `workflows/bug-fix.md` ya `workflows/incident-response.md`, aur `workflows/README.md` ke handoff rules (required, run start par padhe jaate hain).",
+        "Interrupted run resume karte waqt `.ai-sdlc/runs/<run-id>/` mein existing handoffs (optional).",
+        "`.ai-sdlc/runs/<run-id>/security-scope.txt`, jo developer ke stop hone par SubagentStop Claude Code hook working-tree diff se likhta hai (security condition ke liye required; missing file ka matlab step chalega).",
+        "`ticket-intake` skill (module 06) ka banaya `00-ticket-intake.md`, maujood ho toh step 01 ke source ki tarah use hota hai (optional).",
+        "Gates par insaan ke decisions, session mein diye gaye: har `Agent(developer)` prompt ka acceptance ya rejection, findings ke liye fix-or-ticket decisions, mitigation outcomes (gates par required)."
+      ],
+      "outputs": [
+        "`.ai-sdlc/runs/<run-id>/01-requirements.md` aur `NN-implementation-plan.md`, `requirements` aur `implementation-plan` skills se likhe gaye (incident runs: `01-incident-brief.md`, `NN-bug-fix-handover.md`).",
+        "Reviewer, security aur sre ke return kiye inline handoffs ki verbatim copies, `NN-<agent>.md` ki tarah saved.",
+        "`.ai-sdlc/runs/<run-id>/NN-run-report.md`: har step agent, status, gate outcome ke saath, skipped steps reasons ke saath, unresolved findings, open human actions (PR review, merge ke baad har country site par `bench migrate`).",
+        "`.ai-sdlc/runs/.active`: start par active run id, end par `none`.",
+        "Insaan ko final message: run folder path, woh teen facts jo PR reviewer ko chahiye, aur agla human action."
+      ],
+      "permissions": "Frontmatter `tools` field sirf `Agent(architect, developer, reviewer, tester, security, sre)`, Read, Write, Grep, Glob aur Skill grant karta hai: na Edit na Bash, isliye yeh code nahi badal sakta, `bench`, `git` ya tests nahi chala sakta, ya shell se site nahi padh sakta. Yeh koi `permissionMode` set nahi karta; session ke mode mein chalta hai (gated runs ke liye `default` use karo). Parenthesised Agent allowlist sirf tab enforce hoti hai jab orchestrator main thread ho (`claude --agent orchestrator`); subagent ki tarah chalne par list ignore hoti hai, isiliye woh mode default nahi hai (module 07). `--settings workflows/gates.settings.json` ke saath launch karne par permission rule `ask: [\"Agent(developer)\"]` har developer launch ko insaan ka wait karwata hai. `.claude/settings.json` ke project rules phir bhi apply hote hain: `Read(**/site_config.json)` denied hai, `git push` `ask` hai, `gh pr merge` aur `bench drop-site` denied hain. Sirf `.ai-sdlc/runs/` ke andar likhna agent body mein instructed hai, config se enforced nahi (mustNot dekho). Iske frontmatter mein ek `SubagentStop` Claude Code hook har roster subagent ke liye `.claude/hooks/check-handoff.mjs` chalata hai.",
+      "must": [
+        "Step 01 se pehle workflow spec aur `workflows/README.md` padho aur spec ka step order follow karo [convention: reviewer PR review par run report ki step table ko spec se compare karta hai]",
+        "Har workflow step spec mein named roster agent ko delegate karo [mechanism: `claude --agent orchestrator` ke under `tools` mein `Agent(architect, developer, reviewer, tester, security, sre)` allowlist]",
+        "Har developer launch se pehle, rework samet, human approval lo [mechanism: `workflows/gates.settings.json` mein `ask` rule `Agent(developer)`]",
+        "Ensure karo ki har roster step valid handoff ke saath khatam ho, aur complete marked developer aur tester handoffs passing bench summary quote karein [mechanism: `SubagentStop` Claude Code hook `check-handoff.mjs` missing ya invalid handoff par exit 2 karta hai]",
+        "Jab bhi `security-scope.txt` MANDATORY kahe ya missing ho (DocType permissions array, whitelisted method, `hooks.py`, `ignore_permissions`) security step chalao [mechanism: SubagentStop Claude Code hook `workflows/composition/security-scope.mjs` ke saath `git diff` se file likhta hai; decision khud ek convention hai jo run report mein check hoti hai]",
+        "Kisi bhi `blocked` status, kisi bhi `critical` ya `high` finding, ya undecided `medium` par `needs-human` ke saath ruko [convention: workflow spec mein gate G2; PR reviewer run report ke against check karta hai]",
+        "Jab spec tester aur security steps ko parallel mark kare toh unhe same turn mein launch karo, aur gates evaluate karne se pehle dono ka wait karo [convention: run report G2 row se pehle dono steps dikhata hai]",
+        "Har skipped conditional step ko uske reason ke saath run report mein record karo [convention: PR reviewer run report check karta hai]",
+        "Start par run id `.ai-sdlc/runs/.active` mein likho aur end par `none` [convention: `check-handoff.mjs` handoffs sirf tab enforce karta hai jab marker kisi run ka naam le]"
+      ],
+      "mustNot": [
+        "`.ai-sdlc/runs/` ke bahar application code, DocType JSON, `hooks.py`, `patches.txt`, fixtures, tests, configuration, ya docs edit karna [mechanism: `tools` mein Edit ya Bash nahi; Write scope ek convention hai jo PR review par `git status` se check hoti hai]",
+        "Workflow step ke liye built-in, forked, ya non-roster agents launch karna [mechanism: main thread ki tarah chalne par `Agent(...)` allowlist]",
+        "`bench` (migrate, console, execute, run-tests) chalana, push, merge, ya deploy karna [mechanism: `tools` mein Bash nahi; `.claude/settings.json` mein `git push` `ask` hai aur `gh pr merge` denied hai]",
+        "Kisi doosre agent ka handoff uski jagah likhna ya complete karna [convention: handoff ka `agent` field producing subagent ke barabar hona chahiye, `check-handoff.mjs` ise `agent_type` ke against check karta hai]",
+        "Task messages mein handoff contents, Jira text, ya patient data paste karna; sirf paths do [convention: reviewer evaluation ke dauraan subagent transcripts sample karta hai, module 09]",
+        "Ek run mein do se zyada developer rework steps karna [convention: run report ka rework count, PR review par checked]"
+      ],
+      "failureConditions": [
+        "Workflow spec aur agent body kisi step, gate ya condition par disagree karte hain: `needs-human` ke saath ruko aur dono quote karo.",
+        "Claude Code hook ke fix force karne aur ek retry ke baad bhi subagent koi valid handoff return nahi karta: `needs-human` ke saath ruko.",
+        "Teesre developer rework ki zaroorat padegi: `needs-human` ke saath ruko (plan ya requirements galat hain).",
+        "Insaan `Agent(developer)` prompt reject karta hai: ruko aur poocho kya badalna hai; relaunch mat karo.",
+        "Developer report karta hai ki `bench --site test.localhost migrate` reject hua: `needs-human` ke saath ruko; kabhi `console`, `execute` ya `reload-doc` se iske around route mat karo.",
+        "Feature ya bug-fix run ke start par `sample-app/` ke neeche working tree clean nahi hai: ruko aur insaan se commit ya stash karne ko kaho (warna security-scope diff galat hoga).",
+        "Kisi input ya paste kiye log mein PHI lagta hai (names, MRNs, `frappe.form_dict` dumps, `show-pending-jobs` kwargs): ruko, redaction maango, aur text run folder mein save mat karo."
+      ],
+      "validation": "Finished run folder ke liye `node .claude/hooks/check-handoff.mjs .ai-sdlc/runs/<run-id>` 0 se exit karta hai; `node .claude/hooks/check-handoff.test.mjs` pass hota hai, `workflows/examples/feature-observation-code-vocabulary/` ke example run samet. Run report har spec step ko bilkul ek baar run ya skipped-with-reason ki tarah list karta hai, security decision `security-scope.txt` se match karta hai, session transcript mein har developer step se pehle approved `Agent(developer)` prompt hai, aur `git status` `.ai-sdlc/runs/` ke bahar orchestrator ki badli koi file nahi dikhata. Agent file ke liye `node agents/check-agents.mjs` aur `node workflows/composition/check-roster-flat.mjs` pass hote hain. Workflow-level golden tasks `evaluations/` mein rehte hain (module 09).",
+      "handoffFormat": "Orchestrator jo bhi file likhta hai woh `.ai-sdlc/runs/<run-id>/NN-<step>.md` hai, `workflows/README.md` ke canonical front matter ke saath: `run_id`, `step` (do digits, file prefix ke barabar), apne steps ke liye `agent: orchestrator` (ya saved inline handoffs ke liye producing agent), `status` (`complete`, `blocked`, `needs-human`), `inputs` (pehle ki run files ya `ticket:` / `incident:` references ki flow list), aur `next`; uske baad sections Summary, Findings (table `id | severity | category | location | evidence | recommendation` ya \"No findings.\"), Decisions, Open questions, aur Artifacts. Final `NN-run-report.md` mein `next: human` hota hai.",
+      "humanGate": "G1: har developer launch `workflows/gates.settings.json` ke permission `ask` rule `Agent(developer)` par wait karta hai; insaan `01..03` padhta hai aur prompt accept ya reject karta hai. Developer step ke andar `bench --site test.localhost migrate` khud ek `ask` rule aur guarded prompt hai (G1b). G2: parallel tester aur security steps ke baad aur code review ke baad, orchestrator blocking findings par `needs-human` ke saath rukta hai aur insaan ke recorded decision ke baad hi continue karta hai; koi bhi rework wapas G1 ask prompt se guzarta hai. G3: run `next: human` ke saath khatam hota hai; ek insaan pull request kholta aur approve karta hai (DocType JSON, `patches.txt` aur `hooks.py` ke liye branch protection aur CODEOWNERS ke saath PR approval, module 10), `git push` khud ek `ask` rule hai aur `.claude/settings.json` mein `gh pr merge` denied hai."
+    }
+  ],
+  "checklist": [
+    "`.claude/agents/orchestrator.md` `Agent(architect, developer, reviewer, tester, security, sre)`, Read, Write, Grep, Glob, Skill list karta hai aur koi Edit ya Bash nahi.",
+    "`node docs/foundations/validate-contract.mjs agents/orchestrator/CONTRACT.md` 11/11 sections print karta hai, aur `node agents/check-agents.mjs` orchestrator ko pass karta hai.",
+    "`workflows/README.md` handoff front matter, file naming, `.active` marker, `security-scope.txt`, test-evidence rule aur har handoff kaun likhta hai, define karta hai.",
+    "`workflows/gates.settings.json` mein `ask: [\"Agent(developer)\"]` hai, aur tumhare run ke har developer launch ne prompt dikhaya; har migrate ne G1b prompt dikhaya.",
+    "`feature`, `bug-fix` aur `incident` skills mein `disable-model-invocation: true`, ek `argument-hint`, aur SubagentStop hook hai.",
+    "`requirements` aur `implementation-plan` skills model-invocable hain, aur plan mein har Frappe surface ki ek row plus security scope prediction hai.",
+    "Har workflow spec mein mermaid diagram, per-step agent/inputs/outputs/gate, conditional branches, ek parallel step, aur failure aur retry table hai.",
+    "`node .claude/hooks/check-handoff.test.mjs` 34/34 pass hota hai.",
+    "`node .claude/hooks/check-handoff.mjs workflows/examples/feature-observation-code-vocabulary` saari 9 files pass karta hai, aur example ke patches waise hi apply aur test hote hain jaise uska README kehta hai.",
+    "Completed `/feature` run folder validate hota hai, usme `security-scope.txt` hai, `next: human` ke saath khatam hota hai, aur `.ai-sdlc/runs/.active` ko `none` chhodta hai.",
+    "Kisi agent ne push, merge, shared site migrate ya production site change nahi kiya; PR review ab bhi insaan ke liye pending hai."
+  ]
+}

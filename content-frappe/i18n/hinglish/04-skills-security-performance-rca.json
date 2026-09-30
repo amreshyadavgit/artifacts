@@ -1,0 +1,187 @@
+{
+  "id": "04-skills-security-performance-rca",
+  "title": "Frappe par Production Skills: Security Review, Performance Review aur Production RCA",
+  "summary": "Woh teen skills banao jin par security aur sre agents depend karte hain, PostgreSQL 16 par chalne wale Frappe v15 clinical app ke liye: ek PHI-first security-review jo jaanta hai ki get_all, permission_query_conditions, Error Log tracebacks aur track_changes asal mein kya karte hain aur apne findings bench par probes se prove karta hai; ek measure-first performance-review jo lastn N+1 dikhata hai (100 subjects ke liye 200 queries) aur ek permission-aware patch jo ise 3 kar deta hai; aur ek production-rca skill jo synthetic country-site incident (nginx, gunicorn, RQ, Redis, Error Log, Postgres slow log) ko cited, blameless RCA mein badalta hai. Har ek ke saath instruments, tests aur golden cases wala asset folder aata hai.",
+  "prerequisites": [
+    "03-skills-architecture-code-test",
+    "spice_lite test site wala ek bench: `bench --site test.localhost run-tests --app spice_lite` pass hota hai (46 tests)",
+    "Node 22 (helper scripts ki koi dependency nahi hai)",
+    "Claude Code CLI authenticated, live `claude -p` steps ke liye"
+  ],
+  "concepts": [
+    {
+      "heading": "Production skill = procedure plus instruments",
+      "body_md": "Jo skill sirf \"N+1 queries aur PHI leaks check karo\" bolti hai, woh sirf opinions deti hai. Is module ki teeno skills ek **procedure** (`SKILL.md`: scope, kaam ka order, severity scale, output contract) ko **instruments** ke saath jodti hain jo claim ko checkable cheez mein badalte hain:\n\n| Skill | Procedure kya decide karta hai | Instruments |\n|---|---|---|\n| `security-review` | das categories, Frappe facts, PHI ke liye severity | `report.schema.json`, `render-report.mjs` (validate, gate), `probes/test_security_probes.py` |\n| `performance-review` | pehle measure, nau areas, fix ka shape | `test_lastn_query_count.py`, `count-queries.mjs`, `lastn-set-based.patch` |\n| `production-rca` | evidence guard, candidates, causal chain | `build-timeline.mjs` (UTC merge, PHI guard), `rca-template.md`, ek evidence pack |\n\nInstruments plain code hain jo tum bina model ke run kar sakte ho. Yeh do baar matter karta hai. Pehla, skill use karne wale agent ko un sawaalon ka deterministic jawab milta hai jinme model kamzor hai (is call ne kitne statements chalaye, kya yeh JSON schema se match karta hai, kya is log mein koi MRN hai). Doosra, tum skill ko khud test kar sakte ho: yahan ki har script ki ek `node --test` file hai, aur Frappe probes `bench run-tests` ke andar chalte hain.\n\n`SKILL.md` chhota rakho aur baaki link karo (jab body supporting files ki taraf point karti hai tab Claude Code unhe load karta hai; body 500 lines se kam rakho). Agent `checklist.md` tab padhta hai jab use zaroorat ho, scripts `${CLAUDE_SKILL_DIR}` ke through chalata hai, aur use kabhi 200 lines ke Grep patterns pehle se context mein paste nahi karne padte.\n\nIsliye practically: jab skill likho, toh prose likhne se pehle woh check likho jo skill ke galat hone ko pakad le."
+    },
+    {
+      "heading": "Frappe facts jo security review ko guess nahi karne chahiye",
+      "body_md": "Frappe code ki zyada security galtiyan framework ke galat mental model se aati hain, isliye `security-review/SKILL.md` ka section 3 woh facts likhta hai jo findings decide karte hain, har ek is bench ke v15 source mein verified:\n\n- **`frappe.get_all` asal mein `ignore_permissions=True` wala `get_list` hai.** Yeh DocType permissions, User Permissions aur `permission_query_conditions` skip karta hai. Yahi `frappe.qb`, `frappe.db.sql`, `frappe.db.get_value` aur `frappe.db.exists` bhi karte hain.\n- **`permission_query_conditions` sirf `get_list` par apply hota hai**, aur `has_permission` Frappe hook sirf deny kar sakta hai. Jo country app inme se kisi bhi hook se facility ke hisaab se observations restrict karta hai, use request path ka koi bhi `get_all` chupchaap bypass kar deta hai.\n- **5xx request data ko do sinks mein copy karta hai.** `frappe.app.handle_exception` `log_error_snapshot` call karta hai: Error Log `get_traceback(with_context=True)` store karta hai, jo **local variables** print karta hai, aur `frappe.logger(with_more_info=True)` `logs/frappe.log` mein `Form Dict: {...}` jodta hai. Sirf woh keys mask hoti hain jinme `password`, `secret`, `token`, `key`, `pwd` ho.\n- **Postgres failed statements ko unki values ke saath log karta hai**, kyonki Frappe query bhejne se pehle values interpolate karta hai.\n- **`track_changes: 1` har save par old aur new values `Version.data` mein likhta hai.**\n- **`allow_error_traceback` ka default 1 hai**, toh error responses mein traceback aata hai, guests ke liye bhi.\n\nProbes file inme se har ek ko real app ke against test mein badalti hai. Probe 1 ek Clinician ko ek observation ki User Permission deta hai aur dikhata hai ki `get_list` sirf wahi return karta hai jabki `lastn` doosra return karta hai:\n\n```text\nPROBE SEC-PROBE-1 get_list=['SLO-00001'] has_permission(new)=False lastn_status=200 lastn_returned=['SLO-00002']\n```\n\nIsliye practically: jo finding framework behaviour par depend karti hai, woh us behaviour ko cite karti hai aur jahan ho sake, woh probe bhi jo use dikhata hai."
+    },
+    {
+      "heading": "Frappe site par PHI kahan leak hota hai",
+      "body_md": "spice_lite ka apna code careful hai: `audit.log_access` sirf document names log karta hai, `SLP-.#####` series MRNs ko names se bahar rakhti hai, aur `search_patients` LIKE wildcards reject karta hai. Phir bhi review teen **high** PHI ya permission issues dhoondhta hai, aur inme se koi bhi `log.info(patient.last_name)` line nahi hai. Yeh code ke aas-paas ke platform se aate hain:\n\n1. **Error sinks.** `create_observation` `PermissionError` aur `ValidationError` catch karta hai. Ek malformed `effective_datetime` string `doc.insert()` tak pahunchti hai, Postgres `InvalidDatetimeFormat` (ek `DataError`) raise karta hai, aur request 500 ban jaati hai. Probe 5: `value_in_error_log_traceback=True value_in_frappe_log_line=True`, aur Postgres server log measurement value ke saath failed `INSERT` dikhata hai.\n2. **Access logs.** `search_patients` `methods=[\"GET\"]` hai, toh `family` aur `identifier` (ek MRN) query string mein travel karte hain. Access log wala gunicorn aur `bench serve` dono poori request line print karte hain; bench ka nginx template bhi `$request` log karta hai.\n3. **Row-level permissions.** `lastn` observations `frappe.get_all` se padhta hai, toh `SL Observation` par koi bhi User Permission ya `permission_query_conditions` ignore ho jaata hai (SEC-001, teaching defect ke andar).\n\nList mein neeche: `Version` PHI diffs rakhta hai (sirf System Manager padh sakta hai, isliye `low`), aur 403/404 ka fark user ko enumerate karne deta hai ki kaunse patient names exist karte hain.\n\nScale ka healthcare calibration: aise user ko PHI return karna jo use padh nahi sakta `critical` hai; permission bypass ya internal sink (Error Log, access log, DB log) mein PHI `high` hai. SEC-001 `high` hai, `critical` nahi, kyonki aaj spice_lite mein koi User Permission ya `permission_query_conditions` exist nahi karta. Jo country site facility ke hisaab se observations restrict karti hai, wahan yeh PHI disclose karta hai.\n\nIsliye practically: har us sink ke defaults review karo jahan request pahunch sakti hai, sirf diff ki lines nahi."
+    },
+    {
+      "heading": "Fix se pehle measure karo: statements per request",
+      "body_md": "performance-review skill bina number ke `high` finding mana kar deti hai. Collection endpoints ke liye number hai **do input sizes par SQL statements per request**: constant theek hai, linear N+1 hai.\n\nspice_lite par instrument `test_lastn_query_count.py` hai, ek `FrappeTestCase` jo `frappe.db.sql` ko wrap karta hai, 100 synthetic patients banata hai jinke 4-4 matching observations hain (class end par rolled back), aur print karta hai:\n\n```text\nLASTN_QUERY_COUNT subjects=1 queries=2 rows_returned_by_sql=5\nLASTN_QUERY_COUNT subjects=20 queries=40 rows_returned_by_sql=100\nLASTN_QUERY_COUNT subjects=100 queries=200 rows_returned_by_sql=500\n```\n\nHar subject ke do statements: `frappe.get_doc(\"SL Patient\", s)` aur `frappe.get_all(\"SL Observation\", ..., fields=[\"*\"])` jo sirf `rows[0]` rakhne ke liye har matching observation return karta hai. `count-queries.mjs` captured statements (ya Postgres slow log) padhta hai aur do shapes dikhata hai jo 20-20 baar repeat hote hain, literals masked.\n\nSkill yeh test khud kabhi run nahi karti. Uske `allowed-tools` koi `bench` command pre-approve nahi karte, aur jo sre agent use preload karta hai woh read-only hai (uska guard `run-tests` block karta hai), toh skill apne handoff mein ek **query-count test request** likhti hai (test file, `CI=1 bench --site test.localhost run-tests --module ...`, expected numbers) aur tester use run karta hai. Is exercise mein tester tum ho.\n\nFix, `lastn-set-based.patch`, **permission-aware** rehta hai: ek `frappe.get_list(\"SL Patient\", filters={\"name\": (\"in\", subjects)}, pluck=\"name\")`, patient ke hisaab se grouped `max(effective_datetime)` ke liye ek `get_list`, aur sirf un timestamps wali rows ke liye ek. Uske baad: 1, 20 ya 100 subjects ke liye 3 statements, har subject ki 3 rows, Postgres par poora suite 49 tests OK, aur MariaDB par bhi wahi numbers. Security probes 1 aur 2 reproduce hona band ho jaate hain, toh wahi patch SEC-001 bhi band kar deta hai.\n\nEk Frappe v15 trap: `FrappeTestCase.assertQueryCount` Postgres par crash hota hai (`TypeError: ... LazyDecode found`, KNOWN_DEFECTS.md D-10), limit ke andar bhi, kyonki yeh `LazyDecode` objects ko failure message mein eagerly join karta hai. Isliye proof test ka apna counter use karta hai, aur file mein ek chhota `PostgresQueryCountMixin` hai jo `assertQueryCount` ko second check ki tarah usable banata hai.\n\nIsliye practically: pehle `frappe.cache` ya `frappe.qb` ki taraf mat bhaago. Cache N+1 ko miss hone tak chhupa deta hai; `qb` aur raw SQL permissions drop kar dete hain."
+    },
+    {
+      "heading": "Frappe deployment par RCA matlab evidence discipline",
+      "body_md": "production-rca skill `INC-2026-0922-01` analyse karti hai: ek synthetic Kenya country site jahan 20 naye ward tablets har 30 seconds mein 100 subjects ke saath `lastn` call karte hain, theek ek historical import ke baad jisne un patients mein se har ek ko lagbhag 423 heart-rate readings de di thi. Pack mein nau files hain un jagahon se jahan Frappe incident traces chhodta hai: nginx access log, gunicorn `web.error.log`, RQ `worker.log`, `LLEN rq:queue:<bench_id>:default` samples, ek Error Log export, Postgres slow-query log, metrics, change calendar aur brief.\n\nSkill ka order fixed hai: **evidence guard karo** (`build-timeline.mjs` MRNs, `Form Dict` dumps, PHI query parameters, API tokens par exit 3 karta hai), **UTC timeline banao**, **symptoms** list karo, kam se kam paanch **candidates** tolo, phir har link ke citation ke saath **causal chain** batao.\n\nPack mein woh traps hain jo real Frappe incidents mein hote hain:\n\n- gunicorn **har** SIGKILL ke liye `Worker (pid:2248) was sent SIGKILL! Perhaps out of memory?` print karta hai. Har ek `WORKER TIMEOUT (pid:2248)` ke ek second baad aata hai: stuck worker ke liye arbiter ka SIGABRT-phir-SIGKILL sequence. Host memory ka peak 58% tha, aur kernel log mein koi OOM nahi hai.\n- Error Log `creation` naive **site-local** time (+03:00) hai. Bina `--offset error-log.txt=+03:00` ke pehla job timeout 11:10 UTC par land hota hai, incident ke teen ghante baad.\n- RQ `default` backlog (0 se 81) ek symptom hai: jobs saturated database share karte hain.\n- Akela deploy (spice_telephony 1.8.0) 08:20 par rolled back hua, bina kisi asar ke.\n- `WORKER TIMEOUT` se kill hui requests kabhi `handle_exception` tak nahi pahunchti, isliye jis endpoint ne yeh kiya uski **koi Error Log rows nahi hain**.\n\nIsliye practically: har candidate uske against evidence se reject hota hai, kabhi isliye nahi ki koi doosra behtar lagta hai."
+    },
+    {
+      "heading": "Skills versioned engineering assets ki tarah",
+      "body_md": "Runtime/asset split (`.claude/skills/<name>/` loaded, `skills/<name>/` maintained) aur versioning rule module 03-skills-architecture-code-test mein sikhaye gaye hain. In teen skills ke liye `CHANGELOG.md` yeh bhi record karta hai ki kya verify hua, kis Frappe aur Postgres version par, aur kya nahi hua.\n\nYahan golden cases teen tarah ke hain:\n\n| Kind | Kya chahiye | Example |\n|---|---|---|\n| `deterministic` | sirf Node | `node --test skills/production-rca/tests/build-timeline.test.mjs` (7 pass) |\n| `bench` | bench aur shared lock | probes (`Ran 7 tests ... OK`) aur lastn apply, test, revert run |\n| `live` | ek model (`claude -p`) | `/security-review sample-app/` ko SEC-001 dhoondhna chahiye aur injection report nahi karna chahiye |\n\nHar skill ke **negative controls** hain: sirf docstring wale diff se `low` se upar koi finding nahi aani chahiye; lastn patch apply hone par performance-review ko `lastn` mein N+1 report nahi karna chahiye; pack mein real kernel OOM log jodne par RCA ko memory ko rejected se contributing mein le jaana chahiye. Jo skill har jagah problems dhoondhti hai woh utni hi bekaar hai jitni woh jo kuch nahi dhoondhti.\n\nAnswer keys `skills/<name>/tests/expected/` ke neeche rehti hain, runtime folder ke **bahar**, taaki skill chalane wala agent expected output padh na sake. Live cases ke jo patches defect jodte hain woh `EXERCISE-INTRODUCED` labelled hain; spice_lite ke apne defects `sample-app/docs/KNOWN_DEFECTS.md` mein listed rehte hain.\n\nIsliye practically: jab bhi `SKILL.md`, koi checklist ya guard rule badle, aur har Frappe upgrade ke baad, version bump karo aur cases dobara chalao, kyonki kai findings Frappe defaults par depend karti hain."
+    }
+  ],
+  "diagrams": [
+    {"title": "security-review: invocation se merge gate tak"},
+    {"title": "performance-review: measure, fix, prove, revert"},
+    {"title": "INC-2026-0922-01 causal chain"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Teeno skills side by side",
+      "columns": ["", "security-review", "performance-review", "production-rca"],
+      "rows": [
+        ["Kaun preload karta hai", "`security`", "`sre`", "`sre`"],
+        ["Input", "diff, path ya git range", "diff, path ya whitelisted method", "evidence directory aur incident id"],
+        ["Output", "JSON report (schema 1.0) plus Markdown", "findings, measurements, fix, checked clean", "11-section RCA, `status: needs-human`"],
+        ["Deterministic instrument", "`render-report.mjs` (exit 0/1/2)", "`count-queries.mjs`, query-count test", "`build-timeline.mjs` (exit 0/2/3)"],
+        ["Bench evidence", "7 probes, gunicorn access-log run", "pehle 2/40/200, baad mein 3/3/3, 49 OK", "numbers measured lastn cost se consistent"],
+        ["Kaunsa Frappe trap encode karta hai", "`get_all` permissions skip karta hai; 5xx locals aur Form Dict copy karta hai", "`assertQueryCount` Postgres par crash hota hai; `search_index` name collision", "har SIGKILL par `Perhaps out of memory?`; Error Log site time mein"],
+        ["Negative control", "sirf docstring wala diff: low se upar kuch nahi", "patched lastn: koi N+1 nahi", "kernel OOM log: memory contributing ban jaati hai"]
+      ]
+    },
+    {
+      "title": "RCA candidates ke liye discriminating evidence",
+      "columns": ["Hypothesis", "Kya predict karta", "Kya observe hua", "Verdict"],
+      "rows": [
+        ["spice_telephony 1.8.0 deploy", "07:41 se degradation; rollback se theek", "07:41 se 08:00 tak healthy; 08:20 ke rollback se kuch nahi badla", "rejected"],
+        ["Database degradation", "kai statement shapes slow; lock waits; bina DB action ke recovery nahi", "ek shape (lastn per-subject query) 100x zyada frequent; koi lock waits nahi; tablets rukte hi recover hua", "rejected"],
+        ["Memory exhaustion (OOM)", "kernel oom-kill lines; memory limit ke paas", "`SIGKILL! Perhaps out of memory?` hamesha usi pid ke `WORKER TIMEOUT` ke ek second baad; memory peak 58%; koi kernel OOM nahi", "rejected"],
+        ["Queue ya Redis failure", "Redis errors ya memory pressure; saari queues affected", "sirf `default` backed up; Redis 3.1 se 3.8 MB; bina action ke drain hua", "rejected (symptom)"],
+        ["Traffic aur data change plus lastn cost model", "load 08:00 par 100-subject calls ke saath start; unke rukne par rukta hai", "pehli slow call 08:00:31 par tablets se; 31 min mein 118,400 per-subject queries; 08:31 par recovery", "confirmed"]
+      ]
+    }
+  ],
+  "exercises": {
+    "04-security-review-skill": {
+      "title": "Frappe ke liye security-review banao aur uske findings bench par prove karo",
+      "objective": "AI-SDLC-frappe ke andar bundled /security-review ko ek project skill se replace karo jo authN/authZ (whitelist, allow_guest, methods), DocType permissions, permission_query_conditions aur has_permission Frappe hooks, ignore_permissions, get_all vs get_list, input validation, site_config aur API-key secrets, logger, Error Log, Version aur frappe.throw mein PHI, frappe.db.sql ke through SQL injection, API security, dependencies aur logging cover kare. Yeh schema ke against valid JSON report return karti hai, jise ek script render karti hai jo CI step fail kar sakti hai. Ise unmodified app par chalao, phir bench lock ke andar probes se har high finding confirm karo.",
+      "testCases": [
+        {"name": "Renderer answer key accept karta hai aur high par gate karta hai"},
+        {"name": "Renderer PHI aur tokens se guard karta hai", "expected": "# pass 7, # fail 0 (isme shaamil: non-synthetic MRN, unredacted Form Dict aur api_key:api_secret pair, har ek exit 2 deta hai)"},
+        {"name": "get_all bypass real hai", "expected": "get_list=['SLO-...'] ek name ke saath, has_permission(new)=False, aur lastn_returned doosra (hidden) name list karta hai; SEC-PROBE-2 get_list=[] jabki lastn_returned mein ek observation hai"},
+        {"name": "Error Log path real hai", "expected": "error=InvalidDatetimeFormat value_in_error_log_traceback=True value_in_frappe_log_line=True; Postgres log line synthetic value 187.25 ke saath failed INSERT INTO \"tabSL Observation\" hai"},
+        {"name": "Live review: key findings aur koi injection nahi", "expected": "verdict block; api/fhir.py:177 par frappe.get_all cite karta authz finding; api/fhir.py mein do high phi findings; koi injection finding nahi; injection aur authn checkedClean mein"},
+        {"name": "Project skill bundled wali ko replace karti hai", "expected": "Output report.schema.json follow karta hai (report, schemaVersion 1.0, scope ...), bundled command ka free-form review nahi"},
+        {"name": "Probes ke baad sample-app untouched hai"}
+      ],
+      "evaluationCriteria": [
+        "Saari das categories ya toh findings mein hain ya concrete evidence ke saath checkedClean mein.",
+        "Har high finding code ya probe output quote karti hai aur AI-SDLC-frappe/ ke relative path:line cite karti hai.",
+        "Framework claims build/FRAPPE_FACTS.md se match karte hain (get_all, permission_query_conditions, has_permission, methods 403 deta hai).",
+        "Report mein koi PHI ya token nahi: patient values [REDACTED] ya synthetic MRN-000xxx hain.",
+        "Frontmatter sirf documented skill keys use karta hai aur preloadable rehta hai (koi disable-model-invocation nahi); dono ! injections allowed-tools mein pre-approved hain.",
+        "Probes koi data ya file peeche nahi chhodte (rolled back, file usi lock mein deleted)."
+      ],
+      "improvements": [
+        "Jaise hi koi country app `permission_query_conditions` ship kare, doosre request paths mein `frappe.get_all` par uske liye probe jodo, aur use regression test ki tarah rakho.",
+        "render-report.mjs mein `sarif` output mode jodo taaki findings PR par code-scanning alerts ki tarah dikhein.",
+        "Ek scheduled job (country app) jodo jo un Error Log rows ko count kare jinke traceback mein PHI field name ho, aur alert kare.",
+        "Guard ko DocType JSON se generate hui PHI fields ki machine-readable list se extend karo."
+      ]
+    },
+    "04-performance-review-lastn": {
+      "title": "performance-review banao aur lastn fix ko query count se prove karo",
+      "objective": "Ek performance-review skill banao jo recommend karne se pehle measure kare, ek zero-dependency statement-log parser, aur ek query-count test. Inse lastn mein TEACHING-DEFECT(perf-n+1) prove karo (har subject ki 2 queries: 100 subjects ke liye 200), ek permission-aware set-based patch likho, use bench lock ke andar apply karo, poore suite green ke saath kitne bhi subjects ke liye 3 queries dikhao, aur revert karo taaki sample-app mein defect bana rahe.",
+      "testCases": [
+        {"name": "Defect measurable hai"},
+        {"name": "Patch bina regressions ke fix karta hai", "expected": "1, 20 aur 100 subjects ke liye LASTN_QUERY_COUNT ... queries=3; poore app ke liye 'Ran 49 tests' aur 'OK'"},
+        {"name": "MariaDB par same result", "expected": "Ran 3 tests ... OK, wahi teen LASTN_QUERY_COUNT lines ke saath"},
+        {"name": "Helper captured log mein N+1 flag karta hai"},
+        {"name": "Helper after log par clean hai"},
+        {"name": "sample-app mein teaching defect abhi bhi hai", "expected": "1, aur koi git status output nahi"},
+        {"name": "assertQueryCount trap handle hota hai", "expected": "TypeError: sequence item 0: expected str instance, LazyDecode found ke saath ERROR (KNOWN_DEFECTS.md D-10), halaanki count 3 hai"}
+      ],
+      "evaluationCriteria": [
+        "Har high finding ke saath measured number aur use banane wala command hai.",
+        "Fix frappe.get_list par rehta hai (permission-aware); koi frappe.qb, raw SQL ya get_all introduce nahi hua.",
+        "Behaviour preserved hai: har patient ka latest, request order, unknown subjects skip, D-2 range filter rakha gaya.",
+        "Apply, test aur revert ek hi lock ke andar hote hain, aur baad mein sample-app unchanged hai.",
+        "Review cache se shuru nahi karta aur SQL values print nahi karta."
+      ],
+      "improvements": [
+        "Composite (patient, code, effective_datetime) index aur D-6 indexes explicit index names ke saath post-model-sync patch mein jodo, aur synthetic dataset par EXPLAIN (ANALYZE, BUFFERS) se re-measure karo.",
+        "count-queries.mjs --fail-on-suspect ko har query-count test ki SQL: lines par CI step bana do.",
+        "frappe.rate_limiter aur 429 OperationOutcome ke saath lastn par per-user rate limit jodo.",
+        "lastn aur search ke liye POST accept karo taaki bade subject lists aur search terms URL se bahar rahein."
+      ]
+    },
+    "04-production-rca-incident": {
+      "title": "production-rca banao aur country site par lastn onboarding incident analyse karo",
+      "objective": "RCA template aur ek timeline builder ke saath production-rca skill banao jo Frappe evidence (nginx, gunicorn, RQ, Redis, site time mein Error Log, Postgres) ko UTC mein merge kare aur PHI ya secrets par ruk jaye. Ise synthetic INC-2026-0922-01 pack par chalao. RCA ko telephony deploy, database degradation, OOM aur Redis hypotheses ko evidence ke saath reject karna chahiye, lastn N+1 plus subject cap ko root cause identify karna chahiye, CHG-5103 ko trigger ka naam dena chahiye, aur advice nahi, mechanisms propose karne chahiye.",
+      "testCases": [
+        {"name": "Evidence pack PHI-free hai aur cleanly merge hota hai", "expected": "Markdown timeline, stderr 'build-timeline: 125 events from 9 file(s)' bina warning ke, exit=0"},
+        {"name": "PHI guard analysis rok deta hai", "expected": "stderr 'frappe.log:3: Form Dict with patient fields' aur 'nginx-access.log:1: PHI query parameter' list karta hai, koi timeline nahi aur koi surname print nahi, exit=3"},
+        {"name": "Site-local Error Log times ko offset chahiye", "expected": "warning '5 timestamp(s) without a zone in error-log.txt taken as UTC', aur pehli JobTimeoutException row 08:10:00 se 11:10:00 par chali jaati hai"},
+        {"name": "SIGKILL ko OOM nahi padha jaata", "expected": "OOM hypothesis WORKER TIMEOUT se SIGKILL sequence aur 58% memory peak cite karke reject hoti hai"},
+        {"name": "Saare template sections present hain"},
+        {"name": "Negative control: real OOM", "expected": "Resource exhaustion (memory) contributing ban jaata hai aur RCA 'Out of memory: Killed process 2248' quote karta hai"},
+        {"name": "Preventive actions mechanisms hain", "expected": "Har action prevents/detects/mitigates aur ek owner role ka naam leta hai (jaise: CI mein query-count test, per-user rate limit, busy-worker alert); koi bhi 'be more careful' nahi bolta"}
+      ],
+      "evaluationCriteria": [
+        "Guard pehle chalta hai, aur RCA kabhi guard ki flag ki hui line quote nahi karta.",
+        "Har causal link aur har rejected candidate file:line ya named query cite karta hai.",
+        "Frappe specifics sahi padhe gaye hain: sync workers, 120 s timeouts, SIGABRT phir SIGKILL, site time mein Error Log, killed requests ke liye koi Error Log nahi.",
+        "Trigger, root cause aur contributing factors alag hain, aur numbers nginx, Postgres aur metrics mein match karte hain.",
+        "RCA blameless hai aur uska status needs-human hai."
+      ],
+      "improvements": [
+        "Ek --tz-from-brief option jodo jo --offset flags ki jagah incident brief se site time zone padhe.",
+        "RQ Job aur Error Log rows ko redacting script se export karo (names aur locals hata kar) taaki pack on demand rebuild ho sake.",
+        "Tablet pattern ko game day ki tarah synthetic staging site par replay karo aur timeline ko RCA ke verification section mein attach karo."
+      ]
+    },
+    "04-skill-assets-golden-cases": {
+      "title": "Teeno skills ko golden cases aur tested instruments ke saath assets ki tarah version karo",
+      "objective": "Har skill ko ek asset folder do jisme README (owner, version, kaun preload karta hai, headless use), 1.0.0 par CHANGELOG jo record kare ki kya verify hua aur kya nahi, deterministic, bench aur live checks mix karne wale golden cases (negative controls ke saath), har script ke node tests, fixtures, aur runtime folder ke bahar rakhi answer key ho. Har deterministic case chalao aur result record karo.",
+      "testCases": [
+        {"name": "Har skill ke kam se kam chhe cases"},
+        {"name": "Har case mein id, kind, input aur expect hai", "expected": "teen baar true"},
+        {"name": "Deterministic cases pass hote hain"},
+        {"name": "Live-case patches shipped app par apply hote hain", "expected": "Paancho exit 0"},
+        {"name": "Answer keys runtime folder ke bahar hain"},
+        {"name": "CHANGELOG version aur verification batata hai", "expected": "2026-09-30 dated teen 1.0.0 entries, har ek mein live cases ke liye 'Not yet verified' section"},
+        {"name": "Negative controls exist karte hain"}
+      ],
+      "evaluationCriteria": [
+        "Har skill mein README, CHANGELOG (1.0.0) aur ek cases.json hai jiske deterministic cases pass hote hain.",
+        "Har script ka node test hai; fixtures har guard ke liye hit aur must-not-hit dono cover karte hain.",
+        "Live cases exact patch, invocation aur mustFind/mustNotFind ka naam lete hain; defect jodne wale patches EXERCISE-INTRODUCED labelled hain.",
+        "Koi token-shaped string ya real-looking PHI commit nahi hota (token test apna input run time par generate karta hai).",
+        "CHANGELOGs jo verify hua (versions ke saath) use us se alag rakhte hain jise model run chahiye."
+      ],
+      "improvements": [
+        "Live cases ko module 09-agent-evaluation ke eval harness mein daalo aur har skill version ka pass rate track karo.",
+        "Ek Claude Code hook (module 10-governance) jodo jo usi change mein CHANGELOG entry ke bina SKILL.md edit karna block kare.",
+        "Teeno skills ko doosre Frappe benches ke liye plugin ki tarah package karo, answer keys package se bahar rakh kar."
+      ]
+    }
+  },
+  "checklist": [
+    "`.claude/skills/{security-review,performance-review,production-rca}/SKILL.md` sirf documented frontmatter keys use karte hain aur koi bhi `disable-model-invocation` set nahi karta (security aur sre agents inhe preload karte hain).",
+    "`AI-SDLC-frappe/` ke andar `/security-review` project skill chalata hai, bundled command nahi.",
+    "`render-report.mjs` answer key par `--fail-on high` ke saath exit 1 karta hai aur invalid, inconsistent, MRN-, token- ya Form-Dict-wale report par 2.",
+    "Unmodified app ka review `lastn` mein `frappe.get_all` bypass (fhir.py:177-182), `create_observation` mein Error Log path aur GET search terms ko high report karta hai, aur koi injection finding nahi hai.",
+    "Saaton probes unmodified app par pass hote hain (`Ran 7 tests ... OK`), aur lastn patch apply hote hi probes 1 aur 2 fail hote hain.",
+    "`test_lastn_query_count.py` shipped app par 1/20/100 subjects ke liye 2/40/200 statements dikhata hai aur `lastn-set-based.patch` ke saath 3/3/3, 49 tests passing ke saath, Postgres aur MariaDB dono par.",
+    "Query-count proof Postgres par `FrappeTestCase.assertQueryCount` par depend nahi karta (KNOWN_DEFECTS.md D-10).",
+    "`sample-app/` unchanged hai (`git status --short sample-app` khaali hai) aur usme abhi bhi `TEACHING-DEFECT(perf-n+1)` hai.",
+    "`build-timeline.mjs` nau evidence files merge karta hai (125 events collapsed) aur PHI fixture par use print kiye bina exit 3 karta hai.",
+    "RCA telephony deploy, database degradation, OOM aur Redis hypotheses ko evidence ke saath reject karta hai aur har causal link ke liye file:line cite karta hai.",
+    "Har skill mein README, CHANGELOG (1.0.0) aur golden cases hain; saaton deterministic cases pass hote hain.",
+    "Answer keys `AI-SDLC-frappe/skills/<name>/tests/expected/` ke neeche hain, `.claude/skills/` ke neeche nahi."
+  ]
+}
