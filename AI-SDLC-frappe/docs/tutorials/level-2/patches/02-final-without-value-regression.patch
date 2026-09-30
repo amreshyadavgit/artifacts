@@ -1,0 +1,14 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py
+index d375daf..f810079 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py
+@@ -44,7 +44,8 @@ class SLObservation(Document):
+ 
+ 	def validate_value_for_final(self):
+ 		if self.status in LOCKED_STATUSES:
+-			if self.value is None or not self.unit:
++			# a value of 0 is valid, so only the unit is mandatory
++			if not self.unit:
+ 				frappe.throw(_("A {0} Observation must have a value and a unit").format(self.status))
+ 
+ 	def validate_amendment(self):

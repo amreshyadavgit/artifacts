@@ -1,0 +1,35 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -185,3 +185,20 @@
+ 
+ 	log_access("lastn", "SL Observation", [r["id"] for r in results], result_count=len(results))
+ 	return bundle(results)
++
++
++@frappe.whitelist()
++def country_roster(country: str, active: int = 1):
++	"""EXERCISE-DEFECT(module 05): active patients of one country deployment, with their
++	encounter counts, for the country dashboard. Added without review."""
++	rows = frappe.db.sql(
++		f"""select name, mrn, first_name, last_name
++		from `tabSL Patient`
++		where country = '{country}' and active = {int(active)}
++		order by last_name, name""",
++		as_dict=True,
++	)
++	for row in rows:
++		row["encounters"] = frappe.db.count("SL Encounter", {"patient": row.name})
++	log_access("roster", "SL Patient", [row.mrn for row in rows], result_count=len(rows))
++	return {"country": country, "total": len(rows), "patients": rows}
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+@@ -92,6 +92,7 @@
+   },
+   {
+    "create": 1,
++   "delete": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,

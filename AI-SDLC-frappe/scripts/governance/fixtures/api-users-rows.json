@@ -1,0 +1,6 @@
+[
+  { "user": "erpnext.integration@spice-lite.test", "enabled": true, "user_type": "System User", "has_api_key": true, "restrict_ip": "10.20.0.15", "roles": ["Clinician"] },
+  { "user": "telephony.integration@spice-lite.test", "enabled": true, "user_type": "System User", "has_api_key": true, "restrict_ip": "", "roles": ["Clinician", "System Manager"] },
+  { "user": "clinician@spice-lite.test", "enabled": true, "user_type": "System User", "has_api_key": true, "restrict_ip": "", "roles": ["Clinician"] },
+  { "user": "Administrator", "enabled": true, "user_type": "System User", "has_api_key": true, "restrict_ip": "", "roles": ["System Manager"] }
+]

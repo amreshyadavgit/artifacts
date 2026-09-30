@@ -7,30 +7,93 @@
       "Bash(git diff *)",
       "Bash(git status)",
       "Bash(git log *)",
-      "Bash(node evaluations/harness/run-evals.mjs *)"
+      "Bash(node evaluations/harness/run-evals.mjs *)",
+      "Bash(node scripts/governance/validate-skill-library.mjs)",
+      "Bash(node scripts/governance/validate-skill-library.mjs *)",
+      "Bash(node scripts/governance/check-agent-policy.mjs)",
+      "Bash(node scripts/governance/check-agent-policy.mjs *)",
+      "Bash(node scripts/governance/cost-report.mjs *)"
     ],
     "ask": [
       "Bash(bench --site * migrate *)",
       "Bash(bench --site * migrate)",
+      "Bash(bench migrate *)",
+      "Bash(bench migrate)",
       "Bash(bench --site * console *)",
       "Bash(bench --site * console)",
+      "Bash(bench console)",
       "Bash(bench --site * execute *)",
+      "Bash(bench execute *)",
       "Bash(bench --site * install-app *)",
+      "Bash(bench --site * uninstall-app *)",
+      "Bash(bench --site * run-patch *)",
+      "Bash(bench --site * set-config *)",
+      "Bash(bench --site * backup *)",
+      "Bash(bench --site * backup)",
+      "Bash(bench --site * export-fixtures *)",
+      "Bash(bench --site * export-fixtures)",
+      "Bash(bench --site * reload-doc *)",
+      "Bash(bench update *)",
+      "Bash(bench update)",
+      "Bash(bench get-app *)",
+      "Bash(bench new-site *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "WebFetch",
+      "Edit(./.claude/**)",
+      "Edit(./.mcp.json)",
+      "Edit(./CLAUDE.md)",
+      "Edit(./sample-app/spice_lite/spice_lite/hooks.py)",
+      "Edit(./sample-app/spice_lite/spice_lite/patches.txt)",
+      "Edit(./sample-app/**/fixtures/**)",
+      "Agent(model:opus)"
     ],
     "deny": [
       "Read(**/site_config.json)",
       "Read(**/common_site_config.json)",
       "Read(./.env)",
       "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
       "Read(./**/*.phi.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.config/gh/**)",
+      "Bash(cat *site_config.json*)",
+      "Bash(bench --site * show-config)",
+      "Bash(bench --site * show-config *)",
+      "Bash(bench --site * mariadb)",
+      "Bash(bench --site * postgres)",
+      "Bash(bench --site * db-console)",
+      "Bash(bench --site * jupyter)",
+      "Bash(bench --site * browse *)",
+      "Bash(bench --site * ngrok *)",
+      "Bash(bench --site all *)",
       "Bash(bench drop-site *)",
       "Bash(bench --site * reinstall *)",
       "Bash(bench --site * reinstall)",
+      "Bash(bench --site * restore *)",
+      "Bash(bench --site * partial-restore *)",
       "Bash(bench --site * set-admin-password *)",
+      "Bash(bench --site * set-password *)",
+      "Bash(bench --site * add-system-manager *)",
+      "Bash(bench --site * trim-database *)",
+      "Bash(bench --site * trim-tables *)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(env)",
       "Bash(git push --force *)",
-      "Bash(rm -rf *)"
+      "Bash(git push -f *)",
+      "Bash(gh pr merge *)",
+      "Bash(rm -rf *)",
+      "mcp__github__merge_pull_request",
+      "mcp__github__push_files",
+      "mcp__github__create_or_update_file",
+      "mcp__github__delete_file"
     ],
     "defaultMode": "default"
   },
@@ -40,6 +103,26 @@
         "matcher": "Edit|Write",
         "hooks": [
           { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secrets.mjs\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-bench.mjs\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-outbound.mjs\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*|WebFetch|WebSearch|Read",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/flag-injection.mjs\"", "timeout": 10 }
         ]
       }
     ]

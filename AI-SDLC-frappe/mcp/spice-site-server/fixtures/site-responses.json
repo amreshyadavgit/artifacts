@@ -1,0 +1,799 @@
+{
+  "_note": "Recorded from the course bench (site test.localhost, Frappe 15.121.2, PostgreSQL 16) by live-check.mjs --record, with the synthetic sample data from scripts/provision_api_user.py --sample-data. Bodies are trimmed to the keys server.mjs reads. No PHI: aggregate counts, schema and app versions only.",
+  "recordedAt": "2026-09-30",
+  "responses": [
+    {
+      "method": "frappe.utils.change_log.get_versions",
+      "params": {},
+      "status": 200,
+      "body": {
+        "message": {
+          "frappe": {
+            "title": "Frappe Framework",
+            "version": "15.121.2",
+            "branch": "version-15"
+          },
+          "spice_lite": {
+            "title": "Spice Lite",
+            "version": "0.1.0",
+            "branch": "claude/ai-sdlc-curriculum-repo-bidp0m"
+          }
+        }
+      }
+    },
+    {
+      "method": "frappe.desk.form.load.getdoctype",
+      "params": {
+        "doctype": "SL Patient"
+      },
+      "status": 200,
+      "body": {
+        "docs": [
+          {
+            "name": "SL Patient",
+            "module": "Clinical",
+            "autoname": "SLP-.#####",
+            "naming_rule": "Expression (old style)",
+            "search_fields": "mrn,last_name",
+            "sort_field": "creation",
+            "track_changes": 1,
+            "is_submittable": 0,
+            "fields": [
+              {
+                "fieldname": "mrn",
+                "fieldtype": "Data",
+                "label": "MRN",
+                "options": null,
+                "reqd": 1,
+                "unique": 1,
+                "search_index": 0,
+                "in_standard_filter": 1,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "first_name",
+                "fieldtype": "Data",
+                "label": "First Name",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "last_name",
+                "fieldtype": "Data",
+                "label": "Last Name",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 1,
+                "in_standard_filter": 1,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "column_break_demo",
+                "fieldtype": "Column Break",
+                "label": null,
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "gender",
+                "fieldtype": "Select",
+                "label": "Gender",
+                "options": "\nmale\nfemale\nother\nunknown",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "birth_date",
+                "fieldtype": "Date",
+                "label": "Birth Date",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "active",
+                "fieldtype": "Check",
+                "label": "Active",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "country",
+                "fieldtype": "Link",
+                "label": "Country",
+                "options": "SL Country",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 1,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              }
+            ],
+            "permissions": [
+              {
+                "role": "System Manager",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 1,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 1,
+                "import": 0,
+                "share": 1,
+                "print": 1,
+                "email": 1,
+                "select": 0
+              },
+              {
+                "role": "Clinician",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 0,
+                "import": 0,
+                "share": 0,
+                "print": 1,
+                "email": 0,
+                "select": 0
+              },
+              {
+                "role": "SL Aggregate Reader",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 0,
+                "create": 0,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 0,
+                "export": 1,
+                "import": 0,
+                "share": 0,
+                "print": 0,
+                "email": 0,
+                "select": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.form.load.getdoctype",
+      "params": {
+        "doctype": "SL Encounter"
+      },
+      "status": 200,
+      "body": {
+        "docs": [
+          {
+            "name": "SL Encounter",
+            "module": "Clinical",
+            "autoname": "SLE-.#####",
+            "naming_rule": "Expression (old style)",
+            "search_fields": null,
+            "sort_field": "creation",
+            "track_changes": 1,
+            "is_submittable": 0,
+            "fields": [
+              {
+                "fieldname": "patient",
+                "fieldtype": "Link",
+                "label": "Patient",
+                "options": "SL Patient",
+                "reqd": 1,
+                "unique": 0,
+                "search_index": 1,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "encounter_date",
+                "fieldtype": "Datetime",
+                "label": "Encounter Date",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "encounter_type",
+                "fieldtype": "Select",
+                "label": "Encounter Type",
+                "options": "screening\nassessment\nfollow-up",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "status",
+                "fieldtype": "Select",
+                "label": "Status",
+                "options": "planned\nin-progress\nfinished",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "practitioner",
+                "fieldtype": "Link",
+                "label": "Practitioner",
+                "options": "User",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              }
+            ],
+            "permissions": [
+              {
+                "role": "System Manager",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 1,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 1,
+                "import": 0,
+                "share": 1,
+                "print": 1,
+                "email": 1,
+                "select": 0
+              },
+              {
+                "role": "Clinician",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 0,
+                "import": 0,
+                "share": 0,
+                "print": 1,
+                "email": 0,
+                "select": 0
+              },
+              {
+                "role": "SL Aggregate Reader",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 0,
+                "create": 0,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 0,
+                "export": 1,
+                "import": 0,
+                "share": 0,
+                "print": 0,
+                "email": 0,
+                "select": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.form.load.getdoctype",
+      "params": {
+        "doctype": "SL Observation"
+      },
+      "status": 200,
+      "body": {
+        "docs": [
+          {
+            "name": "SL Observation",
+            "module": "Clinical",
+            "autoname": "SLO-.#####",
+            "naming_rule": "Expression (old style)",
+            "search_fields": null,
+            "sort_field": "creation",
+            "track_changes": 1,
+            "is_submittable": 0,
+            "fields": [
+              {
+                "fieldname": "patient",
+                "fieldtype": "Link",
+                "label": "Patient",
+                "options": "SL Patient",
+                "reqd": 1,
+                "unique": 0,
+                "search_index": 1,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "encounter",
+                "fieldtype": "Link",
+                "label": "Encounter",
+                "options": "SL Encounter",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "code",
+                "fieldtype": "Data",
+                "label": "Code (LOINC)",
+                "options": null,
+                "reqd": 1,
+                "unique": 0,
+                "search_index": 1,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "code_display",
+                "fieldtype": "Data",
+                "label": "Code Display",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "status",
+                "fieldtype": "Select",
+                "label": "Status",
+                "options": "registered\npreliminary\nfinal\namended",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "effective_datetime",
+                "fieldtype": "Datetime",
+                "label": "Effective Date/Time",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "column_break_value",
+                "fieldtype": "Column Break",
+                "label": null,
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "value",
+                "fieldtype": "Float",
+                "label": "Value",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "unit",
+                "fieldtype": "Data",
+                "label": "Unit (UCUM)",
+                "options": null,
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "replaces",
+                "fieldtype": "Link",
+                "label": "Replaces (for amended)",
+                "options": "SL Observation",
+                "reqd": 0,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 0,
+                "read_only": 0,
+                "permlevel": 0
+              }
+            ],
+            "permissions": [
+              {
+                "role": "System Manager",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 1,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 1,
+                "import": 0,
+                "share": 1,
+                "print": 1,
+                "email": 1,
+                "select": 0
+              },
+              {
+                "role": "Clinician",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 0,
+                "import": 0,
+                "share": 0,
+                "print": 1,
+                "email": 0,
+                "select": 0
+              },
+              {
+                "role": "SL Aggregate Reader",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 0,
+                "create": 0,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 0,
+                "export": 1,
+                "import": 0,
+                "share": 0,
+                "print": 0,
+                "email": 0,
+                "select": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.form.load.getdoctype",
+      "params": {
+        "doctype": "SL Country"
+      },
+      "status": 200,
+      "body": {
+        "docs": [
+          {
+            "name": "SL Country",
+            "module": "Clinical",
+            "autoname": "field:country_code",
+            "naming_rule": "By fieldname",
+            "search_fields": null,
+            "sort_field": "creation",
+            "track_changes": 1,
+            "is_submittable": 0,
+            "fields": [
+              {
+                "fieldname": "country_code",
+                "fieldtype": "Data",
+                "label": "Country Code (ISO 3166-1 alpha-2)",
+                "options": null,
+                "reqd": 1,
+                "unique": 1,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              },
+              {
+                "fieldname": "country_name",
+                "fieldtype": "Data",
+                "label": "Country Name",
+                "options": null,
+                "reqd": 1,
+                "unique": 0,
+                "search_index": 0,
+                "in_standard_filter": 0,
+                "in_list_view": 1,
+                "read_only": 0,
+                "permlevel": 0
+              }
+            ],
+            "permissions": [
+              {
+                "role": "System Manager",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 1,
+                "create": 1,
+                "delete": 1,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 1,
+                "export": 1,
+                "import": 0,
+                "share": 1,
+                "print": 1,
+                "email": 1,
+                "select": 0
+              },
+              {
+                "role": "Clinician",
+                "permlevel": 0,
+                "if_owner": 0,
+                "read": 1,
+                "write": 0,
+                "create": 0,
+                "delete": 0,
+                "submit": 0,
+                "cancel": 0,
+                "amend": 0,
+                "report": 0,
+                "export": 0,
+                "import": 0,
+                "share": 0,
+                "print": 0,
+                "email": 0,
+                "select": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Observation",
+        "current_filters": "[]",
+        "field": "code"
+      },
+      "status": 200,
+      "body": {
+        "message": [
+          {
+            "count": 9,
+            "name": "8480-6"
+          },
+          {
+            "count": 6,
+            "name": "8867-4"
+          },
+          {
+            "count": 2,
+            "name": "2339-0"
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Observation",
+        "current_filters": "[[\"status\",\"=\",\"registered\"]]",
+        "field": "code"
+      },
+      "status": 200,
+      "body": {
+        "message": []
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Observation",
+        "current_filters": "[[\"status\",\"=\",\"preliminary\"]]",
+        "field": "code"
+      },
+      "status": 200,
+      "body": {
+        "message": [
+          {
+            "count": 9,
+            "name": "8480-6"
+          },
+          {
+            "count": 6,
+            "name": "8867-4"
+          },
+          {
+            "count": 2,
+            "name": "2339-0"
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Observation",
+        "current_filters": "[[\"status\",\"=\",\"final\"]]",
+        "field": "code"
+      },
+      "status": 200,
+      "body": {
+        "message": []
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Observation",
+        "current_filters": "[[\"status\",\"=\",\"amended\"]]",
+        "field": "code"
+      },
+      "status": 200,
+      "body": {
+        "message": []
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Patient",
+        "current_filters": "[]",
+        "field": "country"
+      },
+      "status": 200,
+      "body": {
+        "message": [
+          {
+            "count": 12,
+            "name": "XA"
+          },
+          {
+            "count": 3,
+            "name": "XB"
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Patient",
+        "current_filters": "[[\"active\",\"=\",1]]",
+        "field": "country"
+      },
+      "status": 200,
+      "body": {
+        "message": [
+          {
+            "count": 12,
+            "name": "XA"
+          },
+          {
+            "count": 3,
+            "name": "XB"
+          }
+        ]
+      }
+    },
+    {
+      "method": "frappe.desk.listview.get_group_by_count",
+      "params": {
+        "doctype": "SL Patient",
+        "current_filters": "[[\"active\",\"=\",0]]",
+        "field": "country"
+      },
+      "status": 200,
+      "body": {
+        "message": []
+      }
+    }
+  ]
+}

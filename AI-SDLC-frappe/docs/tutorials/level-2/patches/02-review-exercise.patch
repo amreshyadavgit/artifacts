@@ -1,0 +1,22 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..148f4c3 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -72,6 +72,7 @@ def search_patients(family: str | None = None, identifier: str | None = None):
+ 		return _error(400, "invalid", _("family must not contain %, _ or \\"))
+ 	if not frappe.has_permission("SL Patient", "read"):
+ 		return _forbidden("SL Patient")
++	frappe.logger("spice_lite.search").info(f"search_patients family={family!r} identifier={identifier!r}")
+ 
+ 	filters = []
+ 	if family:
+@@ -80,7 +81,8 @@ def search_patients(family: str | None = None, identifier: str | None = None):
+ 	if mrn:
+ 		filters.append(["mrn", "=", mrn])
+ 
+-	rows = frappe.get_list(
++	# get_all is faster: it skips the permission query
++	rows = frappe.get_all(
+ 		"SL Patient",
+ 		filters=filters,
+ 		fields=PATIENT_FIELDS,

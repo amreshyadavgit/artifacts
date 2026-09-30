@@ -1,0 +1,29 @@
+{
+  "$comment": "One Frappe User and one API key per integration. Audited by scripts/governance/audit_api_users.py; policy in docs/governance/secrets.md. Secrets never appear here: secret_ref names where the api_secret is stored.",
+  "integrations": [
+    {
+      "name": "erpnext-billing",
+      "user": "erpnext.integration@spice-lite.test",
+      "roles": ["Clinician"],
+      "owner": "@example-org/integrations",
+      "secret_ref": "vault:secret/spice/ke/erpnext-billing",
+      "rotate_days": 90
+    },
+    {
+      "name": "telephony",
+      "user": "telephony.integration@spice-lite.test",
+      "roles": ["Clinician"],
+      "owner": "@example-org/integrations",
+      "secret_ref": "vault:secret/spice/ke/telephony",
+      "rotate_days": 90
+    },
+    {
+      "name": "mcp-readonly",
+      "user": "mcp.readonly@spice-lite.test",
+      "roles": ["Clinician"],
+      "owner": "@example-org/ai-governance",
+      "secret_ref": "env:SPICE_MCP_API_KEY / env:SPICE_MCP_API_SECRET (developer secret agent)",
+      "rotate_days": 30
+    }
+  ]
+}
