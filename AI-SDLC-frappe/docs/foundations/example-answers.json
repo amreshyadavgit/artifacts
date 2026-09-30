@@ -1,0 +1,14 @@
+{
+  "N01": { "answer": "claude-code-hook", "why": "Must block every write deterministically; PreToolUse on Edit|Write exiting 2." },
+  "N02": { "answer": "prompt", "why": "One question, asked once, no reuse or isolation needed." },
+  "N03": { "answer": "skill", "why": "Same review procedure every time, shared by humans and the reviewer agent." },
+  "N04": { "answer": "skill", "why": "Reuse the code-review skill for the second opinion." },
+  "N05": { "answer": "workflow", "why": "Several roles in order with human approval before merge and before migrate." },
+  "N06": { "answer": "mcp", "why": "Ticket data lives in Jira, outside the repo." },
+  "N07": { "answer": "skill", "why": "Named user-invoked procedure around the allowed bench run-tests command." },
+  "N08": { "answer": "claude-code-hook", "why": "SubagentStop Claude Code hook that exits 2 until the front matter is valid." },
+  "N09": { "answer": "skill", "why": "The production-rca skill, run inside the sre agent with read-only tools." },
+  "N10": { "answer": "mcp", "why": "Live read-only aggregates from the test site's REST API, reused by several agents." },
+  "N11": { "answer": "claude-code-hook", "why": "Fire a PostToolUse hook when the Observation is saved." },
+  "N12": { "answer": "claude-code-hook", "why": "PreToolUse on Edit that exits 2 when an existing patches.txt line changes." }
+}
