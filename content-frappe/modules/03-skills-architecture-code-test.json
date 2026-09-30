@@ -301,7 +301,7 @@
         {
           "name": "Patch applies to the unmodified app",
           "input": "cd AI-SDLC-frappe && git apply --check -v --directory=\"$(git rev-parse --show-prefix)\" .claude/skills/code-review/examples/front-desk-lookup.patch",
-          "expected": "Checking patch AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py...\nApplied patch ... cleanly. Exit code 0."
+          "expected": "Checking patch AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py...\nexit code 0"
         },
         {
           "name": "CI does not catch the bug",

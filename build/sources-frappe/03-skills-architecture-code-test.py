@@ -278,7 +278,7 @@ BLOCK
 $ node .claude/skills/code-review/scripts/validate-findings.mjs /tmp/review.md --repo . --case skills/code-review/tests/cases.json#cr-01-front-desk-lookup
 OK  11 findings {"critical":2,"high":6,"medium":2,"low":1,"info":0} verdict=BLOCK case=cr-01-front-desk-lookup""",
  "testCases": [
-  {"name": "Patch applies to the unmodified app", "input": "cd AI-SDLC-frappe && git apply --check -v --directory=\"$(git rev-parse --show-prefix)\" .claude/skills/code-review/examples/front-desk-lookup.patch", "expected": "Checking patch AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py...\nApplied patch ... cleanly. Exit code 0."},
+  {"name": "Patch applies to the unmodified app", "input": "cd AI-SDLC-frappe && git apply --check -v --directory=\"$(git rev-parse --show-prefix)\" .claude/skills/code-review/examples/front-desk-lookup.patch", "expected": "Checking patch AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py...\nexit code 0"},
   {"name": "CI does not catch the bug", "input": "With the patch applied, from the bench directory: bench --site test.localhost run-tests --app spice_lite", "expected": "Ran 46 tests ... OK. The review, not the build, blocks this change."},
   {"name": "Validator unit tests pass", "input": "node --test .claude/skills/code-review/scripts/validate-findings.test.mjs", "expected": "# pass 9\n# fail 0"},
   {"name": "Reference review passes its golden case", "input": "node .claude/skills/code-review/scripts/validate-findings.mjs .claude/skills/code-review/examples/expected-review-front-desk-lookup.md --case skills/code-review/tests/cases.json#cr-01-front-desk-lookup", "expected": "OK  11 findings {\"critical\":2,\"high\":6,\"medium\":2,\"low\":1,\"info\":0} verdict=BLOCK case=cr-01-front-desk-lookup"},
