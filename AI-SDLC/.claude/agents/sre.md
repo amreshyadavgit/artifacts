@@ -2,6 +2,7 @@
 name: sre
 description: Site reliability agent for the FHIR-lite API - production incident RCA, performance analysis, deployability and observability review of sample-app and its k8s manifests. Use for incidents, latency or error-rate questions, and before release to check probes, resources and rollout safety. Read-only on code and cluster; proposes patches in its handoff, never applies them.
 tools: Read, Grep, Glob, Bash
+disallowedTools: Agent, Edit, Write, NotebookEdit, WebFetch, WebSearch
 model: opus
 effort: high
 maxTurns: 30

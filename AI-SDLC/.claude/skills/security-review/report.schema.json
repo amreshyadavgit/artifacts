@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "security-review-report.schema.json",
+  "title": "security-review report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report", "schemaVersion", "scope", "summary", "findings", "checkedClean", "limitations"],
+  "properties": {
+    "report": { "type": "string", "enum": ["security-review"] },
+    "schemaVersion": { "type": "string", "enum": ["1.0"] },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "mode"],
+      "properties": {
+        "target": { "type": "string", "minLength": 1 },
+        "mode": { "type": "string", "enum": ["diff", "path", "range"] },
+        "ref": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["critical", "high", "medium", "low", "info", "verdict"],
+      "properties": {
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 },
+        "verdict": { "type": "string", "enum": ["block", "needs-decision", "pass"] }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "category", "title", "location", "evidence", "recommendation", "confidence", "phi"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^SEC-[0-9]{3}$" },
+          "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
+          "category": {
+            "type": "string",
+            "enum": ["phi", "logging-audit", "authn", "authz", "input-validation", "injection", "api-security", "secrets", "dependencies", "infrastructure"]
+          },
+          "title": { "type": "string", "minLength": 5 },
+          "location": { "type": "string", "pattern": "^[^\\s:]+(:[0-9]+(-[0-9]+)?)?$" },
+          "evidence": { "type": "string", "minLength": 10 },
+          "recommendation": { "type": "string", "minLength": 10 },
+          "cwe": { "type": "string", "pattern": "^CWE-[0-9]+$" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "phi": { "type": "boolean" },
+          "related": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "checkedClean": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "evidence"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["phi", "logging-audit", "authn", "authz", "input-validation", "injection", "api-security", "secrets", "dependencies", "infrastructure"]
+          },
+          "evidence": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  }
+}

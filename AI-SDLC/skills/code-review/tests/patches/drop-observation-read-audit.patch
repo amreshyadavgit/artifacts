@@ -1,0 +1,15 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/service/ObservationService.java b/sample-app/src/main/java/org/example/fhir/service/ObservationService.java
+index 4f8e201..4133ecf 100644
+--- a/sample-app/src/main/java/org/example/fhir/service/ObservationService.java
++++ b/sample-app/src/main/java/org/example/fhir/service/ObservationService.java
+@@ -27,9 +27,7 @@ public class ObservationService {
+ 
+     @Transactional(readOnly = true)
+     public Observation get(Long id) {
+-        Observation obs = observations.findById(id).orElseThrow(() -> FhirApiException.notFound("Observation", id));
+-        audit.record(Action.READ, "Observation", id);
+-        return obs;
++        return observations.findById(id).orElseThrow(() -> FhirApiException.notFound("Observation", id));
+     }
+ 
+     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@
 name: architect
 description: Analyses a requirement or change request against the existing FHIR-lite architecture and produces options, trade-offs, risks and a proposed ADR. Use before any change that adds an endpoint, table, dependency or cross-package call in sample-app. Never writes application code.
 tools: Read, Grep, Glob, Write
+disallowedTools: Agent, Bash, NotebookEdit, WebFetch, WebSearch
 model: opus
 effort: high
 permissionMode: acceptEdits

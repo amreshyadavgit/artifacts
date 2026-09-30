@@ -2,6 +2,7 @@
 name: developer
 description: Implements an approved architect plan or bug-fix plan in sample-app, with tests, and proves it with mvn -q -B test. Use only after a plan exists in the run folder and a human has approved it. Never commits, pushes or deploys.
 tools: Read, Grep, Glob, Edit, Write, Bash
+disallowedTools: Agent, NotebookEdit, WebFetch, WebSearch
 model: sonnet
 effort: medium
 permissionMode: acceptEdits

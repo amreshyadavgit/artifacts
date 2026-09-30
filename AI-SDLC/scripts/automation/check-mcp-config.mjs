@@ -51,7 +51,13 @@ export function checkMcpConfig(text) {
   for (const [name, s] of Object.entries(cfg.mcpServers)) {
     const at = `mcpServers.${name}`;
     if (!/^[A-Za-z0-9_-]+$/.test(name)) warnings.push(`${at}: server name has characters outside A-Z a-z 0-9 _ - (tool names become mcp__<server>__<tool>)`);
-    if (s.url !== undefined && s.type === undefined) errors.push(`${at}: has "url" but no "type"`);
+    if (s.url !== undefined && s.type === undefined) {
+      errors.push(`${at}: has "url" but no "type" (an entry without "type" is stdio)`);
+      for (const [k, v] of Object.entries(s.headers || {})) {
+        if (looksInline(v)) errors.push(`${at}.headers.${k}: looks like an inline credential; use \${VAR} expansion`);
+      }
+      continue;
+    }
     const type = s.type ?? "stdio";
     if (!TYPES.has(type)) {
       errors.push(`${at}: type "${type}" is not one of ${[...TYPES].join(", ")}`);

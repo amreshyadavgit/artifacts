@@ -20,7 +20,7 @@ export const MARKERS = [
   ["fake-system-block", /<\/?(system|assistant|instructions?)>|\[\/?INST\]|<\|im_(start|end)\|>/i, "any"],
   ["addressed-to-agent", /\b(AI|LLM|agent|assistant|Claude|Copilot)s?\b[^.\n]{0,30}\b(must|should|need to|are instructed to)\b[^.\n]{0,60}\b(run|execute|push|merge|approve|delete|send|post|curl|disable|grant)\b/i, "external"],
   ["conceal-from-user", /\b(do not|don't|never)\b[^.\n]{0,20}\b(tell|inform|mention|show|reveal)\b[^.\n]{0,20}\b(the )?(user|human|reviewer|developer)\b/i, "any"],
-  ["exfiltration", /\b(send|post|upload|exfiltrate|forward)\b[^.\n]{0,60}\b(secrets?|tokens?|credentials?|api[ _-]?keys?|\.env|patients?|mrn|phi)\b[^.\n]{0,60}\b(to|at)\b[^.\n]{0,20}(https?:\/\/|\b[a-z0-9-]+\.[a-z]{2,}\b)/i, "any"],
+  ["exfiltration", /\b(send|post|upload|exfiltrate|forward)\b[^.\n]{0,60}(\b(secrets?|tokens?|credentials?|api[ _-]?keys?|patients?|mrns?|phi)\b|\.env\b)[^\n]{0,60}\b(to|at)\b[^\n]{0,20}(https?:\/\/|\b[a-z0-9-]+\.[a-z]{2,}\b)/i, "any"],
   ["pipe-to-shell", /\b(curl|wget)\b[^|\n]{0,200}\|\s*(ba|z)?sh\b/i, "any"],
   ["permission-tampering", /\b(bypassPermissions|dangerously-skip-permissions|disableAllHooks|defaultMode)\b/, "external"],
   ["hidden-text", /[\u200B-\u200F\u2060-\u2064\uFEFF]|[\u{E0000}-\u{E007F}]/u, "any"],
@@ -57,7 +57,8 @@ export function evaluate(input) {
   const path = String(input.tool_input?.file_path || input.tool_input?.url || "");
   if (tool === "Read" && EXEMPT_PATHS.some((re) => re.test(path))) return null;
   const external = tool.startsWith("mcp__") || tool === "WebFetch" || tool === "WebSearch";
-  const hits = scan(textOf(input.tool_response), external);
+  // A byte-order mark at the very start of a file is an encoding artifact, not hidden text.
+  const hits = scan(textOf(input.tool_response).replace(/^\uFEFF/, ""), external);
   if (!hits.length) return null;
   const source = path ? `${tool} (${path})` : tool;
   const list = hits.map((h) => `${h.id}: "${h.excerpt}"`).join("; ");

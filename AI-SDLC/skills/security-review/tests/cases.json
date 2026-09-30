@@ -1,0 +1,212 @@
+{
+  "skill": "security-review",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC/",
+  "howToRun": {
+    "live": "Apply input.patch in a scratch branch (git apply), run claude -p \"<input.invoke>\" --output-format json --json-schema \"$(cat .claude/skills/security-review/report.schema.json)\" and compare .structured_output with expect. Revert the patch afterwards.",
+    "deterministic": "Run input.command from AI-SDLC/ and compare exit code and output with expect."
+  },
+  "matching": {
+    "minSeverity": "finding severity is at least this level (critical > high > medium > low > info)",
+    "locationContains": "substring of finding.location",
+    "evidenceContains": "substring of finding.evidence",
+    "maxSeverity": "no finding above this level"
+  },
+  "cases": [
+    {
+      "id": "sec-01-baseline-sample-app",
+      "kind": "live",
+      "title": "Full review of the unmodified sample app finds the PHI-in-logs path and no injection",
+      "input": {
+        "setup": "none",
+        "invoke": "/security-review sample-app/"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "phi",
+            "minSeverity": "high",
+            "locationContains": "GlobalExceptionHandler.java",
+            "evidenceContains": "given_names"
+          },
+          {
+            "category": "logging-audit",
+            "minSeverity": "medium",
+            "locationContains": "ObservationService.java"
+          },
+          {
+            "category": "api-security",
+            "minSeverity": "medium",
+            "locationContains": "ObservationController.java:43"
+          }
+        ],
+        "mustNotFind": [
+          {
+            "category": "injection"
+          },
+          {
+            "category": "secrets",
+            "minSeverity": "high"
+          }
+        ],
+        "checkedCleanIncludes": [
+          "injection"
+        ]
+      },
+      "answerKey": "skills/security-review/tests/expected/sample-app-report.json"
+    },
+    {
+      "id": "sec-02-string-built-jpql",
+      "kind": "live",
+      "title": "A family-name search built by string concatenation is critical injection",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java\n+++ b/sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java\n@@\n-    List<Patient> findByFamilyNameIgnoreCaseOrderByIdAsc(String familyName);\n+    default List<Patient> searchFamily(jakarta.persistence.EntityManager em, String family) {\n+        return em.createQuery(\"select p from Patient p where upper(p.familyName) = upper('\" + family + \"')\", Patient.class).getResultList();\n+    }\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "injection",
+            "minSeverity": "critical",
+            "locationContains": "PatientRepository.java",
+            "cwe": "CWE-89"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sec-03-phi-log-line",
+      "kind": "live",
+      "title": "A log line with family name and MRN is a high PHI finding and the evidence is redacted or synthetic",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/service/PatientService.java\n+++ b/sample-app/src/main/java/org/example/fhir/service/PatientService.java\n@@\n         Patient saved = patients.save(patient);\n+        log.info(\"Created patient {} ({})\", saved.getFamilyName(), saved.getMrn());\n         audit.record(Action.CREATE, \"Patient\", saved.getId());\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "phi",
+            "minSeverity": "high",
+            "locationContains": "PatientService.java",
+            "cwe": "CWE-532"
+          }
+        ],
+        "reportPassesRenderer": true
+      }
+    },
+    {
+      "id": "sec-04-permitall-patient",
+      "kind": "live",
+      "title": "permitAll on /fhir/Patient/** is a critical authentication bypass",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java\n+++ b/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java\n@@\n                 .requestMatchers(\"/actuator/health/**\", \"/actuator/info\").permitAll()\n+                .requestMatchers(HttpMethod.GET, \"/fhir/Patient/**\").permitAll()\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "authn",
+            "minSeverity": "critical",
+            "locationContains": "SecurityConfig.java"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sec-05-matcher-order",
+      "kind": "live",
+      "title": "Moving the generic /fhir/** rule above the DELETE rule lets CLINICIAN delete patients",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java\n+++ b/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java\n@@\n                 .requestMatchers(\"/actuator/health/**\", \"/actuator/info\").permitAll()\n-                .requestMatchers(HttpMethod.DELETE, \"/fhir/**\").hasRole(ADMIN)\n                 .requestMatchers(\"/fhir/**\").hasAnyRole(CLINICIAN, ADMIN)\n+                .requestMatchers(HttpMethod.DELETE, \"/fhir/**\").hasRole(ADMIN)\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "authz",
+            "minSeverity": "high",
+            "locationContains": "SecurityConfig.java",
+            "evidenceContains": "hasAnyRole"
+          }
+        ],
+        "notes": "The reviewer must explain first-match-wins and point at SecurityTest.clinicianCannotDelete, which would now fail."
+      }
+    },
+    {
+      "id": "sec-06-plaintext-db-password",
+      "kind": "live",
+      "title": "A literal DB_PASSWORD value in the Deployment is a high secrets finding",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/k8s/deployment.yaml\n+++ b/sample-app/k8s/deployment.yaml\n@@\n             - name: DB_PASSWORD\n-              valueFrom:\n-                secretKeyRef:\n-                  name: fhir-lite-secrets\n-                  key: db-password\n+              value: changeme-prod\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "secrets",
+            "minSeverity": "high",
+            "locationContains": "deployment.yaml"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sec-07-docs-only-diff",
+      "kind": "live",
+      "title": "A README-only diff produces no finding above info (false-positive guard)",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/README.md\n+++ b/sample-app/README.md\n@@\n-## Deploy\n+## Deploy (Kubernetes)\n"
+      },
+      "expect": {
+        "verdict": "pass",
+        "maxSeverity": "info"
+      }
+    },
+    {
+      "id": "sec-08-renderer-rejects-real-mrn",
+      "kind": "deterministic",
+      "title": "The renderer refuses a report whose evidence contains a non-synthetic MRN",
+      "input": {
+        "command": "node -e \"const r=require('./skills/security-review/tests/expected/sample-app-report.json'); r.findings[0].evidence+=' MRN-483920'; require('fs').writeFileSync('/tmp/sec08.json', JSON.stringify(r))\" && node .claude/skills/security-review/scripts/render-report.mjs /tmp/sec08.json"
+      },
+      "expect": {
+        "exitCode": 2,
+        "stderrContains": [
+          "MRN-483920, which is not a synthetic MRN"
+        ]
+      }
+    },
+    {
+      "id": "sec-09-renderer-gate",
+      "kind": "deterministic",
+      "title": "The answer key renders and --fail-on high exits 1 because of SEC-001",
+      "input": {
+        "command": "node .claude/skills/security-review/scripts/render-report.mjs skills/security-review/tests/expected/sample-app-report.json --fail-on high"
+      },
+      "expect": {
+        "exitCode": 1,
+        "stdoutContains": [
+          "Verdict: **block**",
+          "| SEC-001 | high | phi |"
+        ],
+        "stderrContains": [
+          "1 finding(s) at or above high: SEC-001"
+        ]
+      }
+    }
+  ]
+}

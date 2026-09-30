@@ -1,0 +1,20 @@
+diff --git a/sample-app/src/test/java/org/example/fhir/PatientApiTest.java b/sample-app/src/test/java/org/example/fhir/PatientApiTest.java
+index edad8d3..58d30ac 100644
+--- a/sample-app/src/test/java/org/example/fhir/PatientApiTest.java
++++ b/sample-app/src/test/java/org/example/fhir/PatientApiTest.java
+@@ -70,6 +70,15 @@ class PatientApiTest extends ApiTestSupport {
+                 .andExpect(jsonPath("$.entry[0].resource.identifier[0].value").value(mrn));
+     }
+ 
++    @Test
++    void searchByUnknownIdentifierReturnsEmptyBundle() throws Exception {
++        mvc.perform(get("/fhir/Patient").param("identifier", uniqueMrn()).with(CLINICIAN))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.resourceType").value("Bundle"))
++                .andExpect(jsonPath("$.total").value(0))
++                .andExpect(jsonPath("$.entry").isEmpty());
++    }
++
+     @Test
+     void searchWithoutParametersIs400() throws Exception {
+         mvc.perform(get("/fhir/Patient").with(CLINICIAN))

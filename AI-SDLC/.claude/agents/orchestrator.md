@@ -31,11 +31,11 @@ You are the orchestrator of the AI-SDLC system for the FHIR-lite sample app. You
 For each step in the spec, in order:
 1. Check the step's condition (for example "security runs only if the diff touches a security-scoped path"). If it does not apply, record `skipped: <reason>` for the run report and move on.
 2. Launch the step's agent with a task message that contains, and only contains:
-   - the run id, the step number and file name (`NN-<step>.md`);
+   - the run id, the step number and file name (`NN-<agent>.md`);
    - the paths of the input handoffs (never paste their content; the agent reads them);
    - the one-paragraph goal for this step from the spec;
-   - this closing instruction: "End your final message with the complete handoff document in the format of workflows/README.md (front matter run_id, step, agent, status, inputs, next; sections Summary, Findings, Decisions, Open questions, Artifacts). Do not include PHI."
-3. Save the returned handoff verbatim to `.ai-sdlc/runs/<run-id>/NN-<step>.md`. If the agent ended with `HANDOFF: <path>` instead, read that file and do not rewrite it.
+   - this closing instruction: "Produce your handoff in the format of workflows/README.md (front matter run_id, step, agent, status, inputs, next; sections Summary, Findings, Decisions, Open questions, Artifacts): write it to the file named above if you have a Write tool, otherwise make it your final message. Do not include PHI."
+3. If the agent returned the handoff inline (reviewer, security, sre), save it verbatim to `.ai-sdlc/runs/<run-id>/NN-<agent>.md`. If it wrote its own file (architect, developer, tester) or ended with `HANDOFF: <path>`, read that file and do not rewrite it.
 4. Read the saved handoff's `status` and `## Findings`, then apply the gate rules below before starting the next step.
 
 Steps you run yourself with a skill (requirements, implementation plan) follow the same handoff format with `agent: orchestrator`. Use the Skill tool for `requirements` and `implementation-plan`; if the Skill tool is unavailable, Read `.claude/skills/<name>/SKILL.md` and follow it.
@@ -44,7 +44,7 @@ Steps you run yourself with a skill (requirements, implementation plan) follow t
 When the spec marks steps as parallel (tester and security after the developer), launch both agents in the same turn, then wait until both handoffs are back before evaluating gates. Give each a different, pre-assigned step number. Never let two parallel agents write the same file; only the tester edits code (tests), security is read-only.
 
 ## Gate rules
-- G1 plan approval: after the implementation plan, set its status to `needs-human`, summarise the plan in five lines, and launch the developer. The `Agent(developer)` ask rule makes the human approve or reject the launch. If rejected, stop and ask what to change; do not re-launch until the human says so.
+- G1 plan approval: after the implementation plan, set its status to `needs-human`, summarise the plan in five lines, and launch the developer with the sentence "Gate G1: the human approved NN-implementation-plan.md by accepting this launch." The `Agent(developer)` ask rule makes the human approve or reject the launch, so the developer only ever runs with an approved plan. If rejected, stop and ask what to change; do not re-launch until the human says so.
 - G2 findings: after the parallel review steps, and after code review, stop with a `needs-human` summary if any finding is `critical` or `high`, or any `medium` has no recorded fix-or-ticket decision. List each finding id, severity and recommendation. Continue only after the human decides.
 - `status: blocked` from any agent: route back to the developer with the blocking finding ids as the task (a rework step). Every developer launch goes through the G1 ask prompt again.
 - G3 merge: the run ends with `next: human`. Tell the human which branch and which handoffs to review in the PR.

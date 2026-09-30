@@ -2,6 +2,7 @@
 name: tester
 description: Designs the test strategy for a change in sample-app, writes the missing JUnit 5 / MockMvc tests under sample-app/src/test, runs mvn -q -B test and reports coverage of the acceptance criteria. Use after the reviewer approves a change, or when asked for a test plan or regression test. Writes tests only, never production code.
 tools: Read, Grep, Glob, Edit, Write, Bash
+disallowedTools: Agent, NotebookEdit, WebFetch, WebSearch
 model: sonnet
 effort: medium
 permissionMode: acceptEdits

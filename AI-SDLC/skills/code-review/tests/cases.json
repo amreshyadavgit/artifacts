@@ -1,0 +1,109 @@
+{
+  "skill": "code-review",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/code-review. Each case applies a patch to sample-app, runs /code-review, and grades the report with the validator. Patches apply cleanly to the unmodified sample-app; the testsAfterPatch field records what `mvn -q -B test` does with the patch applied (measured, not guessed).",
+  "howToRun": [
+    "cd AI-SDLC",
+    "git apply --directory=\"$(git rev-parse --show-prefix)\" <case.patch> && git add -N sample-app",
+    "claude -p \"/code-review\" --output-format json | jq -r '.result' > /tmp/review.md",
+    "node .claude/skills/code-review/scripts/validate-findings.mjs /tmp/review.md --repo . --case skills/code-review/tests/cases.json#<case.id>",
+    "git apply -R --directory=\"$(git rev-parse --show-prefix)\" <case.patch> && git reset -q -- sample-app"
+  ],
+  "matching": "A required finding matches when every given key matches: category (string or list, exact), minSeverity (finding is at least this severe), location (substring), evidenceIncludes (case-insensitive substring). forbidden entries use the same keys and must match no finding. maxSeverity fails the case if any finding is more severe.",
+  "cases": [
+    {
+      "id": "cr-01-jpql-concat-entity-return",
+      "title": "String-concatenated JPQL and an entity returned from a controller",
+      "patch": ".claude/skills/code-review/examples/patient-by-name.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "25 run, 0 failures (CI stays green)",
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "critical", "location": "repository/PatientNameSearch.java:19", "evidenceIncludes": "fragment.toLowerCase()" },
+          { "category": ["design", "standards"], "minSeverity": "high", "location": "api/PatientController.java:53", "evidenceIncludes": "List<Patient>" },
+          { "category": "security", "minSeverity": "high", "location": "api/PatientController.java:54", "evidenceIncludes": "log.info" },
+          { "category": "testing", "minSeverity": "high" },
+          { "category": ["design", "standards"], "minSeverity": "medium", "location": "api/PatientController.java" }
+        ],
+        "forbidden": [
+          { "evidenceIncludes": "TEACHING-DEFECT" },
+          { "location": "ObservationService.java" }
+        ]
+      }
+    },
+    {
+      "id": "cr-02-delete-opened-to-clinician",
+      "title": "Authorization regression in SecurityConfig",
+      "patch": "skills/code-review/tests/patches/delete-open-to-clinician.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "25 run, 1 failure: SecurityTest.clinicianCannotDelete:33 Status expected:<403> but was:<204>",
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "critical", "location": "config/SecurityConfig.java:43", "evidenceIncludes": "hasAnyRole(CLINICIAN, ADMIN)" }
+        ],
+        "forbidden": [
+          { "category": "performance" }
+        ]
+      }
+    },
+    {
+      "id": "cr-03-update-skips-id-check",
+      "title": "Removed body-id versus path-id check on PUT",
+      "patch": "skills/code-review/tests/patches/update-skips-id-check.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "25 run, 1 failure: PatientApiTest.updateWithMismatchedIdIs400:102 Status expected:<400> but was:<200>",
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "correctness", "minSeverity": "high", "location": "api/PatientController.java", "evidenceIncludes": "body.id()" }
+        ]
+      }
+    },
+    {
+      "id": "cr-04-drop-observation-read-audit",
+      "title": "Observation read no longer audited",
+      "patch": "skills/code-review/tests/patches/drop-observation-read-audit.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "25 run, 0 failures (no test asserts audit events)",
+      "expected": {
+        "findings": [
+          { "category": ["standards", "security"], "minSeverity": "medium", "location": "service/ObservationService.java", "evidenceIncludes": "audit.record" }
+        ],
+        "forbidden": [
+          { "evidenceIncludes": "TEACHING-DEFECT" },
+          { "category": "performance" }
+        ]
+      }
+    },
+    {
+      "id": "cr-05-lastn-logs-observation-values",
+      "title": "Debug log of observation values inside the method that holds the teaching defect",
+      "patch": "skills/code-review/tests/patches/lastn-debug-logs-values.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "25 run, 0 failures",
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "high", "location": "service/ObservationService.java", "evidenceIncludes": "getValueQuantity" }
+        ],
+        "forbidden": [
+          { "category": "performance", "minSeverity": "medium" }
+        ]
+      }
+    },
+    {
+      "id": "cr-06-clean-test-only-change",
+      "title": "False-positive control: a well-formed test-only change",
+      "patch": "skills/code-review/tests/patches/test-only-empty-identifier-search.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "26 run, 0 failures",
+      "expected": {
+        "verdict": "APPROVE",
+        "maxSeverity": "low",
+        "findings": []
+      }
+    }
+  ]
+}

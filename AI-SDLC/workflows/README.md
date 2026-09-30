@@ -28,9 +28,9 @@ claude --settings workflows/gates.settings.json
 Every run writes to `.ai-sdlc/runs/<run-id>/` (git-ignored).
 
 - **Run id**: `YYYY-MM-DD-<feat|bug|inc>-<kebab-slug>`, e.g. `2026-09-30-feat-patient-pagination`.
-- **Files**: `NN-<step-name>.md`, `NN` = two-digit step number from the workflow spec. Rework steps take the next free number (e.g. `07-developer.md` after `06-security.md`). The last file is `NN-run-report.md` written by the orchestrator.
+- **Files**: `NN-<agent>.md` for agent steps (`02-architect.md`, `04-developer.md`, `08-reviewer.md`) and `NN-<skill>.md` for steps the orchestrator runs itself with a skill (`01-requirements.md`, `03-implementation-plan.md`). `NN` is the two-digit step number from the workflow spec. Rework steps take the next free number (e.g. `07-developer.md` after `06-security.md`). The last file is `NN-run-report.md`, written by the orchestrator.
 - **Active marker**: at run start the orchestrator writes the run id to `.ai-sdlc/runs/.active`; at the end it overwrites it with `none`. While a run is active, the `SubagentStop` hook refuses to let a roster agent finish without a handoff.
-- **Who writes**: only the orchestrator writes into the run folder. Read-only agents (reviewer, security, sre, architect) cannot write files, so every subagent **returns its handoff as its final message** and the orchestrator saves it verbatim. An agent that writes its own file instead ends its final message with `HANDOFF: .ai-sdlc/runs/<run-id>/NN-<step>.md`.
+- **Who writes**: agents with a Write tool scoped to the run folder (architect, developer, tester; see module 05-agent-roster) write their own `NN-<agent>.md`. Agents without Write (reviewer, security, sre) **return the handoff document as their final message** and the orchestrator saves it verbatim. Any agent may end its final message with `HANDOFF: .ai-sdlc/runs/<run-id>/NN-<agent>.md` to point at the file it wrote.
 
 A complete example run lives in [examples/feature-patient-pagination/](examples/feature-patient-pagination/).
 
@@ -76,11 +76,11 @@ Section rules:
 ```bash
 # Validate files or a whole run folder (exit 0 = all valid, 1 = at least one invalid)
 node .claude/hooks/check-handoff.mjs .ai-sdlc/runs/2026-09-30-feat-patient-pagination
-# Tests (20 cases, including all example handoffs)
+# Tests (25 cases, including all example handoffs)
 node .claude/hooks/check-handoff.test.mjs
 ```
 
-As a `SubagentStop` hook (matcher `architect|developer|reviewer|tester|security|sre`) it reads the subagent's `last_assistant_message`, validates the handoff, and exits `2` with the reasons on stderr when it is invalid, which makes the subagent continue and fix it. It is registered in the orchestrator's frontmatter `hooks` and in the `feature`, `bug-fix` and `incident` skills' frontmatter `hooks`.
+As a `SubagentStop` hook (matcher `architect|developer|reviewer|tester|security|sre`) it finds the handoff in this order: a `HANDOFF: <path>` line in `last_assistant_message`; then, only while `.ai-sdlc/runs/.active` names a run, the inline handoff in `last_assistant_message`, then the newest file in the active run folder whose `agent` is this subagent. It exits `2` with the reasons on stderr when the handoff is invalid or missing, which makes the subagent continue and fix it (Claude Code caps consecutive forced continuations). Outside an active run, roster agents used ad hoc are not checked. It is registered in the orchestrator's frontmatter `hooks` and in the `feature`, `bug-fix` and `incident` skills' frontmatter `hooks`.
 
 ## Gates at a glance
 

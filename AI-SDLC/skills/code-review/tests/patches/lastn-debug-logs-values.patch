@@ -1,0 +1,30 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/service/ObservationService.java b/sample-app/src/main/java/org/example/fhir/service/ObservationService.java
+index 4f8e201..53ebb52 100644
+--- a/sample-app/src/main/java/org/example/fhir/service/ObservationService.java
++++ b/sample-app/src/main/java/org/example/fhir/service/ObservationService.java
+@@ -9,12 +9,16 @@ import org.example.fhir.domain.Patient;
+ import org.example.fhir.error.FhirApiException;
+ import org.example.fhir.repository.ObservationRepository;
+ import org.example.fhir.repository.PatientRepository;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+ 
+ @Service
+ public class ObservationService {
+ 
++    private static final Logger log = LoggerFactory.getLogger(ObservationService.class);
++
+     private final ObservationRepository observations;
+     private final PatientRepository patients;
+     private final AuditLogger audit;
+@@ -73,6 +77,8 @@ public class ObservationService {
+                             .findFirst()
+                             .ifPresent(result::add));
+         }
++        log.debug("lastn subjects={} values={}", subjectIds,
++                result.stream().map(Observation::getValueQuantity).toList());
+         audit.recordSearch("Observation", result.size());
+         return result;
+     }

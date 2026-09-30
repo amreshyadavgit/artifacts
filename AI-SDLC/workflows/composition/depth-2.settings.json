@@ -1,0 +1,13 @@
+{
+  "env": {
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
+  },
+  "permissions": {
+    "ask": [
+      "Agent(developer)"
+    ],
+    "deny": [
+      "Agent(general-purpose)"
+    ]
+  }
+}

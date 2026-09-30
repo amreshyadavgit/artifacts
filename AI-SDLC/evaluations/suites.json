@@ -1,0 +1,38 @@
+{
+  "architecture": {
+    "dataset": "evaluations/datasets/architecture-golden.json",
+    "agentName": "architect",
+    "versions": {
+      "v1": "evaluations/agent-versions/architect-v1.md",
+      "v2": ".claude/agents/architect.md"
+    },
+    "rubric": "evaluations/rubrics/architecture-judge.md",
+    "requiredSections": ["Summary", "Findings", "Decisions", "Open questions"],
+    "gates": {
+      "minPassRate": 0.8,
+      "minRecall": 0.8,
+      "minPrecision": 0.7,
+      "maxHallucinationRate": 0.05,
+      "maxToolViolations": 0,
+      "criticalCasesMustPass": true
+    }
+  },
+  "reviewer": {
+    "dataset": "evaluations/datasets/reviewer-golden.json",
+    "agentName": "reviewer",
+    "versions": {
+      "v1": "evaluations/agent-versions/reviewer-v1.md",
+      "v2": ".claude/agents/reviewer.md"
+    },
+    "rubric": "evaluations/rubrics/reviewer-judge.md",
+    "requiredSections": ["Summary", "Findings"],
+    "gates": {
+      "minPassRate": 0.75,
+      "minRecall": 0.8,
+      "minPrecision": 0.7,
+      "maxHallucinationRate": 0.05,
+      "maxToolViolations": 0,
+      "criticalCasesMustPass": true
+    }
+  }
+}

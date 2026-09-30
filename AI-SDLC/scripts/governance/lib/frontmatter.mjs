@@ -4,7 +4,7 @@
 // or literal blocks (`key: >` / `key: |`). Nested maps such as `hooks:` are kept as raw text.
 
 export function splitFrontmatter(text) {
-  const src = text.replace(/^﻿/, "").replace(/\r\n/g, "\n");
+  const src = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
   if (!src.startsWith("---\n")) return { frontmatter: null, body: src, raw: "" };
   const end = src.indexOf("\n---", 4);
   if (end < 0) return { frontmatter: null, body: src, raw: "", error: "unterminated front matter" };

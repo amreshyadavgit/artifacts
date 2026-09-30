@@ -1,0 +1,24 @@
+{
+  "report": "security-review",
+  "schemaVersion": "1.0",
+  "scope": { "target": "git diff (1 file)", "mode": "diff" },
+  "summary": { "critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0, "verdict": "block" },
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "high",
+      "category": "phi",
+      "title": "Patient family name and MRN written to the application log",
+      "location": "sample-app/src/main/java/org/example/fhir/service/PatientService.java:56",
+      "evidence": "log.info(\"Created patient {} ({})\", saved.getFamilyName(), saved.getMrn());",
+      "recommendation": "Remove the log line. PatientService.create already calls audit.record(Action.CREATE, \"Patient\", saved.getId()), which logs the id only. Add a test that captures the AUDIT and root loggers and asserts no MRN appears.",
+      "cwe": "CWE-532",
+      "confidence": "high",
+      "phi": true
+    }
+  ],
+  "checkedClean": [
+    { "category": "injection", "evidence": "The diff adds no @Query, native query or string-built JPQL; PatientRepository keeps derived queries only." }
+  ],
+  "limitations": ["Diff-only review: files outside the diff were read only where the changed code calls them."]
+}

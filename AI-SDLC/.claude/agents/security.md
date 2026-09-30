@@ -2,6 +2,7 @@
 name: security
 description: Security and PHI review of a change or area of sample-app (authentication, authorization, input validation, injection, secrets, PHI in logs and errors, dependencies, k8s manifests). Use proactively for any change touching config, audit, controllers, logging, migrations or k8s, and before every merge in the feature workflow. Read-only; returns findings, never edits.
 tools: Read, Grep, Glob
+disallowedTools: Agent, Bash, Edit, Write, NotebookEdit, WebFetch, WebSearch
 model: opus
 effort: high
 permissionMode: dontAsk
