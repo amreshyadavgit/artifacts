@@ -17,6 +17,8 @@ Each discovered defect has a status, and a test pins its current behaviour.
 | D-8 | `lastn` ordering: an undated `amended` Observation loses to the `final` it replaces | `lastn()` | Open. Found by the course agents |
 | D-9 | `parse_token` drops the system part of an identifier token | `api/mappers.py` | Open. Found by the course agents |
 | D-10 | Framework (v15 + Postgres): `FrappeTestCase.assertQueryCount` raises `TypeError` (LazyDecode) even under the limit | `frappe/tests/utils.py` | Open upstream. Count queries manually on Postgres |
+| D-11 | PHI in logs on server errors: a 5xx in `create_observation` puts request values into the Error Log traceback, the `Form Dict` line of `frappe.log`, and the Postgres error log | `create_observation()` + Frappe error handling | Open. Found by the security-review skill (probes) |
+| D-12 | PHI in URLs: `search_patients` and `get_patient` are GET methods, so `family` / `identifier` (MRN) end up in gunicorn/nginx access logs | `api/fhir.py` design | Open. Found by the security-review skill |
 
 ---
 
@@ -135,3 +137,6 @@ returns 400 `OperationOutcome` (`invalid`). **Test:** `test_search_rejects_like_
 - **D-8:** when a `final` Observation is corrected by an `amended` one that has no `effective_datetime`, `lastn` orders by `effective_datetime desc` and returns the superseded `final`.
 - **D-9:** `mappers.parse_token("urn:example:mrn|MRN-000123")` returns only the value, so a caller cannot tell which identifier system was asked for.
 - **D-10:** on Postgres, `with self.assertQueryCount(k):` raises `TypeError` from Frappe's query-recording wrapper (LazyDecode) in v15.121.2. Tests that need a query budget count `frappe.db.sql` calls themselves, as `test_lastn_query_count_grows_with_subjects` does. D-1 (missing Float stored as 0.0) also affects `lastn`, which returns such values as `0.0`.
+
+- **D-11:** verified with the security-review probes in `.claude/skills/security-review/probes/`. Frappe records `frappe.form_dict` with unhandled exceptions, so any 5xx on a clinical write copies submitted values into three logs.
+- **D-12:** verified by a request through gunicorn: the access-log line contains the query string. Moving search to POST (or a search body) keeps search terms out of access logs; the same applies to any proxy in front of the site.
