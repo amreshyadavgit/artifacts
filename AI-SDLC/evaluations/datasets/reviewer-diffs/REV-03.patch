@@ -1,0 +1,44 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/api/ObservationController.java b/sample-app/src/main/java/org/example/fhir/api/ObservationController.java
+index 0c54310..1d2532a 100644
+--- a/sample-app/src/main/java/org/example/fhir/api/ObservationController.java
++++ b/sample-app/src/main/java/org/example/fhir/api/ObservationController.java
+@@ -3,7 +3,9 @@ package org.example.fhir.api;
+ import jakarta.validation.Valid;
+ import java.net.URI;
+ import java.util.List;
++import java.util.Map;
+ import org.example.fhir.domain.Observation;
++import org.example.fhir.repository.ObservationRepository;
+ import org.example.fhir.service.ObservationService;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.annotation.GetMapping;
+@@ -20,9 +22,17 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+ public class ObservationController {
+ 
+     private final ObservationService service;
++    private final ObservationRepository observations;
+ 
+-    public ObservationController(ObservationService service) {
++    public ObservationController(ObservationService service, ObservationRepository observations) {
+         this.service = service;
++        this.observations = observations;
++    }
++
++    /** GET /fhir/Observation/$count?subject=Patient/{id} - number of observations for a patient. */
++    @GetMapping("/$count")
++    public Map<String, Long> count(@RequestParam String subject) {
++        return Map.of("count", observations.countByPatientId(ObservationMapper.parseSubject(subject)));
+     }
+ 
+     @GetMapping("/{id}")
+diff --git a/sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java b/sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java
+index 70d5375..cc5f3ed 100644
+--- a/sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java
++++ b/sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java
+@@ -9,4 +9,6 @@ public interface ObservationRepository extends JpaRepository<Observation, Long>
+     List<Observation> findByPatientIdOrderByEffectiveDateTimeDesc(Long patientId);
+ 
+     List<Observation> findByPatientIdAndCodeOrderByEffectiveDateTimeDesc(Long patientId, String code);
++
++    long countByPatientId(Long patientId);
+ }

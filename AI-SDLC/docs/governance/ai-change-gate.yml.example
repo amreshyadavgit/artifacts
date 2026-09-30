@@ -1,0 +1,73 @@
+# GitHub Actions workflow (example): require a human approval on PRs that change AI configuration.
+# Copy to .github/workflows/ai-change-gate.yml and mark the job "require-human-approval" as a
+# required status check in branch protection (see CODEOWNERS.example for the full setup).
+#
+# Design notes
+# - Triggered on pull_request (not pull_request_target): the token is read-only and secrets are
+#   not exposed to code from forks.
+# - The gate script is checked out from the BASE commit, so a PR cannot weaken the check that
+#   judges it by editing scripts/governance/check-ai-change-approval.mjs.
+# - pull_request_review re-runs the check when someone approves, requests changes or dismisses.
+# - An approval only counts on the current head commit, from a non-author human, and (if the
+#   AI_GOVERNANCE_APPROVERS repository variable is set) from someone on that list.
+name: ai-change-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ai-change-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  require-human-approval:
+    runs-on: ubuntu-latest
+    env:
+      # Folder that contains scripts/governance/. Use "." when AI-SDLC is the repository root.
+      AI_SDLC_DIR: AI-SDLC
+      PR: ${{ github.event.pull_request.number }}
+      AUTHOR: ${{ github.event.pull_request.user.login }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      AI_GOVERNANCE_APPROVERS: ${{ vars.AI_GOVERNANCE_APPROVERS }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the base commit (trusted gate script)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: List changed files
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/files" --jq '.[].filename' > "$RUNNER_TEMP/changed.txt"
+          echo "Changed files:"; cat "$RUNNER_TEMP/changed.txt"
+
+      - name: Fetch reviews
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR}/reviews" \
+            --jq '.[] | {user: .user.login, state: .state, commit_id: .commit_id}' > "$RUNNER_TEMP/reviews.json"
+
+      - name: Require human approval for governed paths
+        run: |
+          node "${AI_SDLC_DIR}/scripts/governance/check-ai-change-approval.mjs" \
+            --changed "$RUNNER_TEMP/changed.txt" \
+            --reviews "$RUNNER_TEMP/reviews.json" \
+            --author "$AUTHOR" \
+            --head-sha "$HEAD_SHA" | tee "$RUNNER_TEMP/gate.txt"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Write job summary
+        if: always()
+        run: |
+          { echo '### ai-change-gate'; echo '```'; cat "$RUNNER_TEMP/gate.txt" 2>/dev/null || echo "gate did not run"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

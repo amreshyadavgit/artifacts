@@ -1,0 +1,40 @@
+# CODEOWNERS for the AI-SDLC repository (example).
+# Copy to .github/CODEOWNERS (or CODEOWNERS / docs/CODEOWNERS at the repo root) and replace the
+# team handles with real GitHub teams that have write access. Then enable, on the default branch:
+#   Settings > Branches (or Rulesets) > Require a pull request before merging
+#     [x] Require approvals (1+)
+#     [x] Require review from Code Owners
+#     [x] Dismiss stale pull request approvals when new commits are pushed
+#     [x] Require status checks to pass: "ai-change-gate / require-human-approval"
+#
+# Order matters: the LAST matching pattern wins, so broad rules go first.
+# Paths assume AI-SDLC/ is the repository root. If AI-SDLC/ is a folder in a larger repo,
+# prefix every pattern with /AI-SDLC (for example /AI-SDLC/.claude/).
+
+# Default: the service team owns everything else.
+*                               @example-org/fhir-platform
+
+# Application code: service team, plus security for auth and error handling.
+/sample-app/                    @example-org/fhir-platform
+/sample-app/src/main/java/org/example/fhir/config/   @example-org/fhir-platform @example-org/appsec
+/sample-app/src/main/java/org/example/fhir/audit/    @example-org/fhir-platform @example-org/appsec
+/sample-app/k8s/                @example-org/fhir-platform @example-org/sre
+
+# AI configuration: every change needs a human from the AI governance group.
+# An agent editing its own permissions, hooks or prompts is the highest-risk change in this repo.
+/.claude/                       @example-org/ai-governance
+/.claude/settings.json          @example-org/ai-governance @example-org/appsec
+/.claude/hooks/                 @example-org/ai-governance @example-org/appsec
+/.mcp.json                      @example-org/ai-governance @example-org/appsec
+/CLAUDE.md                      @example-org/ai-governance
+/agents/                        @example-org/ai-governance
+/workflows/                     @example-org/ai-governance
+/skills/                        @example-org/ai-governance
+/company-ai/                    @example-org/ai-governance
+/evaluations/                   @example-org/ai-governance
+/context/security/              @example-org/ai-governance @example-org/appsec
+
+# The gate protects itself: changing CODEOWNERS or the gate workflow needs governance + appsec.
+/.github/CODEOWNERS             @example-org/ai-governance @example-org/appsec
+/.github/workflows/ai-change-gate.yml   @example-org/ai-governance @example-org/appsec
+/scripts/governance/            @example-org/ai-governance @example-org/appsec

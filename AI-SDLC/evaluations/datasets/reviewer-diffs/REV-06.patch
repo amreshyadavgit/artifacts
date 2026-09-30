@@ -1,0 +1,31 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java b/sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java
+index 056de46..400a828 100644
+--- a/sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java
++++ b/sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java
+@@ -10,6 +10,8 @@ import org.example.fhir.error.FhirApiException;
+ 
+ final class ObservationMapper {
+ 
++    private static final String PATIENT_PREFIX = "Patient/";
++
+     private ObservationMapper() {}
+ 
+     static ObservationResource toResource(Observation o) {
+@@ -20,7 +22,7 @@ final class ObservationMapper {
+                 o.getStatus(),
+                 new CodeableConcept(List.of(new Coding(o.getCodeSystem(), o.getCode(), o.getCodeDisplay()))),
+                 // getId() on a lazy proxy does not trigger a load
+-                new Reference("Patient/" + o.getPatient().getId()),
++                new Reference(PATIENT_PREFIX + o.getPatient().getId()),
+                 o.getEffectiveDateTime(),
+                 quantity);
+     }
+@@ -42,7 +44,7 @@ final class ObservationMapper {
+ 
+     /** Accepts "Patient/123" (FHIR style) or a bare "123". */
+     static Long parseSubject(String subject) {
+-        String raw = subject.startsWith("Patient/") ? subject.substring("Patient/".length()) : subject;
++        String raw = subject.startsWith(PATIENT_PREFIX) ? subject.substring(PATIENT_PREFIX.length()) : subject;
+         try {
+             return Long.valueOf(raw);
+         } catch (NumberFormatException e) {

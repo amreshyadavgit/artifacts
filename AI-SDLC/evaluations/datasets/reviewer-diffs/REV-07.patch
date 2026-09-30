@@ -1,0 +1,18 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/api/PatientController.java b/sample-app/src/main/java/org/example/fhir/api/PatientController.java
+index 1efa4d9..b336ac5 100644
+--- a/sample-app/src/main/java/org/example/fhir/api/PatientController.java
++++ b/sample-app/src/main/java/org/example/fhir/api/PatientController.java
+@@ -40,6 +40,13 @@ public class PatientController {
+         return Bundle.searchset(service.search(family, mrn).stream().map(PatientMapper::toResource).toList());
+     }
+ 
++    /** Debug view for support staff. */
++    @GetMapping("/{id}/raw")
++    public Patient raw2(@PathVariable Long id) {
++        Patient p2 = service.get(id);
++        return p2;
++    }
++
+     @PostMapping
+     public ResponseEntity<PatientResource> create(@Valid @RequestBody PatientResource body) {
+         Patient saved = service.create(PatientMapper.toEntity(body));

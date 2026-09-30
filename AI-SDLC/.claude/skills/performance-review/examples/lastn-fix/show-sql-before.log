@@ -1,0 +1,56 @@
+LASTN_BEGIN
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+Hibernate: select p1_0.id,p1_0.active,p1_0.birth_date,p1_0.family_name,p1_0.gender,p1_0.given_names,p1_0.mrn,p1_0.mrn_system from patient p1_0 where p1_0.id=?
+Hibernate: select o1_0.id,o1_0.code,o1_0.code_display,o1_0.code_system,o1_0.effective_date_time,o1_0.patient_id,o1_0.status,o1_0.value_quantity,o1_0.value_unit from observation o1_0 join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=? order by o1_0.effective_date_time desc
+2026-09-30T03:06:19.372Z  INFO 14034 --- [fhir-lite-api] [           main] AUDIT                                    : action=SEARCH resource=Observation results=20 user=clinician
+2026-09-30T03:06:19.373Z  INFO 14034 --- [fhir-lite-api] [           main] i.StatisticalLoggingSessionEventListener : Session Metrics {
+    41556 nanoseconds spent acquiring 1 JDBC connections;
+    0 nanoseconds spent releasing 0 JDBC connections;
+    4699224 nanoseconds spent preparing 40 JDBC statements;
+    14372290 nanoseconds spent executing 40 JDBC statements;
+    0 nanoseconds spent executing 0 JDBC batches;
+    0 nanoseconds spent performing 0 L2C puts;
+    0 nanoseconds spent performing 0 L2C hits;
+    0 nanoseconds spent performing 0 L2C misses;
+    0 nanoseconds spent executing 0 flushes (flushing a total of 0 entities and 0 collections);
+    108664 nanoseconds spent executing 20 pre-partial-flushes;
+    463920 nanoseconds spent executing 20 partial-flushes (flushing a total of 0 entities and 0 collections)
+}
+LASTN_QUERY_COUNT subjects=20 statements=40

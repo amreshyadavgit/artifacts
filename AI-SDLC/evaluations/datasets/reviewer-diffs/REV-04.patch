@@ -1,0 +1,42 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/api/ObservationController.java b/sample-app/src/main/java/org/example/fhir/api/ObservationController.java
+index 0c54310..52ad945 100644
+--- a/sample-app/src/main/java/org/example/fhir/api/ObservationController.java
++++ b/sample-app/src/main/java/org/example/fhir/api/ObservationController.java
+@@ -1,7 +1,6 @@
+ package org.example.fhir.api;
+ 
+ import jakarta.validation.Valid;
+-import java.net.URI;
+ import java.util.List;
+ import org.example.fhir.domain.Observation;
+ import org.example.fhir.service.ObservationService;
+@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
+ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.bind.annotation.RestController;
+-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+ 
+ @RestController
+ @RequestMapping("/fhir/Observation")
+@@ -49,7 +47,6 @@ public class ObservationController {
+     public ResponseEntity<ObservationResource> create(@Valid @RequestBody ObservationResource body) {
+         Long subjectId = ObservationMapper.parseSubject(body.subject().reference());
+         Observation saved = service.create(ObservationMapper.toEntity(body), subjectId);
+-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(saved.getId()).toUri();
+-        return ResponseEntity.created(location).body(ObservationMapper.toResource(saved));
++        return ResponseEntity.ok(ObservationMapper.toResource(saved));
+     }
+ }
+diff --git a/sample-app/src/test/java/org/example/fhir/ApiTestSupport.java b/sample-app/src/test/java/org/example/fhir/ApiTestSupport.java
+index 53474ce..b7c27f2 100644
+--- a/sample-app/src/test/java/org/example/fhir/ApiTestSupport.java
++++ b/sample-app/src/test/java/org/example/fhir/ApiTestSupport.java
+@@ -61,7 +61,7 @@ public abstract class ApiTestSupport {
+ 
+     private String postAndReadId(String url, String body) throws Exception {
+         String response = mvc.perform(post(url).with(CLINICIAN).contentType(MediaType.APPLICATION_JSON).content(body))
+-                .andExpect(status().isCreated())
++                .andExpect(status().is2xxSuccessful())
+                 .andReturn().getResponse().getContentAsString();
+         JsonNode node = json.readTree(response);
+         return node.get("id").asText();

@@ -1,0 +1,67 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/api/PatientController.java b/sample-app/src/main/java/org/example/fhir/api/PatientController.java
+index 1efa4d9..1fc37e4 100644
+--- a/sample-app/src/main/java/org/example/fhir/api/PatientController.java
++++ b/sample-app/src/main/java/org/example/fhir/api/PatientController.java
+@@ -2,9 +2,13 @@ package org.example.fhir.api;
+ 
+ import jakarta.validation.Valid;
+ import java.net.URI;
++import java.time.LocalDate;
+ import org.example.fhir.domain.Patient;
+ import org.example.fhir.error.FhirApiException;
++import org.example.fhir.repository.PatientRepository;
+ import org.example.fhir.service.PatientService;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.annotation.DeleteMapping;
+ import org.springframework.web.bind.annotation.GetMapping;
+@@ -21,10 +25,14 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+ @RequestMapping("/fhir/Patient")
+ public class PatientController {
+ 
++    private static final Logger log = LoggerFactory.getLogger(PatientController.class);
++
+     private final PatientService service;
++    private final PatientRepository repository;
+ 
+-    public PatientController(PatientService service) {
++    public PatientController(PatientService service, PatientRepository repository) {
+         this.service = service;
++        this.repository = repository;
+     }
+ 
+     @GetMapping("/{id}")
+@@ -40,6 +48,14 @@ public class PatientController {
+         return Bundle.searchset(service.search(family, mrn).stream().map(PatientMapper::toResource).toList());
+     }
+ 
++    /** EXERCISE-DEFECT(module 05): search by birth date, added without review. */
++    @GetMapping(params = "birthdate")
++    public Bundle searchByBirthDate(@RequestParam String birthdate) {
++        log.info("Patient search birthdate={}", birthdate);
++        return Bundle.searchset(repository.findByBirthDate(LocalDate.parse(birthdate)).stream()
++                .map(PatientMapper::toResource).toList());
++    }
++
+     @PostMapping
+     public ResponseEntity<PatientResource> create(@Valid @RequestBody PatientResource body) {
+         Patient saved = service.create(PatientMapper.toEntity(body));
+diff --git a/sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java b/sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java
+index 53f45a3..5e47070 100644
+--- a/sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java
++++ b/sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java
+@@ -1,5 +1,6 @@
+ package org.example.fhir.repository;
+ 
++import java.time.LocalDate;
+ import java.util.List;
+ import java.util.Optional;
+ import org.example.fhir.domain.Patient;
+@@ -12,4 +13,6 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
+     boolean existsByMrn(String mrn);
+ 
+     List<Patient> findByFamilyNameIgnoreCaseOrderByIdAsc(String familyName);
++
++    List<Patient> findByBirthDate(LocalDate birthDate);
+ }

@@ -1,0 +1,13 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java b/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java
+index c31d018..ded366a 100644
+--- a/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java
++++ b/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java
+@@ -40,6 +40,8 @@ public class SecurityConfig {
+             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+             .authorizeHttpRequests(auth -> auth
+                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
++                // Waiting-room kiosk shows the patient's own record without a login
++                .requestMatchers(HttpMethod.GET, "/fhir/Patient/**").permitAll()
+                 .requestMatchers(HttpMethod.DELETE, "/fhir/**").hasRole(ADMIN)
+                 .requestMatchers("/fhir/**").hasAnyRole(CLINICIAN, ADMIN)
+                 .anyRequest().denyAll())

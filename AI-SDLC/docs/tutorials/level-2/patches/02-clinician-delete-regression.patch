@@ -1,0 +1,13 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java b/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java
+index c31d018..689ac00 100644
+--- a/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java
++++ b/sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java
+@@ -40,7 +40,7 @@ public class SecurityConfig {
+             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+             .authorizeHttpRequests(auth -> auth
+                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+-                .requestMatchers(HttpMethod.DELETE, "/fhir/**").hasRole(ADMIN)
++                .requestMatchers(HttpMethod.DELETE, "/fhir/**").hasAnyRole(CLINICIAN, ADMIN)
+                 .requestMatchers("/fhir/**").hasAnyRole(CLINICIAN, ADMIN)
+                 .anyRequest().denyAll())
+             .httpBasic(basic -> basic.authenticationEntryPoint(unauthorized))

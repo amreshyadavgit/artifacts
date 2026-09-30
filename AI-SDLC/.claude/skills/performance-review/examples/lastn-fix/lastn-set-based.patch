@@ -1,0 +1,103 @@
+diff --git a/src/main/java/org/example/fhir/repository/ObservationRepository.java b/src/main/java/org/example/fhir/repository/ObservationRepository.java
+index 70d5375..7de4fe9 100644
+--- a/src/main/java/org/example/fhir/repository/ObservationRepository.java
++++ b/src/main/java/org/example/fhir/repository/ObservationRepository.java
+@@ -1,12 +1,36 @@
+ package org.example.fhir.repository;
+ 
++import java.util.Collection;
+ import java.util.List;
+ import org.example.fhir.domain.Observation;
+ import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Query;
++import org.springframework.data.repository.query.Param;
+ 
+ public interface ObservationRepository extends JpaRepository<Observation, Long> {
+ 
+     List<Observation> findByPatientIdOrderByEffectiveDateTimeDesc(Long patientId);
+ 
+     List<Observation> findByPatientIdAndCodeOrderByEffectiveDateTimeDesc(Long patientId, String code);
++
++    /** $lastn in one statement: the most recent Observation per patient (same ordering as the per-patient finders). */
++    @Query(nativeQuery = true, value = """
++            SELECT id, status, code_system, code, code_display, patient_id, effective_date_time, value_quantity, value_unit
++            FROM (SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.patient_id
++                                                 ORDER BY o.effective_date_time DESC, o.id DESC) AS rn
++                  FROM observation o
++                  WHERE o.patient_id IN (:patientIds)) ranked
++            WHERE rn = 1""")
++    List<Observation> findLatestPerPatient(@Param("patientIds") Collection<Long> patientIds);
++
++    /** As {@link #findLatestPerPatient} but restricted to one code (served by ix_observation_patient_code). */
++    @Query(nativeQuery = true, value = """
++            SELECT id, status, code_system, code, code_display, patient_id, effective_date_time, value_quantity, value_unit
++            FROM (SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.patient_id
++                                                 ORDER BY o.effective_date_time DESC, o.id DESC) AS rn
++                  FROM observation o
++                  WHERE o.patient_id IN (:patientIds) AND o.code = :code) ranked
++            WHERE rn = 1""")
++    List<Observation> findLatestPerPatientByCode(@Param("patientIds") Collection<Long> patientIds,
++                                                 @Param("code") String code);
+ }
+diff --git a/src/main/java/org/example/fhir/service/ObservationService.java b/src/main/java/org/example/fhir/service/ObservationService.java
+index 4f8e201..6c9cda7 100644
+--- a/src/main/java/org/example/fhir/service/ObservationService.java
++++ b/src/main/java/org/example/fhir/service/ObservationService.java
+@@ -1,7 +1,11 @@
+ package org.example.fhir.service;
+ 
+ import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.LinkedHashSet;
+ import java.util.List;
++import java.util.Map;
++import java.util.Set;
+ import org.example.fhir.audit.AuditLogger;
+ import org.example.fhir.audit.AuditLogger.Action;
+ import org.example.fhir.domain.Observation;
+@@ -55,23 +59,35 @@ public class ObservationService {
+         return saved;
+     }
+ 
++    /** Upper bound on subjects per $lastn call (matches the planned _count maximum in context/standards/api-standards.md). */
++    public static final int MAX_LASTN_SUBJECTS = 100;
++
+     /**
+      * $lastn: the most recent Observation per subject (optionally restricted to one code).
++     * One set-based query regardless of the number of subjects; results follow the order of {@code subjectIds}.
+      */
+     @Transactional(readOnly = true)
+     public List<Observation> lastN(List<Long> subjectIds, String code) {
++        if (subjectIds.size() > MAX_LASTN_SUBJECTS) {
++            throw FhirApiException.badRequest("subjects: at most " + MAX_LASTN_SUBJECTS + " ids per request");
++        }
++        if (subjectIds.isEmpty()) {
++            audit.recordSearch("Observation", 0);
++            return List.of();
++        }
++        Set<Long> distinctIds = new LinkedHashSet<>(subjectIds);
++        List<Observation> latest = (code == null || code.isBlank())
++                ? observations.findLatestPerPatient(distinctIds)
++                : observations.findLatestPerPatientByCode(distinctIds, code.trim());
++        // getPatient().getId() reads the id from the lazy proxy; it does not trigger a query.
++        Map<Long, Observation> byPatient = new HashMap<>();
++        latest.forEach(o -> byPatient.put(o.getPatient().getId(), o));
+         List<Observation> result = new ArrayList<>();
+-        // TEACHING-DEFECT(perf-n+1): this loop issues 2 queries PER subject (a Patient lookup plus an
+-        // Observation lookup that loads the patient's whole history just to keep the first row).
+-        // 500 subjects => ~1000 DB round trips. Fix: one set-based query, e.g. a repository method
+-        // using "WHERE patient_id IN (:ids)" with a window function / max(effective_date_time) per patient.
+-        // Left in place intentionally for the curriculum exercises - see docs/KNOWN_DEFECTS.md.
+         for (Long subjectId : subjectIds) {
+-            patients.findById(subjectId).ifPresent(patient ->
+-                    observations.findByPatientIdOrderByEffectiveDateTimeDesc(patient.getId()).stream()
+-                            .filter(o -> code == null || code.isBlank() || o.getCode().equals(code.trim()))
+-                            .findFirst()
+-                            .ifPresent(result::add));
++            Observation o = byPatient.get(subjectId);
++            if (o != null) {
++                result.add(o);
++            }
+         }
+         audit.recordSearch("Observation", result.size());
+         return result;

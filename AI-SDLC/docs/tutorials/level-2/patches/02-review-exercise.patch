@@ -1,0 +1,39 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/service/PatientService.java b/sample-app/src/main/java/org/example/fhir/service/PatientService.java
+index 51685a0..31eae2b 100644
+--- a/sample-app/src/main/java/org/example/fhir/service/PatientService.java
++++ b/sample-app/src/main/java/org/example/fhir/service/PatientService.java
+@@ -6,12 +6,16 @@ import org.example.fhir.audit.AuditLogger.Action;
+ import org.example.fhir.domain.Patient;
+ import org.example.fhir.error.FhirApiException;
+ import org.example.fhir.repository.PatientRepository;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+ 
+ @Service
+ public class PatientService {
+ 
++    private static final Logger log = LoggerFactory.getLogger(PatientService.class);
++
+     private final PatientRepository patients;
+     private final AuditLogger audit;
+ 
+@@ -24,6 +28,7 @@ public class PatientService {
+     public Patient get(Long id) {
+         Patient patient = patients.findById(id).orElseThrow(() -> FhirApiException.notFound("Patient", id));
+         audit.record(Action.READ, "Patient", id);
++        log.info("Loaded patient {} {} (MRN {})", patient.getGivenNames(), patient.getFamilyName(), patient.getMrn());
+         return patient;
+     }
+ 
+@@ -33,7 +38,8 @@ public class PatientService {
+         boolean hasFamily = family != null && !family.isBlank();
+         boolean hasMrn = mrn != null && !mrn.isBlank();
+         if (!hasFamily && !hasMrn) {
+-            throw FhirApiException.badRequest("At least one search parameter (family, identifier) is required");
++            // No criteria: return everyone so the UI can show a full patient list
++            return patients.findAll();
+         }
+         List<Patient> result;
+         if (hasMrn) {

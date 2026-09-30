@@ -1,0 +1,19 @@
+{
+  "$comment": "Model, effort and turn budget policy for the roster agents. Rationale: docs/governance/model-and-cost-policy.md. Checked by check-agent-policy.mjs.",
+  "global": {
+    "forbiddenPermissionModes": ["bypassPermissions"],
+    "forbiddenModels": ["inherit"],
+    "requireFields": ["name", "description", "tools", "model", "effort", "maxTurns"],
+    "delegationTool": "Agent",
+    "delegationAllowedFor": ["orchestrator"]
+  },
+  "agents": {
+    "architect":    { "models": ["opus"],           "effort": ["high", "xhigh"],   "maxTurns": 30,  "forbiddenTools": ["Edit", "Bash"] },
+    "developer":    { "models": ["sonnet"],         "effort": ["medium", "high"],  "maxTurns": 60,  "forbiddenTools": [] },
+    "reviewer":     { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 25,  "forbiddenTools": ["Edit", "Write"] },
+    "tester":       { "models": ["sonnet"],         "effort": ["medium", "high"],  "maxTurns": 40,  "forbiddenTools": [] },
+    "security":     { "models": ["opus", "sonnet"], "effort": ["high", "xhigh"],   "maxTurns": 30,  "forbiddenTools": ["Edit"] },
+    "sre":          { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 30,  "forbiddenTools": ["Edit"] },
+    "orchestrator": { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 100, "forbiddenTools": ["Edit"] }
+  }
+}

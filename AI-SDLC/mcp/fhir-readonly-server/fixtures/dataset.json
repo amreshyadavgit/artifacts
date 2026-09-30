@@ -1,0 +1,909 @@
+{
+  "_note": "SYNTHETIC DATA ONLY. Generated for the AI-SDLC course; no real patients. MRNs follow the synthetic MRN-000xxx convention. The server never returns the patients[] PHI fields; they exist so tests can prove it.",
+  "patients": [
+    {
+      "id": 1,
+      "mrn": "MRN-000101",
+      "family": "Sample",
+      "given": [
+        "Jordan"
+      ],
+      "gender": "male",
+      "birthDate": "1953-02-11",
+      "active": true
+    },
+    {
+      "id": 2,
+      "mrn": "MRN-000102",
+      "family": "Demo",
+      "given": [
+        "Sam"
+      ],
+      "gender": "other",
+      "birthDate": "1956-03-12",
+      "active": true
+    },
+    {
+      "id": 3,
+      "mrn": "MRN-000103",
+      "family": "Fixture",
+      "given": [
+        "Alex"
+      ],
+      "gender": "unknown",
+      "birthDate": "1959-04-13",
+      "active": true
+    },
+    {
+      "id": 4,
+      "mrn": "MRN-000104",
+      "family": "Test",
+      "given": [
+        "Patient"
+      ],
+      "gender": "female",
+      "birthDate": "1962-05-14",
+      "active": true
+    },
+    {
+      "id": 5,
+      "mrn": "MRN-000105",
+      "family": "Sample",
+      "given": [
+        "Jordan"
+      ],
+      "gender": "male",
+      "birthDate": "1965-06-15",
+      "active": true
+    },
+    {
+      "id": 6,
+      "mrn": "MRN-000106",
+      "family": "Demo",
+      "given": [
+        "Sam"
+      ],
+      "gender": "other",
+      "birthDate": "1968-07-16",
+      "active": true
+    },
+    {
+      "id": 7,
+      "mrn": "MRN-000107",
+      "family": "Fixture",
+      "given": [
+        "Alex"
+      ],
+      "gender": "unknown",
+      "birthDate": "1971-08-17",
+      "active": true
+    },
+    {
+      "id": 8,
+      "mrn": "MRN-000108",
+      "family": "Test",
+      "given": [
+        "Patient"
+      ],
+      "gender": "female",
+      "birthDate": "1974-09-18",
+      "active": true
+    },
+    {
+      "id": 9,
+      "mrn": "MRN-000109",
+      "family": "Sample",
+      "given": [
+        "Jordan"
+      ],
+      "gender": "male",
+      "birthDate": "1977-01-10",
+      "active": true
+    },
+    {
+      "id": 10,
+      "mrn": "MRN-000110",
+      "family": "Demo",
+      "given": [
+        "Sam"
+      ],
+      "gender": "other",
+      "birthDate": "1980-02-11",
+      "active": true
+    },
+    {
+      "id": 11,
+      "mrn": "MRN-000111",
+      "family": "Fixture",
+      "given": [
+        "Alex"
+      ],
+      "gender": "unknown",
+      "birthDate": "1983-03-12",
+      "active": true
+    },
+    {
+      "id": 12,
+      "mrn": "MRN-000112",
+      "family": "Test",
+      "given": [
+        "Patient"
+      ],
+      "gender": "female",
+      "birthDate": "1986-04-13",
+      "active": false
+    }
+  ],
+  "observations": [
+    {
+      "id": 1001,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/1",
+      "effectiveDateTime": "2026-05-27T06:15:00Z",
+      "value": 81.2,
+      "unit": "/min"
+    },
+    {
+      "id": 1002,
+      "status": "amended",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/1",
+      "effectiveDateTime": "2026-08-03T08:15:00Z",
+      "value": 68.4,
+      "unit": "/min"
+    },
+    {
+      "id": 1003,
+      "status": "amended",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/1",
+      "effectiveDateTime": "2026-01-11T00:15:00Z",
+      "value": 112.9,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1004,
+      "status": "amended",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/1",
+      "effectiveDateTime": "2026-07-21T00:15:00Z",
+      "value": 85.9,
+      "unit": "kg"
+    },
+    {
+      "id": 1005,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/1",
+      "effectiveDateTime": "2026-02-25T00:15:00Z",
+      "value": 95.1,
+      "unit": "kg"
+    },
+    {
+      "id": 1006,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/1",
+      "effectiveDateTime": "2026-01-20T06:15:00Z",
+      "value": 98.2,
+      "unit": "kg"
+    },
+    {
+      "id": 1007,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-06-01T03:15:00Z",
+      "value": 66,
+      "unit": "/min"
+    },
+    {
+      "id": 1008,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-04-09T07:15:00Z",
+      "value": 72.5,
+      "unit": "/min"
+    },
+    {
+      "id": 1009,
+      "status": "amended",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-05-06T04:15:00Z",
+      "value": 83,
+      "unit": "/min"
+    },
+    {
+      "id": 1010,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-07-17T03:15:00Z",
+      "value": 138.7,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1011,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-04-16T02:15:00Z",
+      "value": 113.4,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1012,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-04-08T04:15:00Z",
+      "value": 59,
+      "unit": "kg"
+    },
+    {
+      "id": 1013,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-02-04T07:15:00Z",
+      "value": 85.2,
+      "unit": "kg"
+    },
+    {
+      "id": 1014,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/3",
+      "effectiveDateTime": "2026-08-07T04:15:00Z",
+      "value": 75.7,
+      "unit": "/min"
+    },
+    {
+      "id": 1015,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/3",
+      "effectiveDateTime": "2026-06-07T01:15:00Z",
+      "value": 84.7,
+      "unit": "/min"
+    },
+    {
+      "id": 1016,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/3",
+      "effectiveDateTime": "2026-03-21T06:15:00Z",
+      "value": 127.3,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1017,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/3",
+      "effectiveDateTime": "2026-05-07T02:15:00Z",
+      "value": 143.7,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1018,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/3",
+      "effectiveDateTime": "2026-05-02T07:15:00Z",
+      "value": 89.4,
+      "unit": "kg"
+    },
+    {
+      "id": 1019,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/3",
+      "effectiveDateTime": "2026-02-23T02:15:00Z",
+      "value": 66.1,
+      "unit": "kg"
+    },
+    {
+      "id": 1020,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-03-01T03:15:00Z",
+      "value": 64.3,
+      "unit": "/min"
+    },
+    {
+      "id": 1021,
+      "status": "amended",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-03-16T05:15:00Z",
+      "value": 95.9,
+      "unit": "/min"
+    },
+    {
+      "id": 1022,
+      "status": "amended",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-03-07T04:15:00Z",
+      "value": 125.8,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1023,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-05-26T07:15:00Z",
+      "value": 130.2,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1024,
+      "status": "amended",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-04-16T07:15:00Z",
+      "value": 128.5,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1025,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-08-24T01:15:00Z",
+      "value": 67.3,
+      "unit": "kg"
+    },
+    {
+      "id": 1026,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/4",
+      "effectiveDateTime": "2026-01-04T05:15:00Z",
+      "value": 95.8,
+      "unit": "kg"
+    },
+    {
+      "id": 1027,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-03-06T05:15:00Z",
+      "value": 85.7,
+      "unit": "/min"
+    },
+    {
+      "id": 1028,
+      "status": "amended",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-02-19T01:15:00Z",
+      "value": 142.9,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1029,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-03-19T00:15:00Z",
+      "value": 143.8,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1030,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-03-17T04:15:00Z",
+      "value": 132.2,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1031,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-08-03T05:15:00Z",
+      "value": 87.5,
+      "unit": "kg"
+    },
+    {
+      "id": 1032,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-05-21T05:15:00Z",
+      "value": 57.6,
+      "unit": "kg"
+    },
+    {
+      "id": 1033,
+      "status": "amended",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-04-12T07:15:00Z",
+      "value": 92.8,
+      "unit": "kg"
+    },
+    {
+      "id": 1034,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/6",
+      "effectiveDateTime": "2026-08-09T00:15:00Z",
+      "value": 68.8,
+      "unit": "/min"
+    },
+    {
+      "id": 1035,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/6",
+      "effectiveDateTime": "2026-07-21T05:15:00Z",
+      "value": 60.5,
+      "unit": "/min"
+    },
+    {
+      "id": 1036,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/6",
+      "effectiveDateTime": "2026-07-12T01:15:00Z",
+      "value": 118.8,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1037,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/6",
+      "effectiveDateTime": "2026-05-16T02:15:00Z",
+      "value": 136.3,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1038,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/6",
+      "effectiveDateTime": "2026-07-03T08:15:00Z",
+      "value": 62,
+      "unit": "kg"
+    },
+    {
+      "id": 1039,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/6",
+      "effectiveDateTime": "2026-01-19T03:15:00Z",
+      "value": 88.9,
+      "unit": "kg"
+    },
+    {
+      "id": 1040,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-01-04T04:15:00Z",
+      "value": 62.5,
+      "unit": "/min"
+    },
+    {
+      "id": 1041,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-02-06T02:15:00Z",
+      "value": 128.7,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1042,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-08-20T05:15:00Z",
+      "value": 116.3,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1043,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-07-21T04:15:00Z",
+      "value": 113.5,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1044,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-01-04T02:15:00Z",
+      "value": 66,
+      "unit": "kg"
+    },
+    {
+      "id": 1045,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-06-16T07:15:00Z",
+      "value": 82,
+      "unit": "kg"
+    },
+    {
+      "id": 1046,
+      "status": "amended",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/7",
+      "effectiveDateTime": "2026-05-04T05:15:00Z",
+      "value": 80.6,
+      "unit": "kg"
+    },
+    {
+      "id": 1047,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/8",
+      "effectiveDateTime": "2026-08-17T06:15:00Z",
+      "value": 95.2,
+      "unit": "/min"
+    },
+    {
+      "id": 1048,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/8",
+      "effectiveDateTime": "2026-08-14T07:15:00Z",
+      "value": 98.3,
+      "unit": "/min"
+    },
+    {
+      "id": 1049,
+      "status": "amended",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/8",
+      "effectiveDateTime": "2026-05-02T06:15:00Z",
+      "value": 113.3,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1050,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/8",
+      "effectiveDateTime": "2026-01-26T00:15:00Z",
+      "value": 144,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1051,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/8",
+      "effectiveDateTime": "2026-01-12T00:15:00Z",
+      "value": 130.7,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1052,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/8",
+      "effectiveDateTime": "2026-02-12T07:15:00Z",
+      "value": 93.9,
+      "unit": "kg"
+    },
+    {
+      "id": 1053,
+      "status": "amended",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-03-23T04:15:00Z",
+      "value": 80.5,
+      "unit": "/min"
+    },
+    {
+      "id": 1054,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-05-15T00:15:00Z",
+      "value": 70.8,
+      "unit": "/min"
+    },
+    {
+      "id": 1055,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-02-09T02:15:00Z",
+      "value": 131.2,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1056,
+      "status": "amended",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-05-16T08:15:00Z",
+      "value": 147.3,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1057,
+      "status": "amended",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-05-21T00:15:00Z",
+      "value": 62.6,
+      "unit": "kg"
+    },
+    {
+      "id": 1058,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-08-18T00:15:00Z",
+      "value": 64.6,
+      "unit": "kg"
+    },
+    {
+      "id": 1059,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/10",
+      "effectiveDateTime": "2026-06-22T03:15:00Z",
+      "value": 61.6,
+      "unit": "/min"
+    },
+    {
+      "id": 1060,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/10",
+      "effectiveDateTime": "2026-06-19T04:15:00Z",
+      "value": 84.7,
+      "unit": "/min"
+    },
+    {
+      "id": 1061,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/10",
+      "effectiveDateTime": "2026-03-01T07:15:00Z",
+      "value": 97.5,
+      "unit": "/min"
+    },
+    {
+      "id": 1062,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/10",
+      "effectiveDateTime": "2026-03-21T07:15:00Z",
+      "value": 114.6,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1063,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/10",
+      "effectiveDateTime": "2026-06-09T04:15:00Z",
+      "value": 104.1,
+      "unit": "kg"
+    },
+    {
+      "id": 1064,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/11",
+      "effectiveDateTime": "2026-08-27T05:15:00Z",
+      "value": 87.4,
+      "unit": "/min"
+    },
+    {
+      "id": 1065,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/11",
+      "effectiveDateTime": "2026-06-15T07:15:00Z",
+      "value": 130.5,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1066,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/11",
+      "effectiveDateTime": "2026-03-27T07:15:00Z",
+      "value": 149.9,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1067,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/11",
+      "effectiveDateTime": "2026-06-08T08:15:00Z",
+      "value": 86.7,
+      "unit": "kg"
+    },
+    {
+      "id": 1068,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/11",
+      "effectiveDateTime": "2026-08-14T01:15:00Z",
+      "value": 92.7,
+      "unit": "kg"
+    },
+    {
+      "id": 1069,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/12",
+      "effectiveDateTime": "2026-01-10T06:15:00Z",
+      "value": 92.4,
+      "unit": "/min"
+    },
+    {
+      "id": 1070,
+      "status": "final",
+      "code": "8867-4",
+      "display": "Heart rate",
+      "subject": "Patient/12",
+      "effectiveDateTime": "2026-05-17T04:15:00Z",
+      "value": 66.3,
+      "unit": "/min"
+    },
+    {
+      "id": 1071,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/12",
+      "effectiveDateTime": "2026-03-05T05:15:00Z",
+      "value": 121.9,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1072,
+      "status": "final",
+      "code": "8480-6",
+      "display": "Systolic blood pressure",
+      "subject": "Patient/12",
+      "effectiveDateTime": "2026-01-23T04:15:00Z",
+      "value": 143.8,
+      "unit": "mm[Hg]"
+    },
+    {
+      "id": 1073,
+      "status": "amended",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/12",
+      "effectiveDateTime": "2026-08-06T08:15:00Z",
+      "value": 64.6,
+      "unit": "kg"
+    },
+    {
+      "id": 1074,
+      "status": "final",
+      "code": "29463-7",
+      "display": "Body weight",
+      "subject": "Patient/12",
+      "effectiveDateTime": "2026-03-17T00:15:00Z",
+      "value": 59.3,
+      "unit": "kg"
+    },
+    {
+      "id": 1075,
+      "status": "preliminary",
+      "code": "2339-0",
+      "display": "Glucose [Mass/volume] in Blood",
+      "subject": "Patient/2",
+      "effectiveDateTime": "2026-08-14T07:30:00Z",
+      "value": 100,
+      "unit": "mg/dL"
+    },
+    {
+      "id": 1076,
+      "status": "preliminary",
+      "code": "2339-0",
+      "display": "Glucose [Mass/volume] in Blood",
+      "subject": "Patient/5",
+      "effectiveDateTime": "2026-08-14T07:30:00Z",
+      "value": 103,
+      "unit": "mg/dL"
+    },
+    {
+      "id": 1077,
+      "status": "preliminary",
+      "code": "2339-0",
+      "display": "Glucose [Mass/volume] in Blood",
+      "subject": "Patient/9",
+      "effectiveDateTime": "2026-08-14T07:30:00Z",
+      "value": 107,
+      "unit": "mg/dL"
+    }
+  ]
+}

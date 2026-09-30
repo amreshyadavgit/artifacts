@@ -6,22 +6,51 @@
       "Bash(git diff *)",
       "Bash(git status)",
       "Bash(git log *)",
-      "Bash(node evaluations/harness/run-evals.mjs *)"
+      "Bash(node evaluations/harness/run-evals.mjs *)",
+      "Bash(node scripts/governance/validate-skill-library.mjs)",
+      "Bash(node scripts/governance/validate-skill-library.mjs *)",
+      "Bash(node scripts/governance/check-agent-policy.mjs)",
+      "Bash(node scripts/governance/check-agent-policy.mjs *)"
     ],
     "ask": [
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(kubectl apply *)"
+      "Bash(kubectl apply *)",
+      "Bash(gh pr create *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "WebFetch",
+      "Edit(./.claude/**)",
+      "Edit(./.mcp.json)",
+      "Edit(./CLAUDE.md)",
+      "Agent(model:opus)"
     ],
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
       "Read(./**/secrets/**)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/**)",
       "Read(./sample-app/data/real/**)",
       "Read(./**/*.phi.*)",
+      "Bash(cat .env*)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
+      "Bash(env)",
       "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(gh pr merge *)",
       "Bash(kubectl delete *)",
-      "Bash(rm -rf *)"
+      "Bash(rm -rf *)",
+      "mcp__github__merge_pull_request",
+      "mcp__github__push_files",
+      "mcp__github__create_or_update_file",
+      "mcp__github__delete_file"
     ],
     "defaultMode": "default"
   },
@@ -31,6 +60,20 @@
         "matcher": "Edit|Write",
         "hooks": [
           { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secrets.mjs\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-outbound.mjs\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*|WebFetch|WebSearch|Read",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/flag-injection.mjs\"", "timeout": 10 }
         ]
       }
     ]

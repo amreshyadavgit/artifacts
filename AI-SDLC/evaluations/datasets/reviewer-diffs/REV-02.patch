@@ -1,0 +1,30 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/service/PatientService.java b/sample-app/src/main/java/org/example/fhir/service/PatientService.java
+index 51685a0..46ef050 100644
+--- a/sample-app/src/main/java/org/example/fhir/service/PatientService.java
++++ b/sample-app/src/main/java/org/example/fhir/service/PatientService.java
+@@ -6,12 +6,16 @@ import org.example.fhir.audit.AuditLogger.Action;
+ import org.example.fhir.domain.Patient;
+ import org.example.fhir.error.FhirApiException;
+ import org.example.fhir.repository.PatientRepository;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+ 
+ @Service
+ public class PatientService {
+ 
++    private static final Logger log = LoggerFactory.getLogger(PatientService.class);
++
+     private final PatientRepository patients;
+     private final AuditLogger audit;
+ 
+@@ -54,6 +58,8 @@ public class PatientService {
+         }
+         Patient saved = patients.save(patient);
+         audit.record(Action.CREATE, "Patient", saved.getId());
++        log.info("Created patient {} {} (MRN {}, born {})", saved.getGivenNames(), saved.getFamilyName(),
++                saved.getMrn(), saved.getBirthDate());
+         return saved;
+     }
+ 

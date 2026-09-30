@@ -1,0 +1,77 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/api/PatientController.java b/sample-app/src/main/java/org/example/fhir/api/PatientController.java
+index 1efa4d9..19f4be8 100644
+--- a/sample-app/src/main/java/org/example/fhir/api/PatientController.java
++++ b/sample-app/src/main/java/org/example/fhir/api/PatientController.java
+@@ -2,9 +2,13 @@ package org.example.fhir.api;
+ 
+ import jakarta.validation.Valid;
+ import java.net.URI;
++import java.util.List;
+ import org.example.fhir.domain.Patient;
+ import org.example.fhir.error.FhirApiException;
++import org.example.fhir.repository.PatientNameSearch;
+ import org.example.fhir.service.PatientService;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
+ import org.springframework.http.ResponseEntity;
+ import org.springframework.web.bind.annotation.DeleteMapping;
+ import org.springframework.web.bind.annotation.GetMapping;
+@@ -21,10 +25,14 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+ @RequestMapping("/fhir/Patient")
+ public class PatientController {
+ 
++    private static final Logger log = LoggerFactory.getLogger(PatientController.class);
++
+     private final PatientService service;
++    private final PatientNameSearch nameSearch;
+ 
+-    public PatientController(PatientService service) {
++    public PatientController(PatientService service, PatientNameSearch nameSearch) {
+         this.service = service;
++        this.nameSearch = nameSearch;
+     }
+ 
+     @GetMapping("/{id}")
+@@ -40,6 +48,13 @@ public class PatientController {
+         return Bundle.searchset(service.search(family, mrn).stream().map(PatientMapper::toResource).toList());
+     }
+ 
++    /** GET /fhir/Patient/_by-name?name=smi - partial, case-insensitive family-name match. */
++    @GetMapping("/_by-name")
++    public List<Patient> byName(@RequestParam String name) {
++        log.info("Patient name search: {}", name);
++        return nameSearch.byFamilyFragment(name);
++    }
++
+     @PostMapping
+     public ResponseEntity<PatientResource> create(@Valid @RequestBody PatientResource body) {
+         Patient saved = service.create(PatientMapper.toEntity(body));
+diff --git a/sample-app/src/main/java/org/example/fhir/repository/PatientNameSearch.java b/sample-app/src/main/java/org/example/fhir/repository/PatientNameSearch.java
+new file mode 100644
+index 0000000..e9bb880
+--- /dev/null
++++ b/sample-app/src/main/java/org/example/fhir/repository/PatientNameSearch.java
+@@ -0,0 +1,23 @@
++package org.example.fhir.repository;
++
++import jakarta.persistence.EntityManager;
++import java.util.List;
++import org.example.fhir.domain.Patient;
++import org.springframework.stereotype.Repository;
++
++/** Partial family-name search for the front-desk lookup screen. */
++@Repository
++public class PatientNameSearch {
++
++    private final EntityManager em;
++
++    public PatientNameSearch(EntityManager em) {
++        this.em = em;
++    }
++
++    public List<Patient> byFamilyFragment(String fragment) {
++        String jpql = "select p from Patient p where lower(p.familyName) like '%"
++                + fragment.toLowerCase() + "%' order by p.id";
++        return em.createQuery(jpql, Patient.class).getResultList();
++    }
++}

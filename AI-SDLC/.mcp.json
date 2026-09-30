@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT}"
+      }
+    },
+    "atlassian": {
+      "type": "http",
+      "url": "${ATLASSIAN_MCP_URL:-https://mcp.atlassian.com/v1/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${ATLASSIAN_MCP_TOKEN}"
+      }
+    },
+    "fhir-readonly": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp/fhir-readonly-server/server.mjs"],
+      "env": {
+        "FHIR_DATASET": "${CLAUDE_PROJECT_DIR:-.}/mcp/fhir-readonly-server/fixtures/dataset.json"
+      }
+    }
+  }
+}
