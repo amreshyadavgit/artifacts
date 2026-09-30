@@ -1,0 +1,12 @@
+{
+  "N01": { "answer": "hook", "why": "Must block every write deterministically; PreToolUse on Edit|Write exiting 2." },
+  "N02": { "answer": "prompt", "why": "One question, asked once, no reuse or isolation needed." },
+  "N03": { "answer": "skill", "why": "Same review procedure every time, shared by humans and the reviewer agent." },
+  "N04": { "answer": "skill", "why": "Reuse the code-review skill for the second opinion." },
+  "N05": { "answer": "workflow", "why": "Several roles in order with a human approval gate before merge." },
+  "N06": { "answer": "mcp", "why": "Ticket data lives in Jira, outside the repo." },
+  "N07": { "answer": "skill", "why": "Named user-invoked procedure with the Maven command pre-approved." },
+  "N08": { "answer": "agent", "why": "A checker agent reads the handoff and complains if it is wrong." },
+  "N09": { "answer": "skill", "why": "The production-rca skill, run inside the sre agent with read-only tools." },
+  "N10": { "answer": "mcp", "why": "Live read-only data behind the FHIR-lite API, reused by several agents." }
+}
