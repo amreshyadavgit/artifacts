@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 70500,
+  "duration_api_ms": 58515,
+  "num_turns": 9,
+  "result": "---\nrun_id: eval-ARCH-02\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/java/org/example/fhir/service/ObservationService.java, sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java, sample-app/src/main/resources/db/migration/V1__init.sql, sample-app/docs/KNOWN_DEFECTS.md]\nnext: developer\n---\n## Summary\n`$lastn` cannot serve 500 subjects: `ObservationService.lastN` has the documented N+1 (`TEACHING-DEFECT(perf-n+1)`), about 1,000 queries per request, and the controller accepts any number of subjects. Replace the loop with one set-based query and cap `subjects`.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | `patients.findById(subjectId)` then `findByPatientIdOrderByEffectiveDateTimeDesc(...)` inside the loop: N+1 with 2 queries per subject, ~1,000 round trips for 500 subjects | One set-based query: `WHERE patient_id IN (:ids)` with `row_number() over (partition by patient_id order by effective_date_time desc) = 1`. |\n| ARC-002 | medium | performance | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:43 | `@RequestParam List<Long> subjects` has no maximum | Cap `subjects` at 100 per request; above the cap return 400 `OperationOutcome`. The dashboard batches. |\n| ARC-003 | medium | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:65 | Each subject's full observation history is loaded to keep only the first row | Select only the latest row per patient in SQL; the set-based query above does this. |\n| ARC-004 | info | performance | sample-app/src/main/resources/db/migration/V1__init.sql:29 | `ix_observation_patient_code ON observation (patient_id, code)` already supports the patient/code filter | Check the plan with 500 ids; add `effective_date_time` to the index only if the sort shows up. |\n\n## Decisions\n- Fix is in scope only when the ticket explicitly asks for it (CLAUDE.md rule 6); this handoff proposes it for the developer step.\n- Keep the existing `lastnReturnsMostRecentObservationPerSubject` test and add a query-count assertion (Hibernate statistics) for 1 vs 50 subjects.\n\n## Open questions\n- Is 100 subjects per call acceptable to the dashboard team, or do they need 500 in one response?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "5522840f-112e-5bab-9e95-1951fa67c7e0",
+  "total_cost_usd": 0.31,
+  "usage": {
+    "input_tokens": 4350,
+    "cache_creation_input_tokens": 17100,
+    "cache_read_input_tokens": 60800,
+    "output_tokens": 620
+  },
+  "permission_denials": []
+}

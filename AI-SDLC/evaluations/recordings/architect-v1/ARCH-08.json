@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 35700,
+  "duration_api_ms": 29631,
+  "num_turns": 5,
+  "result": "## Summary\nSend audit logs to a separate index.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | info | observability | sample-app/src/main/java/org/example/fhir/audit/AuditLogger.java:19 | AUDIT logger exists | Use it. |\n| 2 | medium | observability | sample-app/src/main/resources/application.yml:41 | No separate logback appender | Add an appender for AUDIT. |\n\n## Decisions\n- The existing Fluentd DaemonSet already forwards logs to Elasticsearch; add an audit index there.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "e69998a6-9ef7-5fcb-9071-ff7b30827fc3",
+  "total_cost_usd": 0.16,
+  "usage": {
+    "input_tokens": 2950,
+    "cache_creation_input_tokens": 13500,
+    "cache_read_input_tokens": 40000,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

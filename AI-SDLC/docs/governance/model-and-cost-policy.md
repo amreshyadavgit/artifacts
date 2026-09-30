@@ -5,7 +5,7 @@ Owner: AI governance group. Enforced by `scripts/governance/check-agent-policy.m
 ## Principles
 
 1. **Pay for reasoning where a miss is expensive.** A missed authorization gap on a PHI endpoint costs more than a month of model spend. A mis-sequenced handoff costs a re-run.
-2. **Every roster agent pins `model`, `effort` and `maxTurns`.** `model: inherit` is forbidden: the same agent must not cost 5x more because someone started the session on a bigger model.
+2. **Every roster subagent pins `model`, `effort` and `maxTurns`** (the main-thread orchestrator pins `model`; its run is bounded by `--max-turns` / `--max-budget-usd`). `model: inherit` is forbidden: the same agent must not cost 5x more because someone started the session on a bigger model.
 3. **Every agent declares `tools`.** Omitting `tools` inherits every tool, including MCP write tools. That is a cost risk (more tool calls) and a security risk.
 4. **Budgets are set per run, not per month.** Headless runs always pass `--max-turns` and `--max-budget-usd`. A run that stops on a limit (`subtype` `error_max_turns` or `error_max_budget_usd`) is a human decision point, not something to retry blindly.
 
@@ -18,8 +18,8 @@ Owner: AI governance group. Enforced by `scripts/governance/check-agent-policy.m
 | `reviewer` | `sonnet` | `high` | 25 | Reads one diff against `context/standards/review-standards.md`; `high` effort buys more careful evidence per finding. | Opus is allowed by policy for large or security-sensitive diffs; the golden-task scores in module 09-agent-evaluation decide whether the upgrade pays. |
 | `tester` | `sonnet` | `medium` | 40 | Test design from a plan and MockMvc tests that follow existing patterns in `PatientApiTest` / `SecurityTest`. | Test writing is pattern-heavy, not reasoning-heavy. |
 | `security` | `opus` | `high` | 30 | PHI exposure and authN/Z gaps (for example a new route outside `.requestMatchers("/fhir/**")` in `SecurityConfig`) are `critical` findings; false negatives are the costliest error in the system. | Sonnet is allowed for small diffs that touch no `config/`, `audit/` or `error/` code. |
-| `sre` | `sonnet` | `high` | 30 | RCA and performance review (for example the `$lastn` N+1 in `ObservationService.lastN`) are evidence-driven: logs, query counts, manifests. | Opus is allowed for a live incident RCA where time-to-cause matters more than cost. |
-| `orchestrator` | `sonnet` | `medium` | 100 | Sequencing, gate checks and report assembly; runs as the main thread (`claude --agent orchestrator`) for the whole workflow, so it has the most turns. | Opus here multiplies cost across the longest session for little gain; the reasoning happens in the agents it calls. |
+| `sre` | `opus` | `high` | 30 | Production RCA (log lines, query counts, `kubectl` output, k8s manifests) has to connect symptoms to code across layers, for example tracing `$lastn` latency to the loop in `ObservationService.lastN`. It runs only in incident and performance steps, so volume is low and time-to-cause matters. | Sonnet is allowed for routine performance reviews of a single diff. |
+| `orchestrator` | `sonnet` | `medium` (optional) | 100 (optional) | Sequencing, gate checks and report assembly; runs as the main thread (`claude --agent orchestrator`) for the whole workflow, so it has the most turns. Its budget is the run-level `--max-turns` / `--max-budget-usd`, so `effort` and `maxTurns` in its frontmatter are optional. | Opus here multiplies cost across the longest session for little gain; the reasoning happens in the agents it calls. |
 
 Model resolution (Claude Code docs, model-config and sub-agents): per-invocation `model` on the Agent call, then frontmatter `model`, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the main model. `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1` forces the env model on all subagents: use it in CI to run the whole roster on a cheaper model for smoke tests, never for release reviews.
 

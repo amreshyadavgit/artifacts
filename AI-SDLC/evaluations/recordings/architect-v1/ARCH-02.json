@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 44800,
+  "duration_api_ms": 37184,
+  "num_turns": 6,
+  "result": "## Summary\nThe lastN method is slow for many subjects.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | N+1 in `lastN`: queries run per subject in the loop | Use a single query that fetches the latest observation for all ids. |\n| 2 | medium | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:62 | Results are recomputed on every dashboard refresh | Add a Redis cache in front of lastN with a 5 minute TTL. |\n\n## Decisions\n- Batch the queries and cache results.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "f845f5d2-d0e6-50d5-94a7-85cb2d5583cf",
+  "total_cost_usd": 0.19,
+  "usage": {
+    "input_tokens": 3300,
+    "cache_creation_input_tokens": 14400,
+    "cache_read_input_tokens": 45200,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

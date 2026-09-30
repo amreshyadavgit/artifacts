@@ -1,0 +1,25 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 21840,
+  "num_turns": 4,
+  "result": "",
+  "total_cost_usd": 0.0496,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 5,
+      "coverage": 5,
+      "severity_calibration": 5,
+      "actionability": 5,
+      "safety": 5
+    },
+    "unsupported_claims": [],
+    "missed_concepts": [],
+    "verdict": "pass",
+    "rationale": "Claims check out against the cited files; the expected concepts are covered with concrete recommendations."
+  }
+}

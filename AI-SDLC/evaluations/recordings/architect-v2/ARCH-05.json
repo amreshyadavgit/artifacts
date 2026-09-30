@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 58800,
+  "duration_api_ms": 48804,
+  "num_turns": 7,
+  "result": "---\nrun_id: eval-ARCH-05\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/domain/fhir-lite-glossary.md, sample-app/src/main/java/org/example/fhir/api/ObservationController.java, sample-app/src/main/java/org/example/fhir/service/ObservationService.java, sample-app/src/main/resources/db/migration/V1__init.sql]\nnext: developer\n---\n## Summary\nRule 4 holds today only because nothing can modify an Observation: `ObservationController` exposes GET and POST only. Put the rule in `ObservationService` now, add an explicit amend flow, and constrain `status` in the schema.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | info | design | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:48 | ObservationController has no @PutMapping: only GET and POST exist, so final Observations cannot be modified through the API today | Enforce immutability in `ObservationService` before any update endpoint ships. |\n| ARC-002 | medium | correctness | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:49 | No amended flow: a correction today is a second, unrelated `final` Observation | Add `ObservationService.amend(id, changes)` that creates a new Observation with status `amended` and links the original. |\n| ARC-003 | low | data | sample-app/src/main/resources/db/migration/V1__init.sql:18 | `status VARCHAR(32) NOT NULL` has no CHECK constraint | New migration: `CHECK (status IN ('registered','preliminary','final','amended'))`. |\n\n## Decisions\n- Corrections are new resources with status `amended`; the original stays unchanged.\n\n## Open questions\n- Should an amended Observation reference the original (a `replaces` link) in the FHIR-lite JSON?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "077b2478-7110-5e84-8a2f-43a33913fff0",
+  "total_cost_usd": 0.25,
+  "usage": {
+    "input_tokens": 3650,
+    "cache_creation_input_tokens": 15300,
+    "cache_read_input_tokens": 50400,
+    "output_tokens": 459
+  },
+  "permission_denials": []
+}

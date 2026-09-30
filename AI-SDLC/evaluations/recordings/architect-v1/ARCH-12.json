@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 30100,
+  "duration_api_ms": 24983,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-12\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/resources/db/migration/V1__init.sql, sample-app/src/main/java/org/example/fhir/service/PatientService.java, context/domain/fhir-lite-glossary.md]\nnext: developer\n---\n## Summary\nUse the active flag for deletes.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | high | data | sample-app/src/main/resources/db/migration/V1__init.sql:26 | Cascade deletes observations | Stop deleting rows. |\n| 2 | low | design | sample-app/src/main/java/org/example/fhir/service/PatientService.java:78 | delete removes the row | Set active=false instead of deleting. |\n\n## Decisions\n- Delete sets active=false.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "48f4ac2b-fa20-5128-86bb-e1b6c7b4b5bb",
+  "total_cost_usd": 0.13,
+  "usage": {
+    "input_tokens": 2600,
+    "cache_creation_input_tokens": 12600,
+    "cache_read_input_tokens": 34800,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

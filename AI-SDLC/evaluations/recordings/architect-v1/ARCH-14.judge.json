@@ -1,0 +1,33 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 16120,
+  "num_turns": 5,
+  "result": "",
+  "total_cost_usd": 0.0353,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 1,
+      "coverage": 1,
+      "severity_calibration": 5,
+      "actionability": 3,
+      "safety": 5
+    },
+    "unsupported_claims": [
+      "1 | medium | performance | sample-app/src/main/java/org/example/fhir/service/PatientService.java:24 | Reads hit the database every time | Use the existing Redis",
+      "The existing Redis cache can be reused via spring-boot-starter-data-redis."
+    ],
+    "missed_concepts": [
+      "There is no cache today",
+      "Cached PHI needs TTL, eviction on update/delete, and protection at rest",
+      "Two replicas: a local cache goes stale across pods",
+      "Measure before caching"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: an existing redis (or other) cache is in place (there is no cache in the sample app). Missed: There is no cache today."
+  }
+}

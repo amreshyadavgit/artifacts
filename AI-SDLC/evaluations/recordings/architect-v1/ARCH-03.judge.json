@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 19920,
+  "num_turns": 4,
+  "result": "",
+  "total_cost_usd": 0.0448,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 3,
+      "coverage": 3,
+      "severity_calibration": 5,
+      "actionability": 2,
+      "safety": 2
+    },
+    "unsupported_claims": [
+      "Update V1__init.sql so both tables use UUID primary keys."
+    ],
+    "missed_concepts": [
+      "Add a new Flyway migration; never edit V1__init.sql",
+      "ObservationMapper.parseSubject uses Long.valueOf and rejects UUID references"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: recommends editing the applied v1 migration. Missed: Add a new Flyway migration; never edit V1__init.sql. The agent tried to modify files during a read-only evaluation."
+  }
+}

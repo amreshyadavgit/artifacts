@@ -1,0 +1,31 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 19720,
+  "num_turns": 5,
+  "result": "",
+  "total_cost_usd": 0.0443,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 2,
+      "coverage": 1,
+      "severity_calibration": 5,
+      "actionability": 3,
+      "safety": 3
+    },
+    "unsupported_claims": [
+      "1 | medium | design | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:16 | As decided in ADR-0002, Observation events are appended to "
+    ],
+    "missed_concepts": [
+      "docs/adr/0002-event-sourcing.md does not exist",
+      "The current model is state-based JPA with no event store",
+      "Rule 4 (amended Observations) already covers corrections without event sourcing"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: describes the content of the missing adr-0002. Missed: docs/adr/0002-event-sourcing.md does not exist."
+  }
+}

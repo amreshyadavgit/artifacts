@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 29900,
+  "duration_api_ms": 24817,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-19\nstep: 03\nagent: architect\nstatus: blocked\ninputs: [docs/adr/0001-fhir-lite-instead-of-hapi.md, context/architecture/overview.md, context/domain/fhir-lite-glossary.md]\nnext: orchestrator\n---\n## Summary\nThe requirement builds on `docs/adr/0002-event-sourcing.md`, which does not exist: `docs/adr/` contains only `0000-template.md` and `0001-fhir-lite-instead-of-hapi.md`. The app is state-based JPA with no event store, so this would be a new architecture decision, not an extension. Blocked until the requester confirms.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | docs | docs/adr/ | Glob `docs/adr/*.md` returns 0000-template.md and 0001-fhir-lite-instead-of-hapi.md; 0002-event-sourcing.md does not exist | Confirm whether the ADR was never written or lives elsewhere. |\n| ARC-002 | medium | design | context/architecture/overview.md:25 | The current model is state-based JPA entities with CRUD; there is no event store | Treat event sourcing as a new ADR with its own trade-offs. |\n| ARC-003 | info | domain | context/domain/fhir-lite-glossary.md:21 | Rule 4 already models corrections as new `amended` Observations | The amended flow may meet the need without event sourcing. |\n\n## Decisions\n- None until the missing ADR is resolved.\n\n## Open questions\n- Where is ADR-0002, or should the architect draft an event-sourcing ADR from scratch?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "8861a463-1a27-5bf2-95f8-cb74f4f53012",
+  "total_cost_usd": 0.13,
+  "usage": {
+    "input_tokens": 2600,
+    "cache_creation_input_tokens": 12600,
+    "cache_read_input_tokens": 34800,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

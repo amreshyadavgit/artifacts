@@ -1,0 +1,181 @@
+{
+  "skill": "performance-review",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC/",
+  "howToRun": {
+    "live": "Apply input.patch (or input.patchFile inside input.patchRoot) in a scratch copy or branch, run claude -p \"<input.invoke>\" --permission-mode plan --output-format json, and compare .result with expect. Revert afterwards.",
+    "deterministic": "Run input.command from AI-SDLC/ and compare exit code and stdout with expect."
+  },
+  "matching": {
+    "minSeverity": "finding severity is at least this level",
+    "locationContains": "substring of the location column",
+    "evidenceContains": "substring of the evidence column",
+    "outputContains": "substrings anywhere in the output",
+    "mustNotContain": "substrings that must not appear"
+  },
+  "cases": [
+    {
+      "id": "perf-01-lastn-baseline",
+      "kind": "live",
+      "title": "Reviewing $lastn in the unmodified app finds the N+1 with a number and proposes the set-based fix",
+      "input": {
+        "setup": "none",
+        "invoke": "/performance-review GET /fhir/Observation/$lastn"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "n+1",
+            "minSeverity": "high",
+            "locationContains": "ObservationService.java",
+            "evidenceContains": "findByPatientIdOrderByEffectiveDateTimeDesc"
+          },
+          {
+            "category": "latency",
+            "minSeverity": "medium",
+            "locationContains": "ObservationController.java:43"
+          }
+        ],
+        "outputContains": [
+          "ROW_NUMBER",
+          "IN (",
+          "100"
+        ],
+        "mustNotContain": [
+          "@Cacheable"
+        ],
+        "notes": "The N+1 finding must state 2 statements per subject (or 40 for 20) and must not recommend a cache as the primary fix."
+      },
+      "answerKey": "skills/performance-review/tests/expected/sample-app-findings.md"
+    },
+    {
+      "id": "perf-02-after-patch",
+      "kind": "live",
+      "title": "After lastn-set-based.patch the review no longer reports an N+1 on $lastn",
+      "input": {
+        "setup": "patch-file",
+        "patchFile": ".claude/skills/performance-review/examples/lastn-fix/lastn-set-based.patch",
+        "patchRoot": "sample-app",
+        "invoke": "/performance-review GET /fhir/Observation/$lastn"
+      },
+      "expect": {
+        "mustNotFind": [
+          {
+            "category": "n+1",
+            "locationContains": "ObservationService.java"
+          }
+        ],
+        "mayFind": [
+          {
+            "category": "indexes",
+            "locationContains": "V1__init.sql"
+          }
+        ]
+      }
+    },
+    {
+      "id": "perf-03-loop-in-patient-search",
+      "kind": "live",
+      "title": "A per-patient observation count inside the Patient search loop is an N+1",
+      "input": {
+        "setup": "patch",
+        "invoke": "/performance-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/service/PatientService.java\n+++ b/sample-app/src/main/java/org/example/fhir/service/PatientService.java\n@@\n             result = patients.findByFamilyNameIgnoreCaseOrderByIdAsc(family.trim());\n+            result.forEach(p -> observationRepository.findByPatientIdOrderByEffectiveDateTimeDesc(p.getId()).size());\n         }\n"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "n+1",
+            "minSeverity": "high",
+            "locationContains": "PatientService.java"
+          }
+        ]
+      }
+    },
+    {
+      "id": "perf-04-unbounded-findall",
+      "kind": "live",
+      "title": "A new list-all endpoint backed by findAll() is an unbounded result set",
+      "input": {
+        "setup": "patch",
+        "invoke": "/performance-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/api/ObservationController.java\n+++ b/sample-app/src/main/java/org/example/fhir/api/ObservationController.java\n@@\n+    @GetMapping(\"/_all\")\n+    public Bundle all() {\n+        return Bundle.searchset(service.all().stream().map(ObservationMapper::toResource).toList());\n+    }\n"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "queries",
+            "minSeverity": "medium",
+            "locationContains": "ObservationController.java"
+          }
+        ],
+        "notes": "Security-review should also flag this (bulk PHI export); performance-review must at least require pagination."
+      }
+    },
+    {
+      "id": "perf-05-synchronized-create",
+      "kind": "live",
+      "title": "synchronized on a transactional service method serialises all writes",
+      "input": {
+        "setup": "patch",
+        "invoke": "/performance-review diff",
+        "patch": "--- a/sample-app/src/main/java/org/example/fhir/service/ObservationService.java\n+++ b/sample-app/src/main/java/org/example/fhir/service/ObservationService.java\n@@\n     @Transactional\n-    public Observation create(Observation observation, Long subjectId) {\n+    public synchronized Observation create(Observation observation, Long subjectId) {\n"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "concurrency",
+            "minSeverity": "medium",
+            "locationContains": "ObservationService.java"
+          }
+        ],
+        "notes": "Must mention that the lock is per JVM (useless across 2 replicas) and is released before the transaction commits."
+      }
+    },
+    {
+      "id": "perf-06-helper-before-log",
+      "kind": "deterministic",
+      "title": "count-queries flags both per-subject statements in the real before log",
+      "input": {
+        "command": "node .claude/skills/performance-review/scripts/count-queries.mjs .claude/skills/performance-review/examples/lastn-fix/show-sql-before.log --from LASTN_BEGIN --to LASTN_QUERY_COUNT --fail-on-suspect"
+      },
+      "expect": {
+        "exitCode": 1,
+        "stdoutContains": [
+          "statements: 40  distinct shapes: 2",
+          "<-- N+1 suspect"
+        ]
+      }
+    },
+    {
+      "id": "perf-07-helper-after-log",
+      "kind": "deterministic",
+      "title": "count-queries reports one statement and no suspects in the real after log",
+      "input": {
+        "command": "node .claude/skills/performance-review/scripts/count-queries.mjs .claude/skills/performance-review/examples/lastn-fix/show-sql-after.log --from LASTN_BEGIN --to LASTN_QUERY_COUNT --fail-on-suspect"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "statements: 1  distinct shapes: 1",
+          "no N+1 suspects"
+        ]
+      }
+    },
+    {
+      "id": "perf-08-helper-json",
+      "kind": "deterministic",
+      "title": "JSON output lists exactly two suspects with 20 calls each",
+      "input": {
+        "command": "node .claude/skills/performance-review/scripts/count-queries.mjs .claude/skills/performance-review/examples/lastn-fix/show-sql-before.log --json | node -e \"const r=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(r.total, r.suspects.map(s=>s.count).join(','))\""
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "40 20,20"
+        ]
+      }
+    }
+  ]
+}

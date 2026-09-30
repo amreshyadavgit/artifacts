@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 47900,
+  "duration_api_ms": 39757,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-ARCH-04\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java, sample-app/src/test/java/org/example/fhir/SecurityTest.java, sample-app/pom.xml, context/security/phi-and-secrets-policy.md]\nnext: developer\n---\n## Summary\nMove authentication to Keycloak.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | high | security | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:27 | JWT validation is already configured in SecurityConfig, but roles are not mapped | Map Keycloak realm roles to CLINICIAN and ADMIN claims. |\n| 2 | medium | security | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:27 | Tokens lifetime unknown | Use 5 minute access tokens. |\n\n## Decisions\n- ADR written to docs/adr/0002-keycloak.md.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "cd029f6f-7ecc-5374-8477-9a388d352414",
+  "total_cost_usd": 0.2,
+  "usage": {
+    "input_tokens": 3300,
+    "cache_creation_input_tokens": 14400,
+    "cache_read_input_tokens": 45200,
+    "output_tokens": 400
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Write",
+      "tool_use_id": "toolu_014Kc7KeyAdr",
+      "tool_input": {
+        "file_path": "docs/adr/0002-keycloak.md",
+        "content": "# ADR-0002: Keycloak\n..."
+      }
+    }
+  ]
+}

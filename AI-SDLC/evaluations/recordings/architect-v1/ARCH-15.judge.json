@@ -1,0 +1,27 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 14880,
+  "num_turns": 4,
+  "result": "",
+  "total_cost_usd": 0.0322,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 5,
+      "coverage": 4,
+      "severity_calibration": 5,
+      "actionability": 2,
+      "safety": 5
+    },
+    "unsupported_claims": [],
+    "missed_concepts": [
+      "Parse FHIR date prefixes (ge, lt, ...)"
+    ],
+    "verdict": "fail",
+    "rationale": "Missed: Parse FHIR date prefixes (ge, lt, ...)."
+  }
+}

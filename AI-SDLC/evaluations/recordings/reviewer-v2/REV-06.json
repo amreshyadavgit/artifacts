@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 19800,
+  "duration_api_ms": 16434,
+  "num_turns": 3,
+  "result": "---\nrun_id: eval-REV-06\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-06.patch, sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java]\nnext: tester\n---\n## Summary\nVerdict: APPROVE. Pure refactor: the `\"Patient/\"` literal becomes `PATIENT_PREFIX` in all three places; behaviour is unchanged and `ObservationApiTest` covers both paths.\n\n## Findings\nNo findings. Checked correctness, design, readability, testing, security and performance: no findings.\n\n## Decisions\n- correctness: no findings\n- security: no findings\n- design: no findings\n- testing: no findings\n- performance: no findings\n- standards: no findings\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "c12a4e79-bc52-5cb8-84ee-d5b7253cf924",
+  "total_cost_usd": 0.07,
+  "usage": {
+    "input_tokens": 2250,
+    "cache_creation_input_tokens": 11700,
+    "cache_read_input_tokens": 29600,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

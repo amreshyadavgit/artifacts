@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 60800,
+  "duration_api_ms": 50464,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-20\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/k8s/service.yaml, sample-app/k8s/deployment.yaml, sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java, context/standards/api-standards.md]\nnext: developer\n---\n## Summary\nThere is no gateway or ingress in front of the service, so the limit lives in the app for now. With two replicas an in-memory counter is per-pod; key by authenticated username and return 429 with an `OperationOutcome`.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | low | deployability | sample-app/k8s/service.yaml:8 | Only a ClusterIP Service; no ingress or API gateway in k8s/ | Enforce in the application first; a gateway is a separate ADR. |\n| ARC-002 | medium | correctness | sample-app/k8s/deployment.yaml:13 | An in-memory counter is per-replica: with 2 replicas a clinician gets up to 200 requests per minute | Divide the limit per pod as a first step, or use a shared counter (PostgreSQL row or a gateway) if the limit must be exact. |\n| ARC-003 | low | design | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:46 | Clinics share NAT addresses, so IP-based limits would throttle a whole clinic | Key limits by authenticated username (the principal), in a filter after authentication; return 429 with an OperationOutcome and `Retry-After`. |\n\n## Decisions\n- Start with a per-pod limit of 50/min (100 across 2 replicas).\n\n## Open questions\n- Should ADMIN batch jobs be exempt?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "0d04b646-fd84-5cfc-b33f-daf34ef4b492",
+  "total_cost_usd": 0.28,
+  "usage": {
+    "input_tokens": 4000,
+    "cache_creation_input_tokens": 16200,
+    "cache_read_input_tokens": 55600,
+    "output_tokens": 406
+  },
+  "permission_denials": []
+}

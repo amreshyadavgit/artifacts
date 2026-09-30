@@ -1,0 +1,26 @@
+$ kubectl get events -n clinical-api --sort-by=.lastTimestamp \
+    -o custom-columns='LAST SEEN (UTC):.lastTimestamp,TYPE:.type,REASON:.reason,OBJECT:.involvedObject.name,MESSAGE:.message'
+LAST SEEN (UTC)        TYPE      REASON              OBJECT                               MESSAGE
+2026-09-22T08:04:10Z   Warning   Unhealthy           fhir-lite-api-6d8f7c9b5-k2x7p        Readiness probe failed: Get "http://10.42.1.17:8080/actuator/health/readiness": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026-09-22T08:04:40Z   Warning   Unhealthy           fhir-lite-api-6d8f7c9b5-q9m4t        Readiness probe failed: Get "http://10.42.2.23:8080/actuator/health/readiness": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026-09-22T08:05:18Z   Warning   Unhealthy           fhir-lite-api-6d8f7c9b5-k2x7p        Liveness probe failed: Get "http://10.42.1.17:8080/actuator/health/liveness": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026-09-22T08:05:48Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-k2x7p        Container api failed liveness probe, will be restarted
+2026-09-22T08:05:51Z   Warning   Unhealthy           fhir-lite-api-6d8f7c9b5-q9m4t        Liveness probe failed: Get "http://10.42.2.23:8080/actuator/health/liveness": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026-09-22T08:06:20Z   Normal    Pulled              fhir-lite-api-6d8f7c9b5-k2x7p        Container image "fhir-lite-api:0.1.0" already present on machine
+2026-09-22T08:06:21Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-q9m4t        Container api failed liveness probe, will be restarted
+2026-09-22T08:06:21Z   Normal    Started             fhir-lite-api-6d8f7c9b5-k2x7p        Started container api
+2026-09-22T08:06:53Z   Normal    Started             fhir-lite-api-6d8f7c9b5-q9m4t        Started container api
+2026-09-22T08:09:41Z   Warning   Unhealthy           fhir-lite-api-6d8f7c9b5-k2x7p        Readiness probe failed: Get "http://10.42.1.17:8080/actuator/health/readiness": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026-09-22T08:10:47Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-k2x7p        Container api failed liveness probe, will be restarted
+2026-09-22T08:11:09Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-q9m4t        Container api failed liveness probe, will be restarted
+2026-09-22T08:17:05Z   Normal    ScalingReplicaSet   fhir-lite-api                        Scaled up replica set fhir-lite-api-6d8f7c9b5 to 4 from 2
+2026-09-22T08:17:06Z   Normal    SuccessfulCreate    fhir-lite-api-6d8f7c9b5              Created pod: fhir-lite-api-6d8f7c9b5-t5r8w
+2026-09-22T08:17:06Z   Normal    SuccessfulCreate    fhir-lite-api-6d8f7c9b5              Created pod: fhir-lite-api-6d8f7c9b5-w3n6j
+2026-09-22T08:17:08Z   Normal    Started             fhir-lite-api-6d8f7c9b5-t5r8w        Started container api
+2026-09-22T08:17:08Z   Normal    Started             fhir-lite-api-6d8f7c9b5-w3n6j        Started container api
+2026-09-22T08:20:12Z   Warning   Unhealthy           fhir-lite-api-6d8f7c9b5-t5r8w        Readiness probe failed: Get "http://10.42.3.9:8080/actuator/health/readiness": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2026-09-22T08:21:36Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-w3n6j        Container api failed liveness probe, will be restarted
+2026-09-22T08:21:58Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-t5r8w        Container api failed liveness probe, will be restarted
+2026-09-22T08:22:41Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-k2x7p        Container api failed liveness probe, will be restarted
+2026-09-22T08:24:05Z   Normal    Killing             fhir-lite-api-6d8f7c9b5-q9m4t        Container api failed liveness probe, will be restarted
+2026-09-22T09:10:02Z   Normal    ScalingReplicaSet   fhir-lite-api                        Scaled down replica set fhir-lite-api-6d8f7c9b5 to 2 from 4

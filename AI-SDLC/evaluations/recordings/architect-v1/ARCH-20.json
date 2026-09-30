@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 34900,
+  "duration_api_ms": 28967,
+  "num_turns": 5,
+  "result": "## Summary\nRate limit clinicians.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | deployability | sample-app/k8s/deployment.yaml:13 | Limits would be per replica | Use a shared store. |\n| 2 | low | design | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:27 | Return 429 OperationOutcome when exceeded | Add a filter. |\n\n## Decisions\n- Use the existing ingress-nginx controller limit-rps annotation.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "bf01f181-2fc8-54b3-8aa4-266a35bf87b9",
+  "total_cost_usd": 0.15,
+  "usage": {
+    "input_tokens": 2950,
+    "cache_creation_input_tokens": 13500,
+    "cache_read_input_tokens": 40000,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

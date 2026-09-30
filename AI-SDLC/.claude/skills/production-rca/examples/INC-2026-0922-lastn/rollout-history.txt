@@ -1,0 +1,11 @@
+$ kubectl rollout history deployment/fhir-lite-api -n clinical-api
+deployment.apps/fhir-lite-api
+REVISION  CHANGE-CAUSE
+5         2026-08-27 image fhir-lite-api:0.0.8 (CHG-4302)
+6         2026-09-04 image fhir-lite-api:0.0.9 (CHG-4355)
+7         2026-09-18 image fhir-lite-api:0.1.0 (CHG-4410)
+
+$ kubectl get replicaset -n clinical-api -l app=fhir-lite-api     # 2026-09-22T08:40:30Z
+NAME                       DESIRED   CURRENT   READY   AGE
+fhir-lite-api-6d8f7c9b5    4         4         4       3d18h
+fhir-lite-api-7f5b8d6c44   0         0         0       18d

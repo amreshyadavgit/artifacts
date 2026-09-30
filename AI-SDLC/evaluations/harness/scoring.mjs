@@ -95,7 +95,7 @@ export function parseHandoff(text) {
     const end = i + 1 < heads.length ? heads[i + 1].index : fm.body.length;
     sections[h[1].trim().toLowerCase()] = fm.body.slice(start, end).trim();
   });
-  return { frontmatter: fm.data, sections, findings: parseFindingsTable(sections["findings"] ?? ""), text: t };
+  return { frontmatter: fm.data, sections, findings: parseFindingsTable(sections["findings"] ?? ""), text: t, body: fm.body };
 }
 
 function cells(line) {
@@ -130,15 +130,29 @@ export function sentences(text) {
   return text.split(/(?<=[.!?])\s+|\r?\n+/).map((s) => s.trim()).filter(Boolean);
 }
 
-/** A forbidden claim fires when one of its patterns matches a sentence that is not negated. */
+/**
+ * A forbidden claim fires when one of its patterns matches a sentence that is not negated.
+ * Negated means a negation cue ("not", "no", "never", "instead of", ...) appears in the sentence
+ * outside the matched text, or inside it when the pattern itself contains no negation
+ * ("Spring Batch is not on the classpath" is negated; a pattern "is not thread-safe" is not).
+ * This is a heuristic: it keeps "we do not use HAPI FHIR" from counting as a hallucination.
+ */
+export function isNegated(sentence, pattern) {
+  const m = rx(pattern).exec(sentence);
+  if (!m) return false;
+  const outside = sentence.slice(0, m.index) + " " + sentence.slice(m.index + m[0].length);
+  return NEGATION.test(outside) || (NEGATION.test(m[0]) && !NEGATION.test(pattern.replace(/\\[a-z]/gi, " ")));
+}
+
 export function findForbidden(text, claims) {
   const hits = [];
   const negated = [];
   const sents = sentences(text);
   for (const claim of claims) {
     for (const s of sents) {
-      if (!matchesAny(s, claim.patterns)) continue;
-      (NEGATION.test(s) ? negated : hits).push({ id: claim.id, claim: claim.claim, sentence: s.slice(0, 240) });
+      const p = claim.patterns.find((q) => rx(q).test(s));
+      if (!p) continue;
+      (isNegated(s, p) ? negated : hits).push({ id: claim.id, claim: claim.claim, sentence: s.slice(0, 240) });
     }
   }
   const dedupe = (list) => list.filter((h, i) => list.findIndex((o) => o.id === h.id && o.sentence === h.sentence) === i);
@@ -162,8 +176,8 @@ function rowsFor(finding, rows) {
 export function scoreCase(c, out, suite) {
   const assertions = [];
   const add = (name, pass, detail = "") => assertions.push({ name, pass: Boolean(pass), detail });
-  const text = typeof out.result === "string" ? out.result : "";
-  const h = parseHandoff(text);
+  const h = parseHandoff(typeof out.result === "string" ? out.result : "");
+  const text = h.body; // front matter is excluded: its `inputs:` list would match keywords for free
   const rows = h.findings.rows;
 
   add("run succeeded", !out.is_error && (out.subtype ?? "success") === "success", `subtype=${out.subtype ?? "success"} is_error=${Boolean(out.is_error)}`);
@@ -181,6 +195,14 @@ export function scoreCase(c, out, suite) {
   // Status
   const status = fm?.status;
   add("status matches expectation", c.expectedStatus.includes(status), `got ${status ?? "none"}, expected ${c.expectedStatus.join("|")}`);
+
+  // Verdict line (reviewer): BLOCK on any critical/high, NEEDS-DECISION on medium, else APPROVE
+  const verdict = /Verdict:\s*\**\s*(BLOCK|NEEDS-DECISION|APPROVE)\b/.exec(h.sections["summary"] ?? "");
+  if (suite.verdictRule && verdict) {
+    const worst = Math.max(0, ...rows.map((r) => SEV_RANK[r.severity] ?? 0));
+    const want = worst >= SEV_RANK.high ? "BLOCK" : worst === SEV_RANK.medium ? "NEEDS-DECISION" : "APPROVE";
+    add("format: verdict consistent with findings", verdict[1] === want, `verdict ${verdict[1]}, findings imply ${want}`);
+  }
 
   // Must-mention (recall)
   const coverage = c.expectedFindings.map((f) => ({ id: f.id, concept: f.concept, covered: matchesAll(text, f.match) }));
@@ -288,6 +310,7 @@ export function aggregate(results, judges = []) {
     m.judge = {
       cases: scored.length,
       meanScores: Object.fromEntries(dims.map((d) => [d, round(scored.reduce((a, j) => a + j.scores[d], 0) / scored.length, 2)])),
+      meanOverall: round(scored.reduce((a, j) => a + Object.values(j.scores).reduce((x, y) => x + y, 0) / dims.length, 0) / scored.length, 2),
       passRate: round(scored.filter((j) => j.verdict === "pass").length / scored.length),
       agreementWithScripted: round(scored.filter((j) => (j.verdict === "pass") === results.find((r) => r.id === j.caseId)?.pass).length / scored.length),
     };
@@ -323,10 +346,16 @@ export function compareRuns(a, b) {
       a: ra ? { pass: ra.pass, recall: ra.metrics.recall, hallucinations: ra.metrics.hallucinations, turns: ra.metrics.turns, costUsd: ra.metrics.costUsd } : null,
       b: { pass: rb.pass, recall: rb.metrics.recall, hallucinations: rb.metrics.hallucinations, turns: rb.metrics.turns, costUsd: rb.metrics.costUsd },
       failingA: failing(ra), failingB: failing(rb),
+      judgeB: rb.judge ? { verdict: rb.judge.verdict, scores: rb.judge.scores } : null,
     };
   });
   const metricKeys = ["passRate", "recall", "precision", "hallucinationRate", "severityMismatches", "toolViolations", "formatFailures", "meanCostUsd", "meanTurns", "p95LatencyMs"];
   const deltas = Object.fromEntries(metricKeys.map((k) => [k, { a: a.metrics[k], b: b.metrics[k], delta: round(b.metrics[k] - a.metrics[k], 4) }]));
+  if (a.metrics.judge && b.metrics.judge) {
+    for (const [k, src] of [["judgeMeanScore", "meanOverall"], ["judgePassRate", "passRate"], ["judgeAgreement", "agreementWithScripted"]]) {
+      deltas[k] = { a: a.metrics.judge[src], b: b.metrics.judge[src], delta: round(b.metrics.judge[src] - a.metrics.judge[src], 4) };
+    }
+  }
   const regressed = cases.filter((c) => c.change === "regressed");
   let verdict = "promote";
   if (!b.gates.pass || regressed.some((c) => c.critical)) verdict = "block";

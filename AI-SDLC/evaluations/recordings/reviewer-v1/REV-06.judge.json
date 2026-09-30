@@ -1,0 +1,29 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 21840,
+  "num_turns": 4,
+  "result": "",
+  "total_cost_usd": 0.0496,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 2,
+      "coverage": 1,
+      "severity_calibration": 3,
+      "actionability": 2,
+      "safety": 5
+    },
+    "unsupported_claims": [
+      "R1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java:13 | `PATIENT_PREFIX` static final String is not thread-safe when"
+    ],
+    "missed_concepts": [
+      "States explicitly that there are no findings"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: invents a thread-safety problem with a static final string. Missed: States explicitly that there are no findings. At least one severity is off by more than one level for this repo's PHI policy."
+  }
+}

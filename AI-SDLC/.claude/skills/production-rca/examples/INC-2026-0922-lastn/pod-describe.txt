@@ -1,0 +1,44 @@
+$ kubectl describe pod fhir-lite-api-6d8f7c9b5-k2x7p -n clinical-api     # taken 2026-09-22T08:40:12Z, excerpt
+Name:             fhir-lite-api-6d8f7c9b5-k2x7p
+Namespace:        clinical-api
+Node:             worker-2/10.0.4.12
+Status:           Running
+IP:               10.42.1.17
+Controlled By:    ReplicaSet/fhir-lite-api-6d8f7c9b5
+Containers:
+  api:
+    Image:          fhir-lite-api:0.1.0
+    State:          Running
+      Started:      Tue, 22 Sep 2026 08:23:10 +0000
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    137
+      Started:      Tue, 22 Sep 2026 08:11:15 +0000
+      Finished:     Tue, 22 Sep 2026 08:23:08 +0000
+    Ready:          True
+    Restart Count:  3
+    Limits:
+      cpu:     1
+      memory:  768Mi
+    Requests:
+      cpu:      250m
+      memory:   384Mi
+    Liveness:   http-get http://:http/actuator/health/liveness delay=30s timeout=1s period=15s #success=1 #failure=3
+    Readiness:  http-get http://:http/actuator/health/readiness delay=15s timeout=1s period=10s #success=1 #failure=3
+Conditions:
+  Type              Status
+  Ready             True
+  ContainersReady   True
+
+$ kubectl describe pod fhir-lite-api-6d8f7c9b5-q9m4t -n clinical-api     # excerpt
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    137
+    Restart Count:  3
+
+$ kubectl get pods -n clinical-api -l app=fhir-lite-api     # 2026-09-22T08:40:30Z
+NAME                            READY   STATUS    RESTARTS      AGE
+fhir-lite-api-6d8f7c9b5-k2x7p   1/1     Running   3 (17m ago)   3d18h
+fhir-lite-api-6d8f7c9b5-q9m4t   1/1     Running   3 (16m ago)   3d18h
+fhir-lite-api-6d8f7c9b5-t5r8w   1/1     Running   1 (18m ago)   23m
+fhir-lite-api-6d8f7c9b5-w3n6j   1/1     Running   1 (18m ago)   23m

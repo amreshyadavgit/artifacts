@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 41900,
+  "duration_api_ms": 34777,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-REV-03\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-03.patch, context/standards/coding-standards.md, context/standards/api-standards.md, sample-app/src/main/java/org/example/fhir/api/ObservationController.java]\nnext: human\n---\n## Summary\nVerdict: NEEDS-DECISION. The new endpoint breaks layering and error conventions.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | medium | design | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:25 | ObservationController injects ObservationRepository: the controller calls the repository directly, bypassing the service layer (coding-standards rule 1) | Move the count to `ObservationService.countBySubject(Long)`. |\n| REV-002 | medium | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:35 | An unknown subject returns `{\"count\":0}`, while `searchBySubject` returns 404 not found | Check existence in the service and throw `FhirApiException.notFound`. |\n| REV-003 | low | standards | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:34 | Ad-hoc `Map` response instead of a FHIR-lite shape, and no audit event | Return a `Bundle` with `total` only, or a Parameters-like record; record via AuditLogger. |\n| REV-004 | medium | testing | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:33 | No tests for `$count`: missing test for 200, 404 and 401 | Add MockMvc tests in ObservationApiTest. |\n\n## Decisions\n- correctness: REV-002\n- security: no findings\n- design: REV-001\n- testing: REV-004\n- performance: no findings\n- standards: REV-003\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "c69b3501-0264-58fb-a22d-ed36d92fd280",
+  "total_cost_usd": 0.19,
+  "usage": {
+    "input_tokens": 3300,
+    "cache_creation_input_tokens": 14400,
+    "cache_read_input_tokens": 45200,
+    "output_tokens": 466
+  },
+  "permission_denials": []
+}

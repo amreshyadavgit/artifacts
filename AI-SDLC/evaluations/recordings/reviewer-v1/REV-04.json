@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 47800,
+  "duration_api_ms": 39674,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-REV-04\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-04.patch, context/standards/api-standards.md, context/standards/testing-standards.md, sample-app/src/test/java/org/example/fhir/ApiTestSupport.java]\nnext: developer\n---\n## Summary\nStatus code change. Tests pass.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | medium | standards | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:50 | api-standards: create returns 201 Created with a Location header; this returns 200 without Location | Restore `ResponseEntity.created(location)`. |\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "2269085d-1c1c-51a8-93eb-a97c49265a5d",
+  "total_cost_usd": 0.16,
+  "usage": {
+    "input_tokens": 3300,
+    "cache_creation_input_tokens": 14400,
+    "cache_read_input_tokens": 45200,
+    "output_tokens": 400
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_012Mvn4Test",
+      "tool_input": {
+        "command": "cd sample-app && mvn -q -B test",
+        "description": "Run the test suite"
+      }
+    }
+  ]
+}

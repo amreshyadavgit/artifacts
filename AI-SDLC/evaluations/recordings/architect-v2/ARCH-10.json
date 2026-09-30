@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 80200,
+  "duration_api_ms": 66566,
+  "num_turns": 10,
+  "result": "---\nrun_id: eval-ARCH-10\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/src/main/resources/db/migration/V1__init.sql, sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java, sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java, context/domain/fhir-lite-glossary.md]\nnext: human\n---\n## Summary\nThe schema is single-tenant: MRN is globally unique and no query filters by clinic. Add `tenant_id`, scope every finder, and bind users to a tenant.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | data | sample-app/src/main/resources/db/migration/V1__init.sql:11 | `uq_patient_mrn UNIQUE (mrn)`: two clinics issuing the same MRN collide | New migration: add `tenant_id` to patient and observation; replace with `UNIQUE (tenant_id, mrn)`. |\n| ARC-002 | high | security | sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java:10 | `findByMrn` and `existsByMrn` are global, so a clinic could read another clinic's patient | Tenant-scoped methods (`findByTenantIdAndMrn`); no unscoped finder remains. |\n| ARC-003 | medium | security | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:62 | Users in SecurityConfig carry no tenant | Bind each user to a tenant (claim or user attribute) and derive the tenant from the principal, never from a request parameter. |\n\n## Decisions\n- Draft ADR-0002: shared schema with `tenant_id` (chosen) vs schema-per-tenant (rejected: Flyway runs per schema, harder cross-clinic ops).\n\n## Open questions\n- Can a patient legitimately belong to two clinics (shared care)?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "dfd77b2e-c0c0-5cf9-afdd-6d24b1935318",
+  "total_cost_usd": 0.37,
+  "usage": {
+    "input_tokens": 4700,
+    "cache_creation_input_tokens": 18000,
+    "cache_read_input_tokens": 66000,
+    "output_tokens": 434
+  },
+  "permission_denials": []
+}

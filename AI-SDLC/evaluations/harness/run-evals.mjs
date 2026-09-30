@@ -123,14 +123,19 @@ function recordingPath(opts, suite, version, id, kind = "") {
 
 /** Run (live) or load (replay) every selected case of one suite for one agent version. */
 export function runSuite(suite, version, opts) {
-  const agentFile = suite.versions[version];
-  if (!agentFile) throw new Error(`suite ${suite.name} has no version ${version}`);
+  // Replay accepts any recorded label (e.g. v2-live from --record architect-v2-live); live needs a file.
+  const agentFile = suite.versions[version] ?? (opts.mode === "replay" ? `(recordings only: ${suite.agentName}-${version})` : null);
+  if (!agentFile) throw new Error(`suite ${suite.name} has no version ${version} in evaluations/suites.json`);
   const cases = opts.cases ? suite.cases.filter((c) => opts.cases.includes(c.id)) : suite.cases;
   let agent = null;
   if (opts.mode === "live") {
     if (!existsSync(rel(agentFile))) throw new Error(`agent file not found: ${agentFile}`);
     agent = agentDefinitionFromMarkdown(readFileSync(rel(agentFile), "utf8"));
     if (agent.name !== suite.agentName) throw new Error(`${agentFile} defines "${agent.name}", suite expects "${suite.agentName}"`);
+    if (agent.definition.permissionMode && agent.definition.permissionMode !== "plan") {
+      agent.notes.push(`permissionMode: ${agent.definition.permissionMode} replaced by plan for the eval run`);
+    }
+    agent.definition.permissionMode = "plan"; // evals are read-only whatever the agent file says
     for (const n of agent.notes) if (!opts.quiet) console.error(`note ${agentFile}: ${n}`);
   }
   const rubric = opts.judge && existsSync(rel(suite.rubric)) ? readFileSync(rel(suite.rubric), "utf8") : null;
@@ -185,6 +190,7 @@ export function runSuite(suite, version, opts) {
 // ---------------------------------------------------------------------------------------------
 // Reports
 // ---------------------------------------------------------------------------------------------
+const PCT_KEYS = ["passRate", "recall", "precision", "hallucinationRate", "judgePassRate", "judgeAgreement"];
 const pct = (x) => (x == null ? "n/a" : `${(x * 100).toFixed(1)}%`);
 const usd = (x) => `$${x.toFixed(3)}`;
 
@@ -234,9 +240,9 @@ export function renderCompareReport(a, b, cmp) {
     L.push(`## ${rb.suite}: \`${ra.agentFile}\` (${va}) vs \`${rb.agentFile}\` (${vb})`, "");
     if (ra.contextFingerprint !== rb.contextFingerprint) L.push(`> Context fingerprint differs (${ra.contextFingerprint} vs ${rb.contextFingerprint}): CLAUDE.md, the dataset or a context file changed between runs, so part of the difference may come from context, not from the prompt.`, "");
     L.push("| Metric | " + va + " | " + vb + " | Delta |", "|---|---|---|---|");
-    const fmt = (k, v) => (v == null ? "n/a" : ["passRate", "recall", "precision", "hallucinationRate"].includes(k) ? pct(v) : k === "meanCostUsd" ? usd(v) : k === "p95LatencyMs" ? `${(v / 1000).toFixed(1)} s` : String(v));
+    const fmt = (k, v) => (v == null ? "n/a" : PCT_KEYS.includes(k) ? pct(v) : k === "meanCostUsd" ? usd(v) : k === "p95LatencyMs" ? `${(v / 1000).toFixed(1)} s` : String(v));
     for (const [k, d] of Object.entries(c.deltas)) {
-      const delta = d.delta == null ? "n/a" : ["passRate", "recall", "precision", "hallucinationRate"].includes(k) ? `${d.delta >= 0 ? "+" : ""}${(d.delta * 100).toFixed(1)} pts` : k === "meanCostUsd" ? `${d.delta >= 0 ? "+" : ""}${usd(d.delta)}` : k === "p95LatencyMs" ? `${d.delta >= 0 ? "+" : ""}${(d.delta / 1000).toFixed(1)} s` : `${d.delta >= 0 ? "+" : ""}${d.delta}`;
+      const delta = d.delta == null ? "n/a" : PCT_KEYS.includes(k) ? `${d.delta >= 0 ? "+" : ""}${(d.delta * 100).toFixed(1)} pts` : k === "meanCostUsd" ? `${d.delta >= 0 ? "+" : ""}${usd(d.delta)}` : k === "p95LatencyMs" ? `${d.delta >= 0 ? "+" : ""}${(d.delta / 1000).toFixed(1)} s` : `${d.delta >= 0 ? "+" : ""}${d.delta}`;
       L.push(`| ${k} | ${fmt(k, d.a)} | ${fmt(k, d.b)} | ${delta} |`);
     }
     L.push("", "### Per-case diff", "", `| Case | Change | ${va} | ${vb} | Recall ${va} -> ${vb} | Halluc. ${va} -> ${vb} | Turns ${va} -> ${vb} |`, "|---|---|---|---|---|---|---|");
@@ -246,12 +252,12 @@ export function renderCompareReport(a, b, cmp) {
     const reg = c.cases.filter((x) => x.change === "regressed" || x.change === "worse");
     if (reg.length) {
       L.push("", "### Regressions to read before promoting", "");
-      for (const x of reg) L.push(`- **${x.id} ${x.title}** (${x.change}): ${x.failingB.join("; ") || "recall dropped"}`);
+      for (const x of reg) L.push(`- **${x.id} ${x.title}** (${x.change}): ${x.failingB.join("; ") || "recall dropped"}${x.judgeB ? `. Judge on ${vb}: ${x.judgeB.verdict} (${Object.entries(x.judgeB.scores).map(([k, v]) => `${k} ${v}`).join(", ")})` : ""}`);
     }
     const fixed = c.cases.filter((x) => x.change === "fixed");
     if (fixed.length) {
       L.push("", "### Fixed by " + vb, "");
-      for (const x of fixed) L.push(`- **${x.id} ${x.title}**: ${va} failed on ${x.failingA.join("; ")}`);
+      for (const x of fixed) L.push(`- **${x.id} ${x.title}**: ${va} failed ${x.failingA.map((f) => f.replace(/ \(.*$/, "")).join("; ")}`);
     }
     L.push("");
   });
@@ -275,7 +281,11 @@ export function main(argv = process.argv.slice(2)) {
   let opts;
   try { opts = parseArgs(argv); } catch (e) { console.error(`usage error: ${e.message}`); return 2; }
   try {
-    const suites = loadSuites(opts.suite);
+    let suites = loadSuites(opts.suite);
+    if (opts.cases) {
+      suites = suites.filter((s) => s.cases.some((c) => opts.cases.includes(c.id)));
+      if (!suites.length) throw new Error(`no case matches ${opts.cases.join(",")}`);
+    }
     if (opts.compare) {
       const [va, vb] = opts.compare;
       const a = suites.map((s) => runSuite(s, va, opts));

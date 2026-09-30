@@ -13,7 +13,9 @@
     "reviewer":     { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 25,  "forbiddenTools": ["Edit", "Write"] },
     "tester":       { "models": ["sonnet"],         "effort": ["medium", "high"],  "maxTurns": 40,  "forbiddenTools": [] },
     "security":     { "models": ["opus", "sonnet"], "effort": ["high", "xhigh"],   "maxTurns": 30,  "forbiddenTools": ["Edit"] },
-    "sre":          { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 30,  "forbiddenTools": ["Edit"] },
-    "orchestrator": { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 100, "forbiddenTools": ["Edit"] }
+    "sre":          { "models": ["opus", "sonnet"], "effort": ["high", "medium"],  "maxTurns": 30,  "forbiddenTools": ["Edit"] },
+    "orchestrator": { "models": ["sonnet", "opus"], "effort": ["medium", "high"],  "maxTurns": 100, "forbiddenTools": ["Edit", "Bash"],
+                    "requireFields": ["name", "description", "tools", "model"],
+                    "$comment": "Runs as the main thread (claude --agent orchestrator); its budget is the run-level --max-turns / --max-budget-usd, so effort and maxTurns are optional here." }
   }
 }

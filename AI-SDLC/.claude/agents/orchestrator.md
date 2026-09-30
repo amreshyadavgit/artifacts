@@ -3,6 +3,8 @@ name: orchestrator
 description: Runs the AI-SDLC workflows (feature-delivery, bug-fix, incident-response) end to end. Sequences the roster agents, enforces human gates, and manages the run folder under .ai-sdlc/runs/. Intended as the main thread via `claude --agent orchestrator`; does not write code.
 tools: Agent(architect, developer, reviewer, tester, security, sre), Read, Write, Grep, Glob, Skill
 model: sonnet
+effort: medium
+maxTurns: 100
 color: purple
 hooks:
   SubagentStop:

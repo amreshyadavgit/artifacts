@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 131400,
+  "duration_api_ms": 109062,
+  "num_turns": 15,
+  "result": "---\nrun_id: eval-ARCH-16\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/test/resources/application-test.yml, sample-app/pom.xml, sample-app/src/main/resources/db/migration/V1__init.sql, docs/adr/0001-fhir-lite-instead-of-hapi.md]\nnext: developer\n---\n## Summary\nMoving the API tests to PostgreSQL with Testcontainers catches dialect differences H2 hides. The DDL is already portable; the cost is Docker in CI and a slower build than ADR-0001 promises.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | testing | sample-app/src/test/resources/application-test.yml:3 | Tests run on H2 in `MODE=PostgreSQL`, which differs from PostgreSQL in time-zone handling, NUMERIC rounding and locking | Run the MockMvc API tests against PostgreSQL via Testcontainers; keep H2 for the `local` profile. |\n| ARC-002 | info | data | sample-app/src/main/resources/db/migration/V1__init.sql:1 | `V1__init.sql` is portable DDL | Flyway runs unchanged on the container. |\n| ARC-003 | medium | testing | docs/adr/0001-fhir-lite-instead-of-hapi.md:23 | ADR-0001: `mvn -q -B test` stays under 60 s | Reuse one static container per JVM (about 5 to 10 s start); CI runners need Docker. Update ADR-0001's verification line if the budget moves. |\n| ARC-004 | low | testing | sample-app/pom.xml:62 | No testcontainers dependency in pom.xml | Add `org.testcontainers:postgresql` and `junit-jupiter` in test scope. |\n\n## Decisions\n- Adopt Testcontainers for `@SpringBootTest` classes only.\n\n## Open questions\n- Do the CI runners allow Docker-in-Docker?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "b83b1d0d-d8d0-5cc0-b427-7f21c70b862b",
+  "total_cost_usd": 0.52,
+  "usage": {
+    "input_tokens": 6450,
+    "cache_creation_input_tokens": 22500,
+    "cache_read_input_tokens": 92000,
+    "output_tokens": 422
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,29 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 15680,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.0342,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 5,
+      "coverage": 2,
+      "severity_calibration": 5,
+      "actionability": 2,
+      "safety": 5
+    },
+    "unsupported_claims": [],
+    "missed_concepts": [
+      "Every query must exclude deleted rows, and uq_patient_mrn still counts deleted rows",
+      "Do not overload the existing active flag; deleted and inactive are different states",
+      "Retention policy and glossary rule 5"
+    ],
+    "verdict": "fail",
+    "rationale": "Missed: Every query must exclude deleted rows, and uq_patient_mrn still counts deleted rows."
+  }
+}

@@ -35,7 +35,7 @@ for (const [name, rule] of Object.entries(policy.agents)) {
   if (!entry) { (STRICT ? errors : warnings).push(`${name}: .claude/agents/${name}.md not found (not written yet?)`); continue; }
   const { file, fm } = entry;
   const tag = `${file}`;
-  for (const k of policy.global.requireFields) if (fm[k] === undefined || fm[k] === "") errors.push(`${tag}: missing required field "${k}"${k === "tools" ? " (omitted tools = inherits every tool, including MCP write tools)" : ""}`);
+  for (const k of rule.requireFields || policy.global.requireFields) if (fm[k] === undefined || fm[k] === "") errors.push(`${tag}: missing required field "${k}"${k === "tools" ? " (omitted tools = inherits every tool, including MCP write tools)" : ""}`);
   const model = fm.model === undefined ? "" : String(fm.model);
   if (policy.global.forbiddenModels.includes(model)) errors.push(`${tag}: model "${model}" is not allowed (cost and behaviour must not depend on the caller's model)`);
   else if (model && !rule.models.includes(family(model))) errors.push(`${tag}: model "${model}" not in policy [${rule.models.join(", ")}]`);

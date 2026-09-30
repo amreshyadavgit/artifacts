@@ -80,7 +80,7 @@ node .claude/hooks/check-handoff.mjs .ai-sdlc/runs/2026-09-30-feat-patient-pagin
 node .claude/hooks/check-handoff.test.mjs
 ```
 
-As a `SubagentStop` hook (matcher `architect|developer|reviewer|tester|security|sre`) it finds the handoff in this order: a `HANDOFF: <path>` line in `last_assistant_message`; then, only while `.ai-sdlc/runs/.active` names a run, the inline handoff in `last_assistant_message`, then the newest file in the active run folder whose `agent` is this subagent. It exits `2` with the reasons on stderr when the handoff is invalid or missing, which makes the subagent continue and fix it (Claude Code caps consecutive forced continuations). Outside an active run, roster agents used ad hoc are not checked. It is registered in the orchestrator's frontmatter `hooks` and in the `feature`, `bug-fix` and `incident` skills' frontmatter `hooks`.
+As a `SubagentStop` hook (matcher `architect|developer|reviewer|tester|security|sre`) it finds the handoff in this order: a `HANDOFF: <path>` line in `last_assistant_message`; then, only while `.ai-sdlc/runs/.active` names a run, the inline handoff in `last_assistant_message`, then the newest file in the active run folder whose `agent` is this subagent. It exits `2` with the reasons on stderr when the handoff is invalid or missing, which makes the subagent continue and fix it. The orchestrator's retry policy (one retry, then `needs-human`) bounds how long an agent can fail the check. Outside an active run, roster agents used ad hoc are not checked. It is registered in the orchestrator's frontmatter `hooks` and in the `feature`, `bug-fix` and `incident` skills' frontmatter `hooks`.
 
 ## Gates at a glance
 

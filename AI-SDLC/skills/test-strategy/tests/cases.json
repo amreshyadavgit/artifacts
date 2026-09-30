@@ -1,0 +1,112 @@
+{
+  "skill": "test-strategy",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/test-strategy. Each case names a change to sample-app; the plan must cover the listed categories, reference the real existing tests, and surface the listed risks. facts[] records what reading (and, where marked, running) the code shows, so a grader can check the plan by hand.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "claude -p \"/test-strategy <case.input>\" --permission-mode plan --output-format json | jq -r '.result' > /tmp/plan.md",
+    "node .claude/skills/test-strategy/scripts/validate-test-plan.mjs /tmp/plan.md --repo . --case skills/test-strategy/tests/cases.json#<case.id>"
+  ],
+  "matching": "requiredCategories: at least one test case per category. mustReferenceTests: exact TestClass#method strings that must appear. mustMention: each term (or one of a list of alternatives), case-insensitive. minCases / minFindings: row counts.",
+  "cases": [
+    {
+      "id": "ts-01-lastn-endpoint",
+      "input": "GET /fhir/Observation/$lastn",
+      "reference": ".claude/skills/test-strategy/examples/lastn-test-plan.md",
+      "facts": [
+        "run: an undated Observation is returned instead of a newer dated one",
+        "run: subjects=1,1 returns total 2",
+        "run: 1, 10, 50 subjects issue 2, 20, 100 statements",
+        "run: subjects= returns 200 total 0; no subjects returns 400 required; subjects=abc returns 400 invalid",
+        "read: ObservationApiTest#lastnReturnsMostRecentObservationPerSubject is the only $lastn test"
+      ],
+      "expected": {
+        "requiredCategories": ["unit", "integration", "api", "negative", "edge", "performance", "security", "regression"],
+        "mustReferenceTests": ["ObservationApiTest#lastnReturnsMostRecentObservationPerSubject"],
+        "mustMention": ["effectiveDateTime", "duplicate", ["statement", "query count"], "401", ["cap", "101", "limit"]],
+        "minCases": 12,
+        "minFindings": 3
+      }
+    },
+    {
+      "id": "ts-02-create-observation",
+      "input": "POST /fhir/Observation",
+      "facts": [
+        "read: ObservationService.java:50 uses patients.findById only; glossary business rule 3 requires an active Patient, so an inactive subject is accepted",
+        "read: ObservationResource.java:16-17 status pattern registered|preliminary|final|amended -> 422",
+        "read: ObservationApiTest has createAndReadObservation, observationForUnknownPatientIs422, invalidSubjectReferenceIs422",
+        "read: no 401 test for POST /fhir/Observation"
+      ],
+      "expected": {
+        "requiredCategories": ["api", "negative", "edge", "security", "unit"],
+        "mustReferenceTests": ["ObservationApiTest#observationForUnknownPatientIs422", "ObservationApiTest#invalidSubjectReferenceIs422", "ObservationApiTest#createAndReadObservation"],
+        "mustMention": ["active", "422", "status", "401", ["Location", "201"]],
+        "minCases": 8,
+        "minFindings": 1
+      }
+    },
+    {
+      "id": "ts-03-update-patient",
+      "input": "PUT /fhir/Patient/{id}",
+      "facts": [
+        "read: PatientService.java:63 changing the MRN to one that exists -> 409 conflict; no test covers it",
+        "read: PatientResource.java:19 @PastOrPresent birthDate -> 422 on a future date",
+        "read: PatientController.java:52 body id must match the path id",
+        "read: PatientApiTest has updateReplacesResource, updateUnknownIs404, updateWithMismatchedIdIs400"
+      ],
+      "expected": {
+        "requiredCategories": ["api", "negative", "edge", "security", "regression"],
+        "mustReferenceTests": ["PatientApiTest#updateReplacesResource", "PatientApiTest#updateUnknownIs404", "PatientApiTest#updateWithMismatchedIdIs400"],
+        "mustMention": ["409", ["birthDate", "future"], "401", "AuditLogger"],
+        "minCases": 8
+      }
+    },
+    {
+      "id": "ts-04-delete-patient",
+      "input": "DELETE /fhir/Patient/{id}",
+      "facts": [
+        "read: SecurityConfig.java:43 DELETE requires ADMIN",
+        "read: V1__init.sql:26 observations cascade on delete",
+        "read: PatientService.java:79-81 unknown id -> 404; no test covers it",
+        "read: SecurityTest has clinicianCannotDelete and adminCanDeleteAndPatientIsGone"
+      ],
+      "expected": {
+        "requiredCategories": ["security", "negative", "integration", "regression"],
+        "mustReferenceTests": ["SecurityTest#clinicianCannotDelete", "SecurityTest#adminCanDeleteAndPatientIsGone"],
+        "mustMention": ["403", "404", "cascade", "401"],
+        "minCases": 6
+      }
+    },
+    {
+      "id": "ts-05-patient-search-pagination",
+      "input": ".claude/skills/architecture-review/examples/0002-paginate-patient-search.md",
+      "facts": [
+        "ADR-0002: _count default 20, max 100, 101 served as 100, 0/negative/non-numeric -> 400, next link, total = full count",
+        "read: PatientApiTest#searchByFamilyReturnsSearchsetBundle asserts total 2 and must keep passing",
+        "read: ApiTestSupport shares one H2 database, so paging tests need a unique family name"
+      ],
+      "expected": {
+        "requiredCategories": ["api", "negative", "edge", "performance", "regression", "security"],
+        "mustReferenceTests": ["PatientApiTest#searchByFamilyReturnsSearchsetBundle"],
+        "mustMention": ["_count", "101", "next", "total", ["statement", "query count"], ["unique family", "shared"]],
+        "minCases": 10
+      }
+    },
+    {
+      "id": "ts-06-bugfix-undated-lastn",
+      "input": "Bug FHIR-130: $lastn returns an Observation without effectiveDateTime as the latest one. Plan the tests for the fix.",
+      "facts": [
+        "run: undated value 99 beats dated value 80 (2026-02-03)",
+        "read: application-test.yml:3 DEFAULT_NULL_ORDERING=HIGH; PostgreSQL also sorts NULL first in DESC by default",
+        "testing-standards.md: every bug fix starts with a failing test named after the bug id"
+      ],
+      "expected": {
+        "requiredCategories": ["regression", "edge", "integration"],
+        "mustReferenceTests": ["ObservationApiTest#lastnReturnsMostRecentObservationPerSubject"],
+        "mustMention": [["bugFhir130", "bugFHIR130", "bug130", "fhir130_"], "effectiveDateTime", ["NULLS LAST", "null"], "failing test"],
+        "minCases": 4,
+        "minFindings": 1
+      }
+    }
+  ]
+}

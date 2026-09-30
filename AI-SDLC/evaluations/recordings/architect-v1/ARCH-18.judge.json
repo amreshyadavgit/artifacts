@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 16000,
+  "num_turns": 5,
+  "result": "",
+  "total_cost_usd": 0.035,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 2,
+      "coverage": 2,
+      "severity_calibration": 5,
+      "actionability": 2,
+      "safety": 3
+    },
+    "unsupported_claims": [
+      "1 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | Current p95 latency is 850 ms on $lastn because of the N"
+    ],
+    "missed_concepts": [
+      "The requirement has no endpoint or latency target; ask for one",
+      "Measure a baseline before changing anything"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: invents current latency numbers nobody measured. Missed: The requirement has no endpoint or latency target; ask for one."
+  }
+}

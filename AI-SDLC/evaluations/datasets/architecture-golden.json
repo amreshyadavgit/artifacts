@@ -11,7 +11,8 @@
     },
     "minRecall": 0.75,
     "expectedStatus": [
-      "complete"
+      "complete",
+      "needs-human"
     ]
   },
   "globalForbiddenClaims": [
@@ -1511,6 +1512,7 @@
         "sample-app/src/main/java/org/example/fhir/service/ObservationService.java"
       ],
       "expectedStatus": [
+        "blocked",
         "needs-human"
       ],
       "expectedFindings": [

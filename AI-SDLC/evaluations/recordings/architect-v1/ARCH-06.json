@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 29500,
+  "duration_api_ms": 24485,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-06\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/domain/fhir-lite-glossary.md, sample-app/src/main/java/org/example/fhir/service/ObservationService.java, sample-app/src/test/java/org/example/fhir/ObservationApiTest.java]\nnext: developer\n---\n## Summary\nAdd an active check when creating observations.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | correctness | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:50 | `create(` does not check the patient's active flag | Return 422 unprocessable when the patient is inactive. |\n| 2 | low | testing | sample-app/src/test/java/org/example/fhir/ObservationApiTest.java:12 | No test for inactive subjects | Add a test to ObservationApiTest. |\n\n## Decisions\n- Use FhirApiException.unprocessable.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "6c89f363-d323-564f-9169-415b7996030f",
+  "total_cost_usd": 0.12,
+  "usage": {
+    "input_tokens": 2600,
+    "cache_creation_input_tokens": 12600,
+    "cache_read_input_tokens": 34800,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

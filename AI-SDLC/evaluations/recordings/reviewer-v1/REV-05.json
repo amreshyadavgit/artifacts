@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 22600,
+  "duration_api_ms": 18758,
+  "num_turns": 3,
+  "result": "---\nrun_id: eval-REV-05\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-05.patch, context/security/phi-and-secrets-policy.md, context/security/threat-model.md, sample-app/src/test/java/org/example/fhir/SecurityTest.java]\nnext: developer\n---\n## Summary\nSecurity issue.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | critical | security | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:44 | `.requestMatchers(HttpMethod.GET, \"/fhir/Patient/**\").permitAll()`: anonymous, unauthenticated read of every Patient (PHI exposure) | Remove. Give the kiosk its own authenticated account limited to the patient's own record. |\n| R2 | medium | testing | sample-app/src/test/java/org/example/fhir/SecurityTest.java:15 | `anonymousRequestIs401OperationOutcome` will now get 200 instead of 401 | Keep the test; it is guarding the right behaviour. |\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "dd9f875c-e82a-5109-bcea-fcaf661b292a",
+  "total_cost_usd": 0.09,
+  "usage": {
+    "input_tokens": 2250,
+    "cache_creation_input_tokens": 11700,
+    "cache_read_input_tokens": 29600,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

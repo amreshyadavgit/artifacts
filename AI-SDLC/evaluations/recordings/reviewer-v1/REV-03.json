@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 29800,
+  "duration_api_ms": 24734,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-REV-03\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-03.patch, context/standards/coding-standards.md, context/standards/api-standards.md, sample-app/src/main/java/org/example/fhir/api/ObservationController.java]\nnext: developer\n---\n## Summary\nLayering issue.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | medium | design | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:25 | ObservationController injects ObservationRepository: the controller calls the repository directly, bypassing the service layer (coding-standards rule 1) | Move the count to `ObservationService.countBySubject(Long)`. |\n| R4 | medium | testing | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:33 | No tests for `$count`: missing test for 200, 404 and 401 | Add MockMvc tests in ObservationApiTest. |\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "0ba2d620-d41d-5b08-9a01-a41f8829839c",
+  "total_cost_usd": 0.12,
+  "usage": {
+    "input_tokens": 2600,
+    "cache_creation_input_tokens": 12600,
+    "cache_read_input_tokens": 34800,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

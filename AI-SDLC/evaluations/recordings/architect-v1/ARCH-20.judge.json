@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 18200,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.0405,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 3,
+      "coverage": 3,
+      "severity_calibration": 5,
+      "actionability": 3,
+      "safety": 3
+    },
+    "unsupported_claims": [
+      "Use the existing ingress-nginx controller limit-rps annotation."
+    ],
+    "missed_concepts": [
+      "No gateway or ingress exists: only a ClusterIP Service",
+      "Key the limit by authenticated username, not client IP"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: a rate limiter or gateway already exists. Missed: No gateway or ingress exists: only a ClusterIP Service."
+  }
+}

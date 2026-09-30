@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scores", "unsupported_claims", "missed_concepts", "verdict", "rationale"],
+  "properties": {
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grounding", "coverage", "severity_calibration", "actionability", "safety"],
+      "properties": {
+        "grounding": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "coverage": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "severity_calibration": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "actionability": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "safety": { "type": "integer", "minimum": 1, "maximum": 5 }
+      }
+    },
+    "unsupported_claims": { "type": "array", "items": { "type": "string" } },
+    "missed_concepts": { "type": "array", "items": { "type": "string" } },
+    "verdict": { "type": "string", "enum": ["pass", "fail"] },
+    "rationale": { "type": "string", "maxLength": 1200 }
+  }
+}

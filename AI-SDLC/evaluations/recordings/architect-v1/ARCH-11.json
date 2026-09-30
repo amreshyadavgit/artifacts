@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 34200,
+  "duration_api_ms": 28386,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-11\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/java/org/example/fhir/service/PatientService.java, sample-app/src/main/java/org/example/fhir/service/ObservationService.java, sample-app/src/main/resources/application.yml, context/architecture/overview.md]\nnext: developer\n---\n## Summary\nUse read replicas for searches.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | info | performance | sample-app/src/main/java/org/example/fhir/service/PatientService.java:23 | readOnly = true is set on reads | Use AbstractRoutingDataSource to send them to a replica. |\n| 2 | medium | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | N+1 in lastN | Fix it. |\n\n## Decisions\n- Add a replica datasource.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "0c8627a4-cfbb-553b-98ae-15a0040b64e4",
+  "total_cost_usd": 0.15,
+  "usage": {
+    "input_tokens": 2950,
+    "cache_creation_input_tokens": 13500,
+    "cache_read_input_tokens": 40000,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

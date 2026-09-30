@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 40600,
+  "duration_api_ms": 33698,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-ARCH-13\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/k8s/deployment.yaml, sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java, sample-app/src/main/resources/application.yml, context/architecture/overview.md]\nnext: developer\n---\n## Summary\nScaling to six replicas is fine for the app tier; check database connections.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| A1 | info | deployability | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:40 | `SessionCreationPolicy.STATELESS` with HTTP Basic per request: the API is stateless, so no session affinity is needed | Scale horizontally as is. |\n| A2 | medium | performance | sample-app/src/main/resources/application.yml:5 | No `spring.datasource.hikari.maximum-pool-size`: the default Hikari connection pool of 10 per pod x 6 pods = 60 connections, plus surge pods during a rolling update, against PostgreSQL max_connections | Set the pool size explicitly (for example 5) or put PgBouncer in front of PostgreSQL. |\n| A3 | medium | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | The known $lastn N+1 (`TEACHING-DEFECT(perf-n+1)`, 2 queries per subject) multiplies database load as replicas add throughput | Raise a separate, explicitly scoped ticket for it before the season. |\n| A4 | low | deployability | sample-app/k8s/deployment.yaml:13 | Fixed `replicas: 2`, no HPA or PodDisruptionBudget | Add a HorizontalPodAutoscaler on CPU and a PodDisruptionBudget with `minAvailable: 2`. |\n\n## Decisions\n- Scale to 6 with an HPA.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "e8bd3ea1-c277-5e83-be0b-0233e2e07860",
+  "total_cost_usd": 0.18,
+  "usage": {
+    "input_tokens": 3300,
+    "cache_creation_input_tokens": 14400,
+    "cache_read_input_tokens": 45200,
+    "output_tokens": 438
+  },
+  "permission_denials": []
+}

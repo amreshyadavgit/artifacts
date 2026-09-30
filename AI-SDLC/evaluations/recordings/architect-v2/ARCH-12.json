@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 60400,
+  "duration_api_ms": 50132,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-12\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/resources/db/migration/V1__init.sql, sample-app/src/main/java/org/example/fhir/service/PatientService.java, context/domain/fhir-lite-glossary.md]\nnext: developer\n---\n## Summary\nDELETE is a hard delete that cascades to observations. A soft delete needs a separate `deleted_at` state, filtering on every query, and a decision on MRN reuse.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | data | sample-app/src/main/resources/db/migration/V1__init.sql:26 | `ON DELETE CASCADE`: deleting a patient physically removes their observations today | Replace the delete with `deleted_at` (timestamp); keep the FK, which then never fires. |\n| ARC-002 | medium | correctness | sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java:12 | Every finder must exclude deleted rows, and `uq_patient_mrn` still counts deleted rows, so an MRN cannot be registered again | `@SQLRestriction(\"deleted_at is null\")` on Patient; decide whether MRN reuse is allowed. |\n| ARC-003 | medium | domain | sample-app/src/main/java/org/example/fhir/domain/Patient.java:43 | `active` is an administrative flag in FHIR; deleted and inactive are distinct states | Do not overload `active`; add `deleted_at`. |\n| ARC-004 | low | compliance | context/domain/fhir-lite-glossary.md:22 | Glossary rule 5 already calls delete a soft concern in real systems | Agree the retention period with Legal and record it in an ADR. |\n\n## Decisions\n- DELETE keeps its ADMIN-only rule and returns 204; the row is marked deleted.\n\n## Open questions\n- Must a deleted patient be restorable, and by whom?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "3d8c51f9-2eca-5608-bcd0-8a3bf792ffaf",
+  "total_cost_usd": 0.27,
+  "usage": {
+    "input_tokens": 4000,
+    "cache_creation_input_tokens": 16200,
+    "cache_read_input_tokens": 55600,
+    "output_tokens": 453
+  },
+  "permission_denials": []
+}

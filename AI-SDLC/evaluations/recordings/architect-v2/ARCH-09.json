@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 88400,
+  "duration_api_ms": 73372,
+  "num_turns": 10,
+  "result": "---\nrun_id: eval-ARCH-09\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [context/security/threat-model.md, context/security/phi-and-secrets-policy.md, sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java, sample-app/src/main/java/org/example/fhir/audit/AuditLogger.java]\nnext: human\n---\n## Summary\nA bulk export is a mass PHI disclosure path and an availability risk. It must be restricted, asynchronous, audited and preferably de-identified.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | critical | security | sample-app/src/main/java/org/example/fhir/config/SecurityConfig.java:44 | Under the current matcher any CLINICIAN could call a new `/fhir/$export` | Restrict $export to ADMIN or a dedicated EXPORT role, with human approval per export run. |\n| ARC-002 | high | performance | context/standards/api-standards.md:10 | A synchronous response containing every Patient and Observation is unbounded and ties up a request thread and a DB connection for minutes | Asynchronous pattern: `202 Accepted` + `Content-Location` status URL; write NDJSON to storage in chunks; throttle. |\n| ARC-003 | medium | security | sample-app/src/main/java/org/example/fhir/audit/AuditLogger.java:17 | AuditLogger has no export action | Add `Action.EXPORT` and record each export through AuditLogger with counts only. |\n| ARC-004 | high | security | context/security/phi-and-secrets-policy.md:7 | Research use of identified PHI needs a legal basis | Default to a de-identified export; identified export only with documented approval. |\n\n## Decisions\n- Recommend a de-identified, asynchronous export run by an ADMIN-approved job; ADR-0002 draft included.\n\n## Open questions\n- Is identified data actually required by research, or is de-identified data enough?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "4480b7b9-bf2d-5972-a7da-4c79da78ad63",
+  "total_cost_usd": 0.38,
+  "usage": {
+    "input_tokens": 4700,
+    "cache_creation_input_tokens": 18000,
+    "cache_read_input_tokens": 66000,
+    "output_tokens": 477
+  },
+  "permission_denials": []
+}

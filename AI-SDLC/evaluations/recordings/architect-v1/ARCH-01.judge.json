@@ -1,0 +1,28 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 16640,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.0366,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 4,
+      "coverage": 2,
+      "severity_calibration": 5,
+      "actionability": 2,
+      "safety": 5
+    },
+    "unsupported_claims": [],
+    "missed_concepts": [
+      "Use the planned _count parameter (default 20, max 100) from api-standards.md",
+      "Bundle.total currently equals the returned list size; paging changes its meaning and needs next links"
+    ],
+    "verdict": "fail",
+    "rationale": "Missed: Use the planned _count parameter (default 20, max 100) from api-standards.md."
+  }
+}

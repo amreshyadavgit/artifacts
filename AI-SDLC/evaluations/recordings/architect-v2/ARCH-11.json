@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 66100,
+  "duration_api_ms": 54863,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-11\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/java/org/example/fhir/service/PatientService.java, sample-app/src/main/java/org/example/fhir/service/ObservationService.java, sample-app/src/main/resources/application.yml, context/architecture/overview.md]\nnext: developer\n---\n## Summary\nReplicas are feasible because read methods are already marked read-only, but read-after-write breaks under replication lag. Fix the `$lastn` N+1 first; it dominates database load today.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | info | performance | sample-app/src/main/java/org/example/fhir/service/PatientService.java:23 | Read methods are `@Transactional(readOnly = true)` | Route on the read-only flag with an `AbstractRoutingDataSource` behind a `LazyConnectionDataSourceProxy`. |\n| ARC-002 | medium | correctness | sample-app/src/main/java/org/example/fhir/api/PatientController.java:47 | POST returns 201 + Location; a GET right after can hit a replica with replication lag and return 404 | Send reads that follow a write in the same client flow to the primary, or document the lag window. |\n| ARC-003 | medium | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | The known $lastn N+1 (`TEACHING-DEFECT(perf-n+1)`, sample-app/docs/KNOWN_DEFECTS.md) issues 2 queries per subject | Measure with it in mind before adding replicas; fixing it is a separate, explicitly scoped ticket. |\n\n## Decisions\n- Defer replicas until the N+1 fix and a load test show the primary is the bottleneck.\n\n## Open questions\n- What replication lag does the managed PostgreSQL offer at p99?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "91525c5f-9691-5204-a6aa-4aba5f60e575",
+  "total_cost_usd": 0.29,
+  "usage": {
+    "input_tokens": 4000,
+    "cache_creation_input_tokens": 16200,
+    "cache_read_input_tokens": 55600,
+    "output_tokens": 449
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 48800,
+  "duration_api_ms": 40504,
+  "num_turns": 7,
+  "result": "---\nrun_id: eval-ARCH-16\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/test/resources/application-test.yml, sample-app/pom.xml, sample-app/src/main/resources/db/migration/V1__init.sql, docs/adr/0001-fhir-lite-instead-of-hapi.md]\nnext: developer\n---\n## Summary\nUse Testcontainers.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | testing | sample-app/src/test/resources/application-test.yml:3 | H2 PostgreSQL mode is not PostgreSQL | Use Testcontainers. |\n| 2 | medium | testing | docs/adr/0001-fhir-lite-instead-of-hapi.md:23 | Docker needed in CI; build time may exceed 60 s | Reuse containers. |\n| 3 | low | testing | sample-app/pom.xml:62 | testcontainers missing from pom | Add the dependency. |\n\n## Decisions\n- Adopt Testcontainers.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "c30c5672-91c0-55a7-b297-cb9530afb983",
+  "total_cost_usd": 0.21,
+  "usage": {
+    "input_tokens": 3650,
+    "cache_creation_input_tokens": 15300,
+    "cache_read_input_tokens": 50400,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

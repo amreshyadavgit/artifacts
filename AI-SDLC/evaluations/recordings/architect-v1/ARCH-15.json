@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 36900,
+  "duration_api_ms": 30627,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-15\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java, sample-app/src/main/resources/db/migration/V1__init.sql, sample-app/src/main/java/org/example/fhir/api/ObservationController.java, context/standards/api-standards.md]\nnext: developer\n---\n## Summary\nAdd a date range filter.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | low | correctness | sample-app/src/main/resources/db/migration/V1__init.sql:23 | effectiveDateTime is stored with time zone | Use UTC for comparisons. |\n| 2 | medium | performance | sample-app/src/main/resources/db/migration/V1__init.sql:29 | ix_observation_patient_code lacks effective_date_time | Add an index including effective_date_time. |\n| 3 | info | design | sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java:7 | No range query | Add a derived query to ObservationRepository. |\n\n## Decisions\n- Use a between query.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "15434490-525f-5a3a-b679-0e0e573d92a5",
+  "total_cost_usd": 0.16,
+  "usage": {
+    "input_tokens": 2950,
+    "cache_creation_input_tokens": 13500,
+    "cache_read_input_tokens": 40000,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

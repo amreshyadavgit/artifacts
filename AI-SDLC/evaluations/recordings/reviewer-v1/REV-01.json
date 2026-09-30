@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 30700,
+  "duration_api_ms": 25481,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-REV-01\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-01.patch, context/standards/coding-standards.md, sample-app/src/main/java/org/example/fhir/service/PatientService.java]\nnext: developer\n---\n## Summary\nInjection risk in the new search.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | critical | security | sample-app/src/main/java/org/example/fhir/service/PatientService.java:57 | `em.createQuery(\"select p from Patient p where lower(p.givenNames) like '%\" + given.toLowerCase() + \"%'\", Patient.class)`: request parameter concatenated into JPQL, an injection path (coding-standards rule 6) | Bind the value: `where lower(p.givenNames) like :given` with `setParameter(\"given\", \"%\" + given.toLowerCase() + \"%\")`, or a derived `findByGivenNamesContainingIgnoreCase`. |\n| R2 | medium | standards | sample-app/src/main/java/org/example/fhir/service/PatientService.java:56 | `searchByGiven` never calls `audit.recordSearch(\"Patient\", n)`, unlike `search` | Record the search through AuditLogger. |\n| R3 | low | standards | sample-app/src/main/java/org/example/fhir/service/PatientService.java:56 | No `@Transactional(readOnly = true)` on a read method (rule 5) | Add it. |\n| R4 | medium | testing | sample-app/src/main/java/org/example/fhir/api/PatientController.java:39 | No test covers `given`: missing test in PatientApiTest | Add MockMvc tests, including a value containing `'`. |\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "04ba6c07-63bf-589b-a991-425752d0b576",
+  "total_cost_usd": 0.12,
+  "usage": {
+    "input_tokens": 2600,
+    "cache_creation_input_tokens": 12600,
+    "cache_read_input_tokens": 34800,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

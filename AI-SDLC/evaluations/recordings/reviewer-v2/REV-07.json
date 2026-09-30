@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 33400,
+  "duration_api_ms": 27722,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-REV-07\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-07.patch, context/standards/coding-standards.md, sample-app/src/main/java/org/example/fhir/api/PatientController.java]\nnext: developer\n---\n## Summary\nVerdict: BLOCK. Blocking: an entity is returned from a controller.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | high | design | sample-app/src/main/java/org/example/fhir/api/PatientController.java:45 | Returns the `Patient` JPA entity instead of `PatientResource` (coding-standards rule 2: DTOs at the edge) | Return `PatientMapper.toResource(...)`, or drop the endpoint. |\n| REV-002 | medium | security | sample-app/src/main/java/org/example/fhir/api/PatientController.java:47 | Jackson serialises every entity field, bypassing the FHIR-lite shape; any future column (PHI included) leaks automatically | Never serialise entities. |\n\n## Decisions\n- correctness: no findings\n- security: REV-002\n- design: REV-001\n- testing: no findings\n- performance: no findings\n- standards: no findings\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "88977d20-ebba-5ae0-88f2-3317a943fe11",
+  "total_cost_usd": 0.14,
+  "usage": {
+    "input_tokens": 2950,
+    "cache_creation_input_tokens": 13500,
+    "cache_read_input_tokens": 40000,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

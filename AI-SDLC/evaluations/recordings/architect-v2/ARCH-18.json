@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 38700,
+  "duration_api_ms": 32121,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-18\nstep: 03\nagent: architect\nstatus: blocked\ninputs: [context/architecture/overview.md, sample-app/src/main/java/org/example/fhir/service/ObservationService.java]\nnext: orchestrator\n---\n## Summary\n\"Faster\" has no endpoint, workload or latency target, so I cannot size a change. The one documented hotspot is the `$lastn` N+1; unbounded searches are the next risk. I need a target before recommending work.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:64 | The only documented hotspot: `$lastn` N+1 in the `lastN` loop (2 queries per subject) | First candidate once a target is agreed: one set-based query. |\n| ARC-002 | medium | performance | context/standards/api-standards.md:10 | Searches have no paging yet (`_count` is planned) | Second candidate: implement `_count`. |\n\n## Decisions\n- No change proposed until a target exists.\n\n## Open questions\n- Which endpoint is slow, for which users, and what is the latency target (SLO, for example p95 under 300 ms)?\n- Can we measure a baseline with the current load profile before changing anything?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "44f9a2ba-5f0b-5138-90b6-83bdb5841da4",
+  "total_cost_usd": 0.17,
+  "usage": {
+    "input_tokens": 2950,
+    "cache_creation_input_tokens": 13500,
+    "cache_read_input_tokens": 40000,
+    "output_tokens": 400
+  },
+  "permission_denials": []
+}

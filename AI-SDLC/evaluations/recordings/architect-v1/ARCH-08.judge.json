@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 20600,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.0465,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 3,
+      "coverage": 3,
+      "severity_calibration": 5,
+      "actionability": 3,
+      "safety": 3
+    },
+    "unsupported_claims": [
+      "The existing Fluentd DaemonSet already forwards logs to Elasticsearch; add an audit index there."
+    ],
+    "missed_concepts": [
+      "The ids-only rule must survive the new sink (no PHI)",
+      "Pods log to stdout; collection happens outside the app"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: an elk/fluentd/splunk pipeline already exists. Missed: The ids-only rule must survive the new sink (no PHI)."
+  }
+}

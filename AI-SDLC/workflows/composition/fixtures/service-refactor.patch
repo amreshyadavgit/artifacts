@@ -1,0 +1,21 @@
+diff --git a/sample-app/src/main/java/org/example/fhir/service/PatientService.java b/sample-app/src/main/java/org/example/fhir/service/PatientService.java
+index 51685a0..0395f60 100644
+--- a/sample-app/src/main/java/org/example/fhir/service/PatientService.java
++++ b/sample-app/src/main/java/org/example/fhir/service/PatientService.java
+@@ -35,13 +35,14 @@ public class PatientService {
+         if (!hasFamily && !hasMrn) {
+             throw FhirApiException.badRequest("At least one search parameter (family, identifier) is required");
+         }
++        String familyTerm = hasFamily ? family.trim() : null;
+         List<Patient> result;
+         if (hasMrn) {
+             result = patients.findByMrn(mrn.trim()).stream()
+-                    .filter(p -> !hasFamily || p.getFamilyName().equalsIgnoreCase(family.trim()))
++                    .filter(p -> familyTerm == null || p.getFamilyName().equalsIgnoreCase(familyTerm))
+                     .toList();
+         } else {
+-            result = patients.findByFamilyNameIgnoreCaseOrderByIdAsc(family.trim());
++            result = patients.findByFamilyNameIgnoreCaseOrderByIdAsc(familyTerm);
+         }
+         audit.recordSearch("Patient", result.size());
+         return result;

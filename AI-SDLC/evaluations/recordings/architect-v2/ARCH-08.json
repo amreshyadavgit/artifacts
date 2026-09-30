@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 63000,
+  "duration_api_ms": 52290,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-08\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/src/main/java/org/example/fhir/audit/AuditLogger.java, sample-app/src/main/resources/application.yml, sample-app/k8s/deployment.yaml, context/security/phi-and-secrets-policy.md]\nnext: developer\n---\n## Summary\nAudit events already go through a dedicated `AUDIT` logger with ids only. What is missing is a separate appender and a retained sink; keep the ids-only rule intact.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | info | observability | sample-app/src/main/java/org/example/fhir/audit/AuditLogger.java:19 | `LoggerFactory.getLogger(\"AUDIT\")`: audit events already use a dedicated AUDIT logger | Keep the logger name as the routing key. |\n| ARC-002 | medium | observability | sample-app/src/main/resources/application.yml:41 | Only `logging.level.AUDIT: INFO`; no logback appender separates audit events from application logs | Add `logback-spring.xml` with a JSON appender for `AUDIT` (`additivity=false`) and a marker field `stream=audit`. |\n| ARC-003 | medium | security | sample-app/src/main/java/org/example/fhir/audit/AuditLogger.java:21 | Events carry action, resource id and staff username (ids only) | Keep ids-only; add a test asserting no PHI fields. The six-year store still holds usernames, so restrict access to it. |\n| ARC-004 | low | deployability | sample-app/k8s/deployment.yaml:25 | The container logs to stdout | Route the `stream=audit` lines to the retained store with the cluster log collector; choose the store in an ADR. |\n\n## Decisions\n- Separation happens in the log pipeline, not in application code: no new runtime dependency.\n\n## Open questions\n- Which store and retention mechanism does compliance accept (WORM object storage, SIEM)?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "a7eec5e5-52fc-5d7c-8d6f-9a50ba6a8eae",
+  "total_cost_usd": 0.28,
+  "usage": {
+    "input_tokens": 4000,
+    "cache_creation_input_tokens": 16200,
+    "cache_read_input_tokens": 55600,
+    "output_tokens": 475
+  },
+  "permission_denials": []
+}

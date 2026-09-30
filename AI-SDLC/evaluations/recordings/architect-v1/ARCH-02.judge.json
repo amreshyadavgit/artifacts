@@ -1,0 +1,28 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 16160,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.0354,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 4,
+      "coverage": 3,
+      "severity_calibration": 5,
+      "actionability": 2,
+      "safety": 3
+    },
+    "unsupported_claims": [],
+    "missed_concepts": [
+      "Cap the number of subjects per request",
+      "Existing index ix_observation_patient_code (patient_id, code) supports the set-based query"
+    ],
+    "verdict": "fail",
+    "rationale": "Missed: Cap the number of subjects per request."
+  }
+}

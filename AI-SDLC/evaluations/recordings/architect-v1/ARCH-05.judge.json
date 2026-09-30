@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 19160,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.0429,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 3,
+      "coverage": 3,
+      "severity_calibration": 1,
+      "actionability": 3,
+      "safety": 5
+    },
+    "unsupported_claims": [
+      "1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:20 | The PUT /fhir/Observation/{id} endpoint currently overwri"
+    ],
+    "missed_concepts": [
+      "There is no update endpoint for Observation today, so the rule is trivially true now and must be enforced when one is added",
+      "status is an unconstrained VARCHAR(32) with no CHECK constraint"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: an observation put/update endpoint already exists. Missed: There is no update endpoint for Observation today, so the rule is trivially true now and must be enforced when one is added. At least one severity is off by more than one level for this repo's PHI policy."
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 61200,
+  "duration_api_ms": 50796,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-01\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/standards/api-standards.md, sample-app/src/main/java/org/example/fhir/service/PatientService.java, sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java, sample-app/src/main/java/org/example/fhir/api/Bundle.java]\nnext: developer\n---\n## Summary\nBoth searches return every match in one Bundle. The API standard already plans `_count` (default 20, max 100); implement it with Spring Data `Pageable` and fix `Bundle.total` and paging links.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | performance | sample-app/src/main/java/org/example/fhir/repository/PatientRepository.java:14 | `List<Patient> findByFamilyNameIgnoreCaseOrderByIdAsc(String familyName)` returns every match: Patient search is unbounded today | Add a `Pageable` parameter and return `Slice<Patient>`; the service passes `PageRequest.of(page, count)`. |\n| ARC-002 | medium | performance | sample-app/src/main/java/org/example/fhir/repository/ObservationRepository.java:9 | `findByPatientIdOrderByEffectiveDateTimeDesc` returns a patient's whole history, so Observation search is unbounded too | Same `Pageable` overload; keep the `ORDER BY effective_date_time DESC`. |\n| ARC-003 | medium | design | context/standards/api-standards.md:10 | \"Pagination (planned): `_count` (default 20, max 100)\" | Implement `_count` as written: default 20, values above 100 return 400 `OperationOutcome` (`code: invalid`). |\n| ARC-004 | low | design | sample-app/src/main/java/org/example/fhir/api/Bundle.java:11 | `new Bundle(\"Bundle\", \"searchset\", resources.size(), ...)`: `total` is the page size, not the match count | Set `total` from a count query and add `link` entries (`self`, `next`) so clients can page. |\n\n## Decisions\n- Offset paging with `_count` and an opaque `_page` token for the first release; keyset paging is a follow-up if deep pages get slow.\n- No ADR needed: the standard already decided `_count`.\n\n## Open questions\n- Should an absent `_count` on existing integrations default to 20 immediately, or after a deprecation window?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "69aca099-f035-57dc-a6aa-26a5c28c3bbd",
+  "total_cost_usd": 0.27,
+  "usage": {
+    "input_tokens": 4000,
+    "cache_creation_input_tokens": 16200,
+    "cache_read_input_tokens": 55600,
+    "output_tokens": 564
+  },
+  "permission_denials": []
+}

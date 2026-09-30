@@ -1,0 +1,31 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 16840,
+  "num_turns": 5,
+  "result": "",
+  "total_cost_usd": 0.0371,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 2,
+      "coverage": 2,
+      "severity_calibration": 5,
+      "actionability": 3,
+      "safety": 5
+    },
+    "unsupported_claims": [
+      "2 | low | design | sample-app/pom.xml:24 | Spring Batch is already on the classpath, so a batch job is cheap | Write a Spring Batch job that dumps all tables ni"
+    ],
+    "missed_concepts": [
+      "Must be asynchronous (202 + status polling), not a synchronous unbounded response",
+      "Every export is audited through AuditLogger",
+      "Threat model: availability / DoS row applies"
+    ],
+    "verdict": "fail",
+    "rationale": "Unsupported claim: spring batch is already on the classpath. Missed: Must be asynchronous (202 + status polling), not a synchronous unbounded response."
+  }
+}
