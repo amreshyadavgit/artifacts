@@ -72,6 +72,7 @@ code, pre, kbd { font-family: var(--font-mono); font-size: .86em; }
 .brand { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--fg); }
 .brand b { font-family: var(--font-display); font-size: 1.15rem; }
 .brand span { color: var(--muted); font-size: .8rem; }
+.brand .edition { color: var(--accent); font-weight: 700; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; }
 .search input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--fg); font: inherit; font-size: .92rem; }
 .navgroup h4 { font-family: var(--font-body); font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
 .navgroup ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -214,7 +215,7 @@ ul.criteria { margin: 0; padding-left: 1.2em; display: flex; flex-direction: col
 </div>
 <div class="app">
   <nav class="rail" id="rail" aria-label="Curriculum">
-    <a class="brand" href="#home"><b>AI-SDLC</b><span>Agent &amp; Skill Engineering with Claude Code</span></a>
+    <a class="brand" href="#home"><b>AI-SDLC</b><span>Agent &amp; Skill Engineering with Claude Code</span><span class="edition" id="edition-name"></span></a>
     <div class="search"><label for="q" class="eyebrow" id="q-label">Search all modules</label><input id="q" type="search" placeholder="e.g. PreToolUse, N+1, ADR" autocomplete="off"></div>
     <div class="navgroup"><h4 id="nav-levels-h">By level</h4><ul id="nav-levels"></ul></div>
     <div class="navgroup"><h4 id="nav-types-h">By artifact type</h4><ul id="nav-types"></ul></div>
@@ -223,6 +224,7 @@ ul.criteria { margin: 0; padding-left: 1.2em; display: flex; flex-direction: col
       <button class="btn primary" id="download">Download starter repo</button>
       <div class="lang-switch" role="group" aria-label="Language"><button class="btn" type="button" data-lang="en" aria-pressed="true">English</button><button class="btn" type="button" data-lang="hinglish" aria-pressed="false">Hinglish</button></div>
       <button class="btn" id="theme-toggle">Switch theme</button>
+      <a class="btn" id="other-edition" href="#" hidden></a>
       <span class="progress-meter" id="build-info"></span>
     </div>
   </nav>
@@ -239,6 +241,8 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
 (function () {
   "use strict";
   var DATA = window.CURRICULUM || { modules: [], builtAt: "", i18n: {} };
+  var ED = DATA.edition || { id: "java", name: "", repo: "AI-SDLC/", stack: "", homeLede: {} };
+  var REPO_RE = new RegExp("^" + ED.repo.replace(/[.*+?^${}()|[\]\\/-]/g, "\\$&"));
   var BASE = DATA.modules || [];
   var I18N = DATA.i18n || {};
   var LKEY = "ai-sdlc-lang";
@@ -350,7 +354,7 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
     var seen = {}, out = [];
     files.forEach(function (e) {
       if (e.kind !== "implementation") return;
-      var p = e.f.path.replace(/^AI-SDLC\//, "");
+      var p = e.f.path.replace(REPO_RE, "");
       if (!re.test(p) || /sample-app\//.test(p)) return;
       if (t === "agents" && /skills\//.test(p)) return;
       if (seen[e.f.path]) return; seen[e.f.path] = 1; out.push(e);
@@ -392,7 +396,7 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
     var levels = {};
     MODULES.forEach(function (m) { (levels[m.level] = levels[m.level] || []).push(m); });
     var h = '<div class="section"><span class="eyebrow">' + t("curriculum") + '</span><h1>AI-SDLC: Agent &amp; Skill Engineering with Claude Code</h1>' +
-      '<p class="lede">' + esc(t("homeLede")) + '</p>' +
+      '<p class="lede">' + esc((ED.homeLede && (ED.homeLede[lang] || ED.homeLede.en)) || t("homeLede")) + '</p>' + (ED.stack ? '<div class="chips"><span class="chip">' + esc(ED.stack) + '</span></div>' : '') + '' +
       '<div class="stats"><div><b>' + MODULES.length + '</b><span>Modules</span></div><div><b>' + exercises.length + '</b><span>Exercises</span></div><div><b>' +
       files.filter(function (f) { return f.kind === "implementation"; }).length + '</b><span>Repo files</span></div><div><b>' + contracts.length + "</b><span>Agent contracts</span></div></div></div>";
     h += '<div class="section"><h2>' + t("levels") + '</h2><div class="cards">';
@@ -612,13 +616,13 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
       var p = impl[e.f.path] !== undefined ? "starting-files/" + e.x.id + "/" + e.f.path : e.f.path;
       zip.file(p, e.f.content);
     });
-    zip.file("AI-SDLC/STARTER_README.md", "# AI-SDLC starter repo\n\nGenerated from the curriculum SPA (" + MODULES.length + " modules, " + exercises.length + " exercises).\n\n" +
+    zip.file(ED.repo + "STARTER_README.md", "# AI-SDLC starter repo\n\nGenerated from the curriculum SPA (" + MODULES.length + " modules, " + exercises.length + " exercises).\n\n" +
       "Implementation files are at their real paths. Starting files that would overwrite an implementation file are under `starting-files/<exercise-id>/`.\n\n" +
-      "The Java sample app is included only where exercises embed its files; clone the full reference repository for the complete `sample-app/`.\n");
+      "The sample app is included only where exercises embed its files; clone the full reference repository for the complete `" + ED.repo + "sample-app/`.\n");
     btn.textContent = "Building zip…";
     zip.generateAsync({ type: "blob" }).then(function (blob) {
       try {
-        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ai-sdlc-starter.zip";
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ai-sdlc-" + (ED.id || "starter") + "-starter.zip";
         document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
         btn.textContent = t("download");
       } catch (e) { btn.textContent = "Download blocked by this viewer"; }
@@ -672,6 +676,11 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
   document.getElementById("lang-toggle-m").addEventListener("click", function () {
     var next = lang === "hinglish" ? "en" : "hinglish"; store.set(LKEY, next); applyLang(next, true);
   });
+  (function () {
+    var en = document.getElementById("edition-name"); if (en && ED.name) en.textContent = ED.name;
+    var oe = document.getElementById("other-edition");
+    if (oe && ED.other && ED.other.href) { oe.href = ED.other.href; oe.textContent = "Switch to " + ED.other.name; oe.hidden = false; }
+  })();
   if (!I18N.hinglish) document.querySelectorAll(".lang-switch, #lang-toggle-m").forEach(function (e) { e.hidden = true; });
   applyLang(store.get(LKEY) || "en", false);
   route();

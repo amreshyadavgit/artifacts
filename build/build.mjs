@@ -7,11 +7,51 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const STRICT = process.argv.includes("--strict");
+
+// ---- editions: same tooling, separate content, reference repo, and output ----
+const EDITIONS = {
+  java: {
+    id: "java", name: "Java / Spring Boot edition", short: "Spring Boot",
+    content: "content", repo: "AI-SDLC/", outputs: ["dist/index.html", "ai-sdlc-curriculum.html"],
+    title: "AI-SDLC Agent Engineering",
+    stack: "Java 21 · Spring Boot · PostgreSQL · Kubernetes",
+    homeLede: {
+      en: "Build a working, reviewable AI engineering system for a Spring Boot FHIR-lite API: subagents with contracts, skills as tested assets, hooks and permissions as real human gates, and an evaluation harness that tells you when a prompt change made things worse.",
+      hinglish: "Ek Spring Boot FHIR-lite API ke liye ek working, reviewable AI engineering system banao: contracts ke saath subagents, tested assets ki tarah skills, asli human gates ki tarah hooks aur permissions, aur ek evaluation harness jo batata hai ki prompt change ne cheezein kab kharab kar di.",
+    },
+    other: { name: "Frappe edition", href: "ai-sdlc-frappe-curriculum.html" },
+  },
+  frappe: {
+    id: "frappe", name: "Frappe edition", short: "Frappe",
+    content: "content-frappe", repo: "AI-SDLC-frappe/", outputs: ["dist/frappe/index.html", "ai-sdlc-frappe-curriculum.html"],
+    title: "AI-SDLC for Frappe",
+    stack: "Frappe v15 · Python · PostgreSQL 16 · Redis · bench",
+    homeLede: {
+      en: "Build a working, reviewable AI engineering system for a Frappe clinical app: subagents with contracts, skills as tested assets, hooks and permissions as real human gates, and an evaluation harness that tells you when a prompt change made things worse.",
+      hinglish: "Ek Frappe clinical app ke liye ek working, reviewable AI engineering system banao: contracts ke saath subagents, tested assets ki tarah skills, asli human gates ki tarah hooks aur permissions, aur ek evaluation harness jo batata hai ki prompt change ne cheezein kab kharab kar di.",
+    },
+    other: { name: "Java / Spring Boot edition", href: "ai-sdlc-curriculum.html" },
+  },
+};
+const argEd = process.argv.indexOf("--edition");
+const onlyEdition = argEd > 0 ? process.argv[argEd + 1] : null;
+if (onlyEdition && !EDITIONS[onlyEdition]) { console.error(`unknown edition "${onlyEdition}"`); process.exit(1); }
+let failed = false;
+for (const ED of Object.values(EDITIONS)) {
+  if (onlyEdition && ED.id !== onlyEdition) continue;
+  if (!existsSync(join(ROOT, ED.content, "modules"))) { console.log(`SKIP ${ED.id}: no ${ED.content}/modules`); continue; }
+  console.log(`== ${ED.name} (${ED.content} -> ${ED.outputs.join(", ")})`);
+  if (!buildEdition(ED)) failed = true;
+}
+process.exit(failed ? 1 : 0);
+
+function buildEdition(ED) {
 const schema = JSON.parse(readFileSync(join(ROOT, "build/schema.json"), "utf8"));
-const errors = [];
-const warnings = [];
+
 
 // ---- minimal JSON Schema validator (subset used by build/schema.json) ----
+const errors = [];
+const warnings = [];
 function typeOf(v) {
   if (Array.isArray(v)) return "array";
   if (v === null) return "null";
@@ -47,7 +87,7 @@ function validate(s, v, path, out) {
 }
 
 // ---- load modules ----
-const modDir = join(ROOT, "content/modules");
+const modDir = join(ROOT, ED.content, "modules");
 const modules = [];
 for (const name of readdirSync(modDir).filter((f) => f.endsWith(".json")).sort()) {
   const file = join(modDir, name);
@@ -71,7 +111,7 @@ for (const { name, data } of modules) {
     if (exIds.has(x.id)) errors.push(`${name}: duplicate exercise id "${x.id}" (also in ${exIds.get(x.id)})`);
     exIds.set(x.id, name);
     for (const f of [...(x.implementation || []), ...(x.startingFiles || [])]) {
-      if (!f.path.startsWith("AI-SDLC/")) errors.push(`${name}/${x.id}: path "${f.path}" must start with AI-SDLC/`);
+      if (!f.path.startsWith(ED.repo)) errors.push(`${name}/${x.id}: path "${f.path}" must start with ${ED.repo}`);
     }
     for (const f of x.implementation || []) {
       const disk = join(ROOT, f.path);
@@ -97,7 +137,7 @@ const I18N_FIELDS = {
   contract: ["purpose", "inputs", "outputs", "must", "mustNot", "failureConditions", "validation", "handoffFormat", "humanGate", "permissions"],
 };
 const i18n = {};
-const i18nDir = join(ROOT, "content/i18n");
+const i18nDir = join(ROOT, ED.content, "i18n");
 const byId = new Map(modules.map((m) => [m.data.id, m.data]));
 function checkShape(label, base, ov, allowed, sub) {
   if (typeof ov !== "object" || ov === null || Array.isArray(ov)) { errors.push(`${label}: expected object`); return; }
@@ -140,28 +180,31 @@ for (const w of warnings) console.warn(`WARN  ${w}`);
 for (const e of errors) console.error(`ERROR ${e}`);
 if (errors.length || (STRICT && warnings.length)) {
   console.error(`\nBuild failed: ${errors.length} error(s), ${warnings.length} warning(s).`);
-  process.exit(1);
+  return false;
 }
 
 // ---- inline into template ----
 const template = readFileSync(join(ROOT, "src/template.html"), "utf8");
 const MARK = "/*__CURRICULUM_DATA__*/null";
-if (!template.includes(MARK)) { console.error("template marker not found"); process.exit(1); }
-const payload = { builtAt: new Date().toISOString(), modules: modules.map((m) => m.data), i18n };
+if (!template.includes(MARK)) { console.error("template marker not found"); return false; }
+const { content: _c, outputs: _o, ...edition } = ED;
+const payload = { builtAt: new Date().toISOString(), edition, modules: modules.map((m) => m.data), i18n };
 // Escape "<" so no string can close the <script> element; also escape U+2028/9 for older parsers.
 const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
-const html = template.replace(MARK, () => json);
-mkdirSync(join(ROOT, "dist"), { recursive: true });
-writeFileSync(join(ROOT, "dist/index.html"), html);
-// GitHub Pages serves the repo root of main: publish a copy there too.
-writeFileSync(join(ROOT, "ai-sdlc-curriculum.html"), html);
+const html = template.replace(MARK, () => json).replace(/<title>[^<]*<\/title>/, `<title>${ED.title}</title>`);
+for (const out of ED.outputs) {
+  mkdirSync(dirname(join(ROOT, out)), { recursive: true });
+  writeFileSync(join(ROOT, out), html);
+}
 
 // ---- self-containment check: only https CDN references allowed ----
 const refs = [...html.matchAll(/<(?:script|link|img|iframe)\b[^>]*?\s(?:src|href)="([^"]+)"/gi)].map((m) => m[1]);
 const ALLOWED = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)(\/|$)/;
 const bad = refs.filter((r) => !ALLOWED.test(r));
-if (bad.length) { console.error(`Non-CDN resource references in dist/index.html: ${bad.join(", ")}`); process.exit(1); }
+if (bad.length) { console.error(`Non-CDN resource references in ${ED.outputs[0]}: ${bad.join(", ")}`); return false; }
 
 const exCount = modules.reduce((n, m) => n + m.data.exercises.length, 0);
 console.log(`OK  ${modules.length} modules, ${exCount} exercises, ${fileChecks} implementation files verified on disk`);
-console.log(`OK  dist/index.html ${(html.length / 1024).toFixed(0)} KiB, external refs: ${refs.length} (all CDN)`);
+console.log(`OK  ${ED.outputs[0]} ${(html.length / 1024).toFixed(0)} KiB, external refs: ${refs.length} (all CDN)`);
+return true;
+}
