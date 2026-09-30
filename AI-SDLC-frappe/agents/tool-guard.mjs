@@ -90,7 +90,7 @@ export function tokenize(str) {
 // A skill that runs `node ${CLAUDE_SKILL_DIR}/scripts/x.mjs` reaches Bash with the variable already
 // substituted by Claude Code (normally an absolute path). Absolute paths INSIDE the project are
 // rewritten to project-relative form, so one relative entry such as
-// `node .claude/skills/run-tests/scripts/** ...` matches both. Paths outside the project are kept.
+// `python3 .claude/skills/run-tests/scripts/** ...` matches both. Paths outside the project are kept.
 export function normalizeToken(tok, projectDir) {
   if (!projectDir || !path.isAbsolute(tok)) return tok;
   const rel = path.relative(path.resolve(projectDir), path.resolve(tok)).split(path.sep).join('/');
