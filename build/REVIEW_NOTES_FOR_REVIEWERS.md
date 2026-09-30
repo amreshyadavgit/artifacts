@@ -8,3 +8,7 @@
 - W2/W5 unverified: whether frontmatter hooks/preloaded skills apply under `claude --agent`; `permission_denials` subfields.
 - W7: unverified whether frontmatter `hooks` fire when an agent runs as main thread via `claude --agent`; check-handoff hook also registered in entry-point skills; consider registering SubagentStop in settings.json.
 - W7: orchestrator gained `effort`/`maxTurns`; W9's expected output listing 2 orchestrator policy violations may be stale.
+- W9: `run-tests` and `security-review` skills reference `.claude/skills/...` paths that break when packaged into the company-ai plugin (should use `${CLAUDE_SKILL_DIR}` per FACTS §2). Fix in the skills.
+- W9: approval-gates.md has "(verify)" cells for hook `ask` behaviour under dontAsk/bypassPermissions/auto.
+- W9: skill-library validator warns for runtime-only skills lacking skills/<name>/ asset folders (explain-endpoint, run-tests, ticket-intake, feature, bug-fix, incident, requirements, implementation-plan). Decide: add minimal README/CHANGELOG or document exemption.
+- W3: two more real $lastn defects (null effectiveDateTime as latest; duplicate subject ids) documented as D-02/D-03 in KNOWN_DEFECTS.md.
