@@ -192,6 +192,7 @@ ul.criteria { margin: 0; padding-left: 1.2em; display: flex; flex-direction: col
   .testcase { grid-template-columns: minmax(0, 1fr); }
   .testcase > div + div { border-left: 0; border-top: 1px solid var(--line); }
   h1 { font-size: 1.6rem; }
+  .exercise, .contract { scroll-margin-top: 72px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
@@ -345,7 +346,7 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
     h += '<div class="section"><span class="eyebrow">Level ' + m.level + " · " + esc(m.id) + "</span><h1>" + esc(m.title) + '</h1><p class="lede">' + esc(m.summary) + "</p>";
     if ((m.prerequisites || []).length) {
       h += '<div class="chips"><span class="eyebrow" style="align-self:center">Prerequisites</span>' + m.prerequisites.map(function (p) {
-        var pm = findMod(p); return pm ? '<a class="chip" href="#m-' + esc(pm.id) + '">' + esc(pm.title) + "</a>" : '<span class="chip">' + esc(p) + "</span>";
+        var pm = findMod(p); return pm ? '<a class="chip" href="#m-' + esc(pm.id) + '">' + esc(pm.title) + "</a>" : '<span class="chip">' + inline(p) + "</span>";
       }).join("") + "</div>";
     }
     h += "</div>";
