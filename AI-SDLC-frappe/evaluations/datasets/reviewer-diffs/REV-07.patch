@@ -1,0 +1,26 @@
+diff --git a/sample-app/spice_lite/spice_lite/patches.txt b/sample-app/spice_lite/spice_lite/patches.txt
+index b0c3e0e..20520a3 100644
+--- a/sample-app/spice_lite/spice_lite/patches.txt
++++ b/sample-app/spice_lite/spice_lite/patches.txt
+@@ -4,4 +4,4 @@
+ 
+ [post_model_sync]
+ # Patches added in this section will be executed after doctypes are migrated
+-spice_lite.patches.v0_1.backfill_patient_country
++spice_lite.patches.v0_1.backfill_patient_country #2026-10-02
+diff --git a/sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py b/sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py
+index 976aa3c..f462f4f 100644
+--- a/sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py
++++ b/sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py
+@@ -26,9 +26,6 @@ def execute():
+ 			}
+ 		).insert(ignore_permissions=True)
+ 
++	# v0.1.1: also correct patients that were registered with the wrong country
+ 	patient = frappe.qb.DocType("SL Patient")
+-	(
+-		frappe.qb.update(patient)
+-		.set(patient.country, code)
+-		.where(patient.country.isnull() | (patient.country == ""))
+-	).run()
++	(frappe.qb.update(patient).set(patient.country, code)).run()

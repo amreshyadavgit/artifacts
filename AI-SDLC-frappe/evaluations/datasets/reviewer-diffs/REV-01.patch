@@ -1,0 +1,25 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..8b032ed 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -92,6 +92,20 @@ def search_patients(family: str | None = None, identifier: str | None = None):
+ 	return bundle([patient_to_fhir(r) for r in rows])
+ 
+ 
++@frappe.whitelist(methods=["GET"])
++def search_by_given(given: str):
++	"""Partial given-name search for the registration desk (Otieno vs Otiende typos)."""
++	if not frappe.has_permission("SL Patient", "read"):
++		return _forbidden("SL Patient")
++	rows = frappe.db.sql(
++		f"""select {", ".join(PATIENT_FIELDS)} from `tabSL Patient`
++		where first_name like '{given}%' order by last_name, name""",
++		as_dict=True,
++	)
++	log_access("search", "SL Patient", [r.name for r in rows], result_count=len(rows))
++	return bundle([patient_to_fhir(r) for r in rows])
++
++
+ @frappe.whitelist(methods=["POST"])
+ def create_observation(
+ 	patient: str,

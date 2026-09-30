@@ -1,0 +1,21 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..e817b48 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -60,6 +60,16 @@ def get_patient(name: str):
+ 	return patient_to_fhir(doc.as_dict())
+ 
+ 
++@frappe.whitelist(allow_guest=True, methods=["GET"])
++def kiosk_patient(mrn: str):
++	"""Waiting-room kiosk: the patient types their MRN and sees their own record, no login."""
++	name = frappe.db.get_value("SL Patient", {"mrn": (mrn or "").strip()})
++	if not name:
++		return _error(404, "not-found", _("No patient with MRN {0}").format(mrn))
++	doc = frappe.get_doc("SL Patient", name)
++	return patient_to_fhir(doc.as_dict())
++
++
+ @frappe.whitelist(methods=["GET"])
+ def search_patients(family: str | None = None, identifier: str | None = None):
+ 	family = (family or "").strip()

@@ -1,0 +1,23 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..e92f9e8 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -92,6 +92,18 @@ def search_patients(family: str | None = None, identifier: str | None = None):
+ 	return bundle([patient_to_fhir(r) for r in rows])
+ 
+ 
++@frappe.whitelist(methods=["GET"])
++def patient_encounters(patient: str):
++	"""Encounters of one patient, newest first, for the follow-up screen."""
++	rows = frappe.get_all(
++		"SL Encounter",
++		filters={"patient": parse_reference(patient)},
++		fields=["name", "encounter_date", "encounter_type", "status", "practitioner"],
++		order_by="encounter_date desc",
++	)
++	return {"patient": patient, "encounters": rows}
++
++
+ @frappe.whitelist(methods=["POST"])
+ def create_observation(
+ 	patient: str,

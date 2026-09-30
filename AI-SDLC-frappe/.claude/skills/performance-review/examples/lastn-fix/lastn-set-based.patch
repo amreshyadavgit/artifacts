@@ -1,0 +1,136 @@
+--- a/spice_lite/api/fhir.py
++++ b/spice_lite/api/fhir.py
+@@ -31,6 +31,18 @@
+ from spice_lite.audit import log_access
+ 
+ PATIENT_FIELDS = ["name", "mrn", "first_name", "last_name", "gender", "birth_date", "active", "country"]
++OBSERVATION_FIELDS = [
++	"name",
++	"patient",
++	"encounter",
++	"code",
++	"code_display",
++	"status",
++	"effective_datetime",
++	"value",
++	"unit",
++	"replaces",
++]
+ MAX_SEARCH_RESULTS = 50
+ MAX_LASTN_SUBJECTS = 100
+ LIKE_METACHARS = ("%", "_", "\\")
+@@ -151,37 +163,44 @@
+ 	if not frappe.has_permission("SL Observation", "read") or not frappe.has_permission("SL Patient", "read"):
+ 		return _forbidden("SL Observation")
+ 
++	# One permission-aware query validates the subjects: unknown ids and patients the caller
++	# may not read (User Permissions, permission_query_conditions) are dropped here.
++	readable = set(frappe.get_list("SL Patient", filters={"name": ("in", subject_list)}, pluck="name"))
++	patients = [s for s in subject_list if s in readable]  # keep request order
++
+ 	results = []
+-	for s in subject_list:
+-		# TEACHING-DEFECT(perf-n+1): one get_doc + one get_all PER SUBJECT -> 2N queries
+-		# (plus fetching every column and every observation of that patient only to keep
+-		# the first row). With 100 subjects that is 200+ round trips. Because it uses
+-		# frappe.get_all it also skips row-level permission checks on SL Observation.
+-		# Fix: validate subjects with one frappe.get_list("SL Patient", filters={"name": ("in", ...)})
+-		# and fetch observations in ONE permission-aware frappe.get_list with explicit fields,
+-		# then pick the latest per patient in Python (or a window function via frappe.qb).
+-		# See docs/KNOWN_DEFECTS.md. Left in on purpose for the course -- do not "fix" silently.
+-		try:
+-			patient = frappe.get_doc("SL Patient", s)
+-		except frappe.DoesNotExistError:
+-			frappe.clear_messages()
+-			continue
+-		if not frappe.has_permission("SL Patient", "read", doc=patient):
+-			continue
++	if patients:
+ 		# NOT ("is", "set"): on Postgres frappe v15 renders that as `effective_datetime != ''`,
+ 		# which is invalid for a timestamp column (see docs/KNOWN_DEFECTS.md, D-2).
+ 		# A range filter excludes NULLs on both MariaDB and Postgres.
+-		filters = {"patient": patient.name, "effective_datetime": (">", "1900-01-01 00:00:00")}
++		filters = {"patient": ("in", patients), "effective_datetime": (">", "1900-01-01 00:00:00")}
+ 		if code:
+ 			filters["code"] = code
+-		rows = frappe.get_all(
+-			"SL Observation",
+-			filters=filters,
+-			order_by="effective_datetime desc, creation desc",
+-			fields=["*"],
+-		)
+-		if rows:
+-			results.append(observation_to_fhir(rows[0]))
++		# Query 1 (permission-aware): the latest effective_datetime per patient, one row each.
++		latest_at = {
++			r.patient: r.latest
++			for r in frappe.get_list(
++				"SL Observation",
++				filters=filters,
++				fields=["patient", "max(effective_datetime) as latest"],
++				group_by="patient",
++				order_by="patient asc",
++			)
++		}
++		# Query 2 (permission-aware): only the rows at those timestamps, explicit fields.
++		latest = {}
++		if latest_at:
++			rows = frappe.get_list(
++				"SL Observation",
++				filters={**filters, "effective_datetime": ("in", list(set(latest_at.values())))},
++				fields=OBSERVATION_FIELDS,
++				order_by="effective_datetime desc, creation desc",
++			)
++			for row in rows:
++				# another patient's row can share a timestamp; keep this patient's newest only
++				if row.effective_datetime == latest_at.get(row.patient):
++					latest.setdefault(row.patient, row)
++		results = [observation_to_fhir(latest[p]) for p in patients if p in latest]
+ 
+ 	log_access("lastn", "SL Observation", [r["id"] for r in results], result_count=len(results))
+ 	return bundle(results)
+--- a/spice_lite/tests/test_fhir_api.py
++++ b/spice_lite/tests/test_fhir_api.py
+@@ -157,36 +157,18 @@
+ 		self.assertEqual(status, 400)
+ 		self.assertEqual(body["resourceType"], "OperationOutcome")
+ 
+-	def test_lastn_query_count_grows_with_subjects(self):
+-		"""Pins the TEACHING-DEFECT(perf-n+1): SQL queries scale with the number of subjects.
+-
+-		After fixing the N+1, replace this with `with self.assertQueryCount(<small constant>):`
+-		(FrappeTestCase.assertQueryCount asserts "<= count").
+-		"""
+-		subjects = [make_patient().name for _ in range(5)]
++	def test_lastn_query_count_is_constant(self):
++		"""Regression test for TEACHING-DEFECT(perf-n+1): the query count no longer depends on
++		the number of subjects (FrappeTestCase.assertQueryCount asserts "<= count")."""
++		subjects = [make_patient().name for _ in range(20)]
+ 		for s in subjects:
+ 			make_observation(s)
+ 		call(fhir.lastn, subjects=subjects)  # warm meta/permission caches
+ 
+-		def count_queries(n):
+-			executed = []
+-			orig_sql = frappe.db.__class__.sql
+-
+-			def _sql(db, *args, **kwargs):
+-				executed.append(args[0] if args else "")
+-				return orig_sql(db, *args, **kwargs)
+-
+-			frappe.db.__class__.sql = _sql
+-			try:
++		for n in (1, 20):
++			with self.assertQueryCount(6):
+ 				status, body = call(fhir.lastn, subjects=subjects[:n])
+-			finally:
+-				frappe.db.__class__.sql = orig_sql
+ 			self.assertEqual((status, body["total"]), (200, n))
+-			return len(executed)
+-
+-		one, five = count_queries(1), count_queries(5)
+-		# >= 2 extra queries per extra subject: one get_doc + one get_all each
+-		self.assertGreaterEqual(five - one, 2 * 4, f"1 subject: {one} queries, 5 subjects: {five}")
+ 
+ 	def test_framework_defect_is_set_filter_on_datetime(self):
+ 		"""Pins discovered defect D-2 (docs/KNOWN_DEFECTS.md): in frappe v15, a filter

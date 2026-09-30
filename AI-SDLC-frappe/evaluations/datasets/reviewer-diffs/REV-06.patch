@@ -1,0 +1,40 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..8921240 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -60,6 +60,17 @@ def get_patient(name: str):
+ 	return patient_to_fhir(doc.as_dict())
+ 
+ 
++def _patient_filters(family: str, mrn: str | None) -> list:
++	"""get_list filters for search_patients; family is already stripped and wildcard-checked."""
++	filters = []
++	if family:
++		# prefix match so the last_name index can be used
++		filters.append(["last_name", "like", f"{family}%"])
++	if mrn:
++		filters.append(["mrn", "=", mrn])
++	return filters
++
++
+ @frappe.whitelist(methods=["GET"])
+ def search_patients(family: str | None = None, identifier: str | None = None):
+ 	family = (family or "").strip()
+@@ -73,16 +84,9 @@ def search_patients(family: str | None = None, identifier: str | None = None):
+ 	if not frappe.has_permission("SL Patient", "read"):
+ 		return _forbidden("SL Patient")
+ 
+-	filters = []
+-	if family:
+-		# prefix match so the last_name index can be used
+-		filters.append(["last_name", "like", f"{family}%"])
+-	if mrn:
+-		filters.append(["mrn", "=", mrn])
+-
+ 	rows = frappe.get_list(
+ 		"SL Patient",
+-		filters=filters,
++		filters=_patient_filters(family, mrn),
+ 		fields=PATIENT_FIELDS,
+ 		order_by="last_name asc, name asc",
+ 		limit_page_length=MAX_SEARCH_RESULTS,

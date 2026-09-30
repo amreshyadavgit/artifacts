@@ -1,0 +1,20 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..5f30e6a 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -130,8 +130,15 @@ def create_observation(
+ 	except frappe.ValidationError as e:
+ 		frappe.db.rollback(save_point="sl_create_observation")
+ 		frappe.clear_messages()
++		# help support staff find rejected readings
++		mrn = frappe.db.get_value("SL Patient", doc.patient, "mrn")
++		frappe.log_error(
++			title="create_observation rejected",
++			message=f"patient={doc.patient} mrn={mrn} code={code} value={value} {unit}: {e}",
++		)
+ 		return _error(422, "invalid", str(e) or e.__class__.__name__)
+ 
++	frappe.logger("spice_lite.api", with_more_info=True).warning(f"observation {doc.name} created")
+ 	log_access("create", "SL Observation", doc.name)
+ 	frappe.local.response.http_status_code = 201
+ 	return observation_to_fhir(doc.as_dict())

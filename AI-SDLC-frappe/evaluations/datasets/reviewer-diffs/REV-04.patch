@@ -1,0 +1,12 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+index 5d0a779..600cef9 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+@@ -66,6 +66,7 @@
+    "fieldtype": "Link",
+    "label": "Country",
+    "options": "SL Country",
++   "reqd": 1,
+    "search_index": 1
+   }
+  ],
