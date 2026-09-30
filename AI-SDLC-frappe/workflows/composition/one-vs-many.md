@@ -19,8 +19,8 @@ The candidate setup is a single `sdlc-monolith` subagent (starting file of exerc
 
 | agent | body | preloaded skills | start-up total | preloaded |
 |---|---|---|---|---|
-| sdlc-monolith | 197 | 11518 | 14798 | 7 skills |
-| sre | 1757 | 3575 | 8415 | performance-review, production-rca |
+| sdlc-monolith | 197 | 11578 | 14858 | 7 skills |
+| sre | 1757 | 3636 | 8475 | performance-review, production-rca |
 | tester | 1623 | 2395 | 7101 | test-strategy, run-tests |
 | reviewer | 2282 | 1678 | 7043 | code-review |
 | security | 1613 | 2262 | 6958 | security-review |
@@ -28,7 +28,7 @@ The candidate setup is a single `sdlc-monolith` subagent (starting file of exerc
 | developer | 2031 | 998 | 6112 | run-tests |
 | orchestrator | 1625 | 0 | 4709 | none |
 
-Every agent also pays CLAUDE.md with its three imports (about 3083 tokens). The monolith's start-up context is about 1.8 to 3 times that of any specialist, on every launch, including a one-line fix. `node workflows/composition/check-roster-flat.mjs` rejects it: `"sdlc-monolith" omits tools, so it inherits every tool including Agent`.
+Every agent also pays CLAUDE.md with its three imports (about 3083 tokens). The monolith's start-up context is about 1.7 to 3 times that of any specialist, on every launch, including a one-line fix. `node workflows/composition/check-roster-flat.mjs` rejects it: `"sdlc-monolith" omits tools, so it inherits every tool including Agent`.
 
 ## Options considered
 

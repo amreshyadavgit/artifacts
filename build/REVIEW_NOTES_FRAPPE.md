@@ -9,3 +9,4 @@
 - F6: stdio MCP servers inherit the launching shell's environment (secrets exposure).
 - F6: the shared bench audit log contains lines written with `with_more_info=True` by some writer's experiment (synthetic data). Content must not cite that log as clean.
 - F9: skill-library validator warns for runtime-only skills without skills/<name>/ folders (explain-endpoint, run-tests, ticket-intake, feature, bug-fix, incident, requirements, implementation-plan) — R3 adds minimal README/CHANGELOG/tests like the Java edition. Unverified: whether a permission rule starting with `CI=1 ` matches env-prefixed commands.
+- F7: F5's tester description says 'after the reviewer approves' but the workflow runs tester before reviewer — R2 reconcile. Consider registering SubagentStop check-handoff hook in settings.json (R1 decide).
