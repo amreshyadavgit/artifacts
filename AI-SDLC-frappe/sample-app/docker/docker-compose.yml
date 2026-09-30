@@ -1,0 +1,160 @@
+# One country deployment of spice_lite: postgres:16 + redis (cache / queue / socketio) + the
+# frappe_docker process split (gunicorn, socket.io, workers, scheduler, nginx).
+# Adapted from frappe_docker's pwd.yml (github.com/frappe/frappe_docker), switched to Postgres.
+#
+# DEV / TEACHING ONLY: hard-coded passwords, allow_tests on, no TLS.
+#
+#   cd sample-app/docker
+#   docker compose up -d --build          # first run: create-site takes ~1-2 min
+#   docker compose logs -f create-site    # wait for "spice_lite installed"
+#   curl -s http://localhost:8080/api/method/ping
+#   docker compose exec backend bench --site frontend run-tests --app spice_lite
+#   docker compose down -v                # wipe volumes
+#
+# One deployment per country: copy this stack per country (own project name, volumes, DB),
+# e.g.  docker compose -p spice-ke up -d  /  docker compose -p spice-bd up -d  (change the port).
+
+x-app: &app
+  image: spice-lite:dev
+  pull_policy: never   # built locally by the configurator service
+  networks: [spice]
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+
+x-after-config: &after_config
+  depends_on:
+    configurator:
+      condition: service_completed_successfully
+
+services:
+  configurator:
+    <<: *app
+    build:
+      context: ..            # sample-app/
+      dockerfile: docker/Dockerfile
+    restart: "no"
+    entrypoint: [bash, -c]
+    command:
+      - >
+        ls -1 apps > sites/apps.txt;
+        bench set-config -g db_host $$DB_HOST;
+        bench set-config -gp db_port $$DB_PORT;
+        bench set-config -g redis_cache "redis://$$REDIS_CACHE";
+        bench set-config -g redis_queue "redis://$$REDIS_QUEUE";
+        bench set-config -g redis_socketio "redis://$$REDIS_SOCKETIO";
+        bench set-config -gp socketio_port $$SOCKETIO_PORT;
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_CACHE: redis-cache:6379
+      REDIS_QUEUE: redis-queue:6379
+      # frappe v15 no longer reads redis_socketio (realtime pub/sub uses redis_queue, see
+      # apps/frappe/node_utils.js). Kept so the topology matches the production diagram.
+      REDIS_SOCKETIO: redis-socketio:6379
+      SOCKETIO_PORT: "9000"
+
+  create-site:
+    <<: *app
+    restart: "no"
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    entrypoint: [bash, -c]
+    command:
+      - |
+        set -e
+        wait-for-it -t 120 db:5432
+        wait-for-it -t 120 redis-cache:6379
+        wait-for-it -t 120 redis-queue:6379
+        if [ -d sites/frontend ]; then
+          echo "site frontend already exists"
+        else
+          bench new-site frontend --db-type postgres --db-host db --db-port 5432 \
+            --db-root-username postgres --db-root-password "$$POSTGRES_PASSWORD" \
+            --admin-password admin --install-app spice_lite --set-default
+          bench --site frontend set-config allow_tests true
+          echo "spice_lite installed"
+        fi
+    environment:
+      POSTGRES_PASSWORD: postgres
+
+  db:
+    image: postgres:16-alpine
+    networks: [spice]
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  backend:
+    <<: [*app, *after_config]
+    restart: on-failure
+
+  websocket:
+    <<: [*app, *after_config]
+    restart: on-failure
+    command: [node, /home/frappe/frappe-bench/apps/frappe/socketio.js]
+    environment:
+      FRAPPE_REDIS_CACHE: redis://redis-cache:6379
+      FRAPPE_REDIS_QUEUE: redis://redis-queue:6379
+
+  queue-short:
+    <<: [*app, *after_config]
+    restart: on-failure
+    command: [bench, worker, --queue, "short,default"]
+
+  queue-long:
+    <<: [*app, *after_config]
+    restart: on-failure
+    command: [bench, worker, --queue, "long,default,short"]
+
+  scheduler:
+    <<: [*app, *after_config]
+    restart: on-failure
+    command: [bench, schedule]
+
+  frontend:
+    <<: *app
+    restart: on-failure
+    depends_on: [backend, websocket]
+    command: [nginx-entrypoint.sh]
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: frontend
+      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: 120
+      CLIENT_MAX_BODY_SIZE: 50m
+    ports:
+      - "8080:8080"
+
+  redis-cache:
+    image: redis:7-alpine
+    networks: [spice]
+  redis-queue:
+    image: redis:7-alpine
+    networks: [spice]
+    volumes:
+      - redis-queue-data:/data
+  redis-socketio:
+    image: redis:7-alpine
+    networks: [spice]
+
+volumes:
+  db-data:
+  redis-queue-data:
+  sites:
+  logs:
+
+networks:
+  spice:

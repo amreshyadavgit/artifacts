@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "SLO-.#####",
+ "creation": "2026-09-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "patient",
+  "encounter",
+  "code",
+  "code_display",
+  "status",
+  "effective_datetime",
+  "column_break_value",
+  "value",
+  "unit",
+  "replaces"
+ ],
+ "fields": [
+  {
+   "fieldname": "patient",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Patient",
+   "options": "SL Patient",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "encounter",
+   "fieldtype": "Link",
+   "label": "Encounter",
+   "options": "SL Encounter"
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Code (LOINC)",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "code_display",
+   "fieldtype": "Data",
+   "label": "Code Display"
+  },
+  {
+   "default": "registered",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "registered\npreliminary\nfinal\namended"
+  },
+  {
+   "fieldname": "effective_datetime",
+   "fieldtype": "Datetime",
+   "label": "Effective Date/Time"
+  },
+  {
+   "fieldname": "column_break_value",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Float",
+   "label": "Value"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Unit (UCUM)"
+  },
+  {
+   "description": "Required when status is 'amended': the final/amended Observation this one corrects.",
+   "fieldname": "replaces",
+   "fieldtype": "Link",
+   "label": "Replaces (for amended)",
+   "options": "SL Observation",
+   "read_only_depends_on": "eval:!doc.__islocal"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Clinical",
+ "name": "SL Observation",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Clinician",
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

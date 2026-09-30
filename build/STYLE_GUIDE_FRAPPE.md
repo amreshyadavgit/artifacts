@@ -21,7 +21,7 @@ The Frappe edition follows `build/STYLE_GUIDE.md` (tone, depth, tagging, handoff
 - `site_config.json` and `common_site_config.json` hold DB credentials and encryption keys: they are secrets (deny reads in `permissions.deny`).
 - Queries in loops (`frappe.get_doc` / `frappe.get_all` per item) are N+1; indexes via `search_index` or patches; caching via `frappe.cache`.
 - Background work goes through `frappe.enqueue` with explicit `queue`, `timeout`, and idempotency.
-- Tests: Frappe integration tests (class and import path per FRAPPE_FACTS) run with `bench --site test.localhost run-tests --app spice_lite`; pure-Python mapper unit tests run with `python -m pytest spice_lite/tests/unit` (no site needed).
+- Tests: Frappe integration tests (class and import path per FRAPPE_FACTS) run with `bench --site test.localhost run-tests --app spice_lite`; pure-Python mapper unit tests run with `python -m unittest discover -s spice_lite/tests/unit -t .` (no site needed).
 - PHI: never in `frappe.logger`, Error Log, `frappe.throw` messages returned to clients, Version diffs sent to external tools, prompts, or eval data. Synthetic only.
 
 ## 4. Repository layout (Frappe edition)

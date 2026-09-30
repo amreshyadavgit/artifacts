@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bench --site test.localhost run-tests *)",
+      "Bash(bench --site test.localhost list-apps)",
+      "Bash(python -m unittest discover -s spice_lite/tests/unit -t .)",
+      "Bash(git diff *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(node evaluations/harness/run-evals.mjs *)"
+    ],
+    "ask": [
+      "Bash(bench --site * migrate *)",
+      "Bash(bench --site * migrate)",
+      "Bash(bench --site * console *)",
+      "Bash(bench --site * console)",
+      "Bash(bench --site * execute *)",
+      "Bash(bench --site * install-app *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Read(**/site_config.json)",
+      "Read(**/common_site_config.json)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/*.phi.*)",
+      "Bash(bench drop-site *)",
+      "Bash(bench --site * reinstall *)",
+      "Bash(bench --site * reinstall)",
+      "Bash(bench --site * set-admin-password *)",
+      "Bash(git push --force *)",
+      "Bash(rm -rf *)"
+    ],
+    "defaultMode": "default"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secrets.mjs\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

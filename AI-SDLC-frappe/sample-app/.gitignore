@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+
+# Frappe / bench (the bench itself lives outside the repo)
+frappe-bench/
+node_modules/
+*.log
+sites/
+
+# editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

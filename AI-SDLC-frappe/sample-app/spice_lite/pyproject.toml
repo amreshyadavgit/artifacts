@@ -1,0 +1,41 @@
+[project]
+name = "spice_lite"
+authors = [
+    { name = "AI-SDLC Course", email = "course@example.com"}
+]
+description = "Teaching reference app: a tiny FHIR-lite clinical core on Frappe v15"
+requires-python = ">=3.10"
+readme = "README.md"
+license = { file = "license.txt" }
+dynamic = ["version"]
+dependencies = [
+    # "frappe~=15.0.0" # Installed and managed by bench.
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+# These dependencies are only installed when developer mode is enabled
+[tool.bench.dev-dependencies]
+# package_name = "~=1.1.0"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=15.0.0,<16.0.0"
+
+[tool.pytest.ini_options]
+# Plain pytest is ONLY for the site-less unit tests; integration tests run via `bench run-tests`.
+testpaths = ["spice_lite/tests/unit"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "UP", "B", "RUF"]
+ignore = ["E501", "W191", "E101", "F401", "B017"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true
