@@ -6,3 +6,5 @@
 - W6: permissions fragment `AI-SDLC/mcp/permissions.settings-fragment.json` should be merged into `.claude/settings.json` by W9.
 - W2: suggests `Bash(node .claude/skills/run-tests/scripts/summarize-surefire.mjs *)` in permissions.allow.
 - W2/W5 unverified: whether frontmatter hooks/preloaded skills apply under `claude --agent`; `permission_denials` subfields.
+- W7: unverified whether frontmatter `hooks` fire when an agent runs as main thread via `claude --agent`; check-handoff hook also registered in entry-point skills; consider registering SubagentStop in settings.json.
+- W7: orchestrator gained `effort`/`maxTurns`; W9's expected output listing 2 orchestrator policy violations may be stale.
