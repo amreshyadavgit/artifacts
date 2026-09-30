@@ -59,7 +59,7 @@ Frontmatter in `.claude/agents/reviewer.md`: `tools: Read, Grep, Glob, Bash` (an
 - Read `site_config.json` or `common_site_config.json`, directly or through git. [mechanism: `permissions.deny` read rules in `.claude/settings.json`; tool-guard exits 2 on any command naming `site_config.json` and on `git diff --no-index`]
 - Present its verdict as merge approval or write "LGTM", "approved" or "ready to merge". [convention: `context/standards/review-standards.md`; merge approval is a human PR approval]
 - Quote PHI in evidence; synthetic fixtures such as `MRN-000123` only. [convention: `context/security/phi-and-secrets-policy.md`, re-checked by the security agent]
-- Report `TEACHING-DEFECT(perf-n+1)` in `lastn()` or the open defects D-1 and D-3 as new findings. [convention: reviewer golden tasks include a case that checks this]
+- Report `TEACHING-DEFECT(perf-n+1)` in `lastn()` or the open defects (D-1, D-3, D-6 to D-12) as new findings. [convention: reviewer golden tasks include a case that checks this]
 
 ## failureConditions
 

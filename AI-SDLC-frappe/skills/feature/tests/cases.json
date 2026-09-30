@@ -1,0 +1,103 @@
+{
+  "skill": "feature",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --output-format json from AI-SDLC-frappe/ (after input.setup, if any) and compare .result and the files it wrote with expect.",
+    "deterministic": "Run input.command with bash from AI-SDLC-frappe/ and compare the exit code and combined stdout+stderr with expect (exitCode, stdoutContains, stdoutNotContains)."
+  },
+  "cases": [
+    {
+      "id": "fe-01-worked-run-valid",
+      "kind": "deterministic",
+      "title": "Every handoff of the worked feature run passes the handoff validator",
+      "input": {
+        "command": "node .claude/hooks/check-handoff.mjs workflows/examples/feature-observation-code-vocabulary"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "PASS  workflows/examples/feature-observation-code-vocabulary/01-requirements.md",
+          "PASS  workflows/examples/feature-observation-code-vocabulary/09-run-report.md"
+        ],
+        "stdoutNotContains": [
+          "FAIL"
+        ]
+      }
+    },
+    {
+      "id": "fe-02-security-mandatory",
+      "kind": "deterministic",
+      "title": "The developer patch of the worked run makes the security step mandatory (rules 1, 3, 4, 5)",
+      "input": {
+        "command": "node workflows/composition/security-scope.mjs workflows/examples/feature-observation-code-vocabulary/patches/04-developer.patch"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "SECURITY STEP: MANDATORY (rules 1, 3, 4, 5)"
+        ]
+      }
+    },
+    {
+      "id": "fe-03-tests-only-skips",
+      "kind": "deterministic",
+      "title": "A tests-only diff lets the security step be skipped, with the changed path recorded",
+      "input": {
+        "command": "node workflows/composition/security-scope.mjs workflows/examples/feature-observation-code-vocabulary/patches/05-tester.patch"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "SECURITY STEP: SKIP",
+          "test_sl_observation_code.py"
+        ]
+      }
+    },
+    {
+      "id": "fe-04-human-gates",
+      "kind": "deterministic",
+      "title": "The skill cannot start itself and the SubagentStop hook is registered",
+      "input": {
+        "command": "grep -nE '^disable-model-invocation: true|check-handoff.mjs' .claude/skills/feature/SKILL.md | wc -l"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "2\n"
+        ]
+      }
+    },
+    {
+      "id": "fe-05-dirty-tree-refused",
+      "kind": "live",
+      "title": "With an uncommitted change under sample-app the run stops before step 01",
+      "input": {
+        "invoke": "/feature OBS-99 any change",
+        "setup": "echo probe > sample-app/spice_lite/probe.txt  (remove with rm afterwards)"
+      },
+      "expect": {
+        "resultContains": [
+          "commit or stash"
+        ],
+        "filesWrittenUnder": [],
+        "setupNote": "touch an untracked file under sample-app first, remove it afterwards"
+      }
+    },
+    {
+      "id": "fe-06-full-run",
+      "kind": "live",
+      "title": "A full run on the OBS-51 ticket ends at gate G3 with a valid run folder",
+      "input": {
+        "invoke": "/feature OBS-51 Controlled vocabulary for observation codes"
+      },
+      "expect": {
+        "checkHandoffOnRunFolder": "PASS for every file",
+        "securityScope": "SECURITY STEP: MANDATORY",
+        "lastHandoffNext": "human",
+        "activeFile": "none"
+      }
+    }
+  ]
+}

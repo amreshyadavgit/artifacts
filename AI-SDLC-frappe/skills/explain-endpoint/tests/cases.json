@@ -1,0 +1,118 @@
+{
+  "skill": "explain-endpoint",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --output-format json from AI-SDLC-frappe/ (after input.setup, if any) and compare .result and the files it wrote with expect.",
+    "deterministic": "Run input.command with bash from AI-SDLC-frappe/ and compare the exit code and combined stdout+stderr with expect (exitCode, stdoutContains, stdoutNotContains)."
+  },
+  "cases": [
+    {
+      "id": "ee-01-injections-run",
+      "kind": "deterministic",
+      "title": "The three load-time injections run and see 4 whitelisted methods, 4 DocTypes and a commented-out doc_events",
+      "input": {
+        "command": "grep -rn -A1 \"@frappe.whitelist\" sample-app/spice_lite/spice_lite --include=*.py | grep -c whitelist; python3 .claude/skills/explain-endpoint/scripts/doctype_summary.py | wc -l; grep -nE \"^#? ?(doc_events|permission_query_conditions|has_permission|override_whitelisted_methods|override_doctype_class)\" sample-app/spice_lite/spice_lite/hooks.py"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "4\n4\n",
+          "27:# doc_events = {"
+        ]
+      }
+    },
+    {
+      "id": "ee-02-docperm-from-json",
+      "kind": "deterministic",
+      "title": "doctype_summary.py reads the DocPerm rows from the SL Observation JSON",
+      "input": {
+        "command": "python3 .claude/skills/explain-endpoint/scripts/doctype_summary.py | grep '^SL Observation' | grep -o 'perms: .*'"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "perms: System Manager:rwcd; Clinician:rwc"
+        ]
+      }
+    },
+    {
+      "id": "ee-03-bad-app-dir",
+      "kind": "deterministic",
+      "title": "doctype_summary.py exits 2 with a clear message when the app directory does not exist",
+      "input": {
+        "command": "python3 .claude/skills/explain-endpoint/scripts/doctype_summary.py /nonexistent; echo \"exit=$?\""
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "/nonexistent is not a directory",
+          "exit=2"
+        ]
+      }
+    },
+    {
+      "id": "ee-04-read-only-allowlist",
+      "kind": "deterministic",
+      "title": "allowed-tools pre-approves only reads, grep and the summary script: no bench, no edit",
+      "input": {
+        "command": "sed -n '/^allowed-tools:/,/^---/p' .claude/skills/explain-endpoint/SKILL.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "  - Read",
+          "  - Grep",
+          "  - Glob",
+          "Bash(grep *)",
+          "doctype_summary.py)"
+        ],
+        "stdoutNotContains": [
+          "bench",
+          "Edit",
+          "Write"
+        ]
+      }
+    },
+    {
+      "id": "ee-05-lastn",
+      "kind": "live",
+      "title": "Explains lastn with the N+1 statement count and real locations",
+      "input": {
+        "invoke": "/explain-endpoint spice_lite.api.fhir.lastn"
+      },
+      "expect": {
+        "resultContains": [
+          "api/fhir.py:140",
+          "GET",
+          "per subject",
+          "log_access"
+        ],
+        "resultNotContains": [
+          "allow_guest=True"
+        ],
+        "gitStatusSampleAppEmpty": true
+      }
+    },
+    {
+      "id": "ee-06-unknown-method",
+      "kind": "live",
+      "title": "An unknown method lists the four real methods and stops instead of guessing",
+      "input": {
+        "invoke": "/explain-endpoint spice_lite.api.fhir.delete_patient"
+      },
+      "expect": {
+        "resultContains": [
+          "get_patient",
+          "search_patients",
+          "create_observation",
+          "lastn"
+        ],
+        "resultNotContains": [
+          "### SQL"
+        ]
+      }
+    }
+  ]
+}

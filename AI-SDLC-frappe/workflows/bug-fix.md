@@ -54,6 +54,6 @@ flowchart TD
 |---|---|
 | reproduction test passes before the fix (cannot reproduce) | developer returns `blocked` with the quoted `OK` run; orchestrator stops with `needs-human` and asks for more detail; no fix is written |
 | fix makes the regression test pass but breaks another test | developer handles it (three cycles), else `blocked` |
-| the bug is `TEACHING-DEFECT(perf-n+1)` or an open defect (D-1, D-3) | proceed only if the report is explicitly about that defect (CLAUDE.md rule 8); otherwise stop with `needs-human` |
+| the bug is `TEACHING-DEFECT(perf-n+1)` or an open defect (D-1, D-3, D-6 to D-12) | proceed only if the report is explicitly about that defect (CLAUDE.md rule 8); otherwise stop with `needs-human` |
 | the fix needs a data correction on existing sites | the plan adds a patch module in `patches.txt` (`[post_model_sync]`), idempotent, with its own test; never edit an applied patch |
 | invalid handoff, agent error, third rework, rejected migrate prompt | as in [feature-delivery.md](feature-delivery.md) |

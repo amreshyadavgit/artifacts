@@ -147,4 +147,4 @@ the site's Redis cache, so it affects every process on that site until you call 
 | Frappe hooks | `sample-app/spice_lite/spice_lite/hooks.py` |
 | Audit (names and counts only) | `sample-app/spice_lite/spice_lite/audit.py` `log_access` |
 | Tests | `sample-app/spice_lite/spice_lite/tests/test_fhir_api.py`, `clinical/doctype/*/test_*.py`, `tests/unit/test_mappers.py` |
-| Known defects | `sample-app/docs/KNOWN_DEFECTS.md` (T-1 in `lastn`, D-1..D-5) |
+| Known defects | `sample-app/docs/KNOWN_DEFECTS.md` (T-1 in `lastn`; D-1..D-12 with their status) |

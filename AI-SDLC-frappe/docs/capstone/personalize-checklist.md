@@ -66,7 +66,7 @@ node scripts/capstone/verify-system.mjs --bench /opt/spice/frappe-bench --site d
 - [ ] Keep the seven role names. `check-handoff.mjs`, `check-agents.mjs`, `check-roster-flat.mjs` and `verify-system.mjs` all hard-code the roster.
 - [ ] Every `bash-allow` entry that names `test.localhost` names your dev site; `{bench}` follows `SPICE_BENCH_DIR`, so set that in your shell or in `CLAUDE.local.md` instructions rather than editing the guard.
 - [ ] Developer write scope: your app packages (`apps/spice_next_core/spice_next_core/`), protected folders for already-applied patches; tester write scope: test files only.
-- [ ] `.claude/hooks/guard-bench.mjs` has `TEST_SITE = "test.localhost"`: change it to your dev site, then `node .claude/hooks/guard-bench.test.mjs`.
+- [ ] `.claude/hooks/guard-bench.mjs` reads its no-prompt test site from `SPICE_TEST_SITE` (default `test.localhost`): export it in the shell that starts `claude`, or set `"env": {"SPICE_TEST_SITE": "dev.spice.localhost"}` in `.claude/settings.json` (applies once the folder is trusted), instead of editing the hook, then `node .claude/hooks/guard-bench.test.mjs`.
 - [ ] `.claude/settings.json`: `Bash(bench --site dev.spice.localhost run-tests *)` replaces the `test.localhost` allow rules; keep every `ask` and `deny` rule, including `Read(**/site_config.json)` and `Read(**/common_site_config.json)`.
 - [ ] Each `agents/<name>/CONTRACT.md` lists exactly the tools its agent file lists: `node agents/check-agents.mjs`.
 

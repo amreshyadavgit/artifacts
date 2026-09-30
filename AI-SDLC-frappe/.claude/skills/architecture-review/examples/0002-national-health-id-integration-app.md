@@ -40,7 +40,7 @@ The Kenya deployment must record each patient's national health ID (NHID), find 
 | A blank unique value is stored as NULL | `apps/frappe/frappe/model/base_document.py:409-412` `getattr(df, "unique", False) and cstr(value).strip() == ""` / `value = None` |
 | Required apps are installed first | `apps/frappe/frappe/installer.py:287-290` `if app_hooks.required_apps:` / `install_app(required_app, verbose=verbose)` |
 | Fixtures overwrite on install and migrate | `apps/frappe/frappe/utils/fixtures.py:13` `"""Import, overwrite fixtures from` |
-| Dict-valued hooks from all apps are merged | `apps/frappe/frappe/__init__.py:1654-1658` `if isinstance(value, dict):` / `append_hook(target[key], inkey, value[inkey])` |
+| Dict-valued Frappe hooks from all apps are merged | `apps/frappe/frappe/__init__.py:1654-1658` `if isinstance(value, dict):` / `append_hook(target[key], inkey, value[inkey])` |
 | Job arguments are visible in desk | `apps/frappe/frappe/core/doctype/rq_job/rq_job.py:170` `arguments=frappe.as_json(job.kwargs),` |
 | A job can wait for the commit | `apps/frappe/frappe/utils/background_jobs.py:168-169` `if enqueue_after_commit:` / `frappe.db.after_commit.add(enqueue_call)` |
 

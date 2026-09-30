@@ -1,0 +1,88 @@
+{
+  "skill": "bug-fix",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --output-format json from AI-SDLC-frappe/ (after input.setup, if any) and compare .result and the files it wrote with expect.",
+    "deterministic": "Run input.command with bash from AI-SDLC-frappe/ and compare the exit code and combined stdout+stderr with expect (exitCode, stdoutContains, stdoutNotContains)."
+  },
+  "cases": [
+    {
+      "id": "bf-01-local-fix-skips-security",
+      "kind": "deterministic",
+      "title": "A controller-only fix does not trigger the security step",
+      "input": {
+        "command": "node workflows/composition/security-scope.mjs docs/tutorials/level-2/patches/02-final-without-value-regression.patch"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "SECURITY STEP: SKIP",
+          "sl_observation.py"
+        ]
+      }
+    },
+    {
+      "id": "bf-02-api-fix-needs-security",
+      "kind": "deterministic",
+      "title": "A fix inside spice_lite/api/ makes the security step mandatory (rule 2)",
+      "input": {
+        "command": "node workflows/composition/security-scope.mjs docs/tutorials/level-2/patches/02-review-exercise.patch"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "SECURITY STEP: MANDATORY (rules 2, 5)",
+          "api/fhir.py"
+        ]
+      }
+    },
+    {
+      "id": "bf-03-refactor-skips",
+      "kind": "deterministic",
+      "title": "A refactor of the SL Encounter controller is classified SKIP",
+      "input": {
+        "command": "node workflows/composition/security-scope.mjs workflows/composition/fixtures/encounter-refactor.patch"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "SECURITY STEP: SKIP",
+          "sl_encounter.py"
+        ]
+      }
+    },
+    {
+      "id": "bf-04-defect-rule",
+      "kind": "deterministic",
+      "title": "The skill forbids fixing the teaching defect and open defects unless the report is about them",
+      "input": {
+        "command": "grep -c 'TEACHING-DEFECT(perf-n+1)' .claude/skills/bug-fix/SKILL.md; grep -c 'disable-model-invocation: true' .claude/skills/bug-fix/SKILL.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "1\n1\n"
+        ]
+      }
+    },
+    {
+      "id": "bf-05-red-then-green",
+      "kind": "live",
+      "title": "The developer handoff shows the regression test failing before the fix and the suite green after it",
+      "input": {
+        "invoke": "/bug-fix D-1 lastn returns a preliminary observation without a value as valueQuantity.value 0.0"
+      },
+      "expect": {
+        "developerHandoffContains": [
+          "FAILED (",
+          "Ran ",
+          "OK"
+        ],
+        "regressionTestName": "test_d1_",
+        "checkHandoffOnRunFolder": "PASS for every file"
+      }
+    }
+  ]
+}

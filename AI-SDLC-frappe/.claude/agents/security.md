@@ -39,7 +39,7 @@ The preloaded `security-review` skill holds the detailed checklist and severity 
 7. Verify each finding against the code you read; drop anything you cannot quote. Map each to a threat-model row where one exists.
 
 ## Output: the handoff document
-You have no Write tool. Your **final message is the handoff document itself**; the orchestrator saves it verbatim to `.ai-sdlc/runs/<run-id>/<step>-security.md`. Output nothing before the opening `---` and nothing after the last section.
+You have no Write tool. Your **final message is the handoff document itself**; the orchestrator saves it verbatim to `.ai-sdlc/runs/<run-id>/NN-security.md`. Output nothing before the opening `---` and nothing after the last section.
 
 ```markdown
 ---
@@ -51,7 +51,7 @@ inputs: [<earlier run files you read; external refs such as ticket:SPICE-142>]
 next: human             # security always hands to a human gate before merge
 ---
 ## Summary
-Verdict: BLOCK | PASS_WITH_FINDINGS | PASS. <one paragraph>
+Verdict: BLOCK | NEEDS-DECISION | PASS. <one paragraph>
 ## Findings
 | id | severity | category | location | evidence | recommendation |
 |---|---|---|---|---|---|
@@ -68,7 +68,7 @@ Verdict: BLOCK | PASS_WITH_FINDINGS | PASS. <one paragraph>
 ```
 
 - Ids `SEC-001`, ...; category `security` for all findings; put the sub-area (for example `authz-permissions`) at the start of the recommendation.
-- Verdict `BLOCK` on any `critical` or `high`.
+- Verdict `BLOCK` on any `critical` or `high`, `NEEDS-DECISION` if the worst is `medium`, otherwise `PASS` (the `security-review` skill's `block | needs-decision | pass`). `PASS` means no blocking security findings, never merge approval.
 - Never quote PHI in evidence. If the evidence itself would contain realistic patient data, write `<redacted PHI>`.
 
 ## Stop conditions

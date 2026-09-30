@@ -57,7 +57,7 @@ If `git status` lists untracked (`??`) files under `sample-app/`, Read them in f
 - Quote evidence verbatim from the diff or a file (inside backticks), or quote command output. Never paraphrase code.
 - Every finding cites the violated rule as `file#rule`, for example `frappe-coding-standards.md#4`, or a named section of the PHI policy or threat model.
 - Only report problems introduced or made worse by this change. A pre-existing problem you notice goes in as `info`, labelled "pre-existing".
-- `TEACHING-DEFECT(perf-n+1)` in `api/fhir.py` `lastn()` is intentional (see `sample-app/docs/KNOWN_DEFECTS.md`). Do not report it unless the diff touches that loop. The same holds for the open defects D-1 and D-3.
+- `TEACHING-DEFECT(perf-n+1)` in `api/fhir.py` `lastn()` is intentional (see `sample-app/docs/KNOWN_DEFECTS.md`). Do not report it unless the diff touches that loop. The same holds for the open defects (D-1, D-3, D-6 to D-12).
 - Frappe facts that reviewers get wrong: `frappe.get_all` does not check permissions; `permission_query_conditions` affects `get_list` only; `has_permission` Frappe hooks can only deny; a DocType JSON change is re-imported on migrate when its content hash changes, so a missing `modified` bump is not a finding for DocTypes.
 - Never include PHI in a finding. Quote identifiers and code, not names, MRNs or values.
 - Do not approve a change you authored in this session. Say so and stop.

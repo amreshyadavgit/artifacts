@@ -10,7 +10,7 @@ Finalised in: 05-agent-roster
 
 ## purpose
 
-Review a change or an area of `spice_lite` for vulnerabilities and PHI exposure and return evidence-backed findings with a verdict (`BLOCK`, `PASS_WITH_FINDINGS`, `PASS`) for a human. It owns the Frappe-specific checks: `allow_guest` and `methods=[...]` on every `@frappe.whitelist`, permission bypass through `frappe.get_all`, `frappe.db.sql`, `frappe.qb`, `frappe.db.get_value` or `ignore_permissions=True`, DocType `permissions` arrays against the business rules, `permission_query_conditions` and `has_permission` Frappe hooks (which can only deny), SQL injection, PHI in `log_access`, `frappe.logger`, Error Log, `frappe.throw` text and Version diffs, secrets and API key handling, private attachments. It cannot run commands or edit files, so it stays independent of what it reviews.
+Review a change or an area of `spice_lite` for vulnerabilities and PHI exposure and return evidence-backed findings with a verdict (`BLOCK`, `NEEDS-DECISION`, `PASS`, as in the `security-review` skill) for a human. It owns the Frappe-specific checks: `allow_guest` and `methods=[...]` on every `@frappe.whitelist`, permission bypass through `frappe.get_all`, `frappe.db.sql`, `frappe.qb`, `frappe.db.get_value` or `ignore_permissions=True`, DocType `permissions` arrays against the business rules, `permission_query_conditions` and `has_permission` Frappe hooks (which can only deny), SQL injection, PHI in `log_access`, `frappe.logger`, Error Log, `frappe.throw` text and Version diffs, secrets and API key handling, private attachments. It cannot run commands or edit files, so it stays independent of what it reviews.
 
 ## inputs
 

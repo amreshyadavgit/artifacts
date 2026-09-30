@@ -1,0 +1,85 @@
+{
+  "skill": "incident",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --output-format json from AI-SDLC-frappe/ (after input.setup, if any) and compare .result and the files it wrote with expect.",
+    "deterministic": "Run input.command with bash from AI-SDLC-frappe/ and compare the exit code and combined stdout+stderr with expect (exitCode, stdoutContains, stdoutNotContains)."
+  },
+  "cases": [
+    {
+      "id": "in-01-worked-run-valid",
+      "kind": "deterministic",
+      "title": "Every handoff of the worked incident run passes the handoff validator",
+      "input": {
+        "command": "node .claude/hooks/check-handoff.mjs docs/capstone/example-runs/incident-lastn-ward-board"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "PASS  docs/capstone/example-runs/incident-lastn-ward-board/01-incident-brief.md",
+          "PASS  docs/capstone/example-runs/incident-lastn-ward-board/07-postmortem.md"
+        ],
+        "stdoutNotContains": [
+          "FAIL"
+        ]
+      }
+    },
+    {
+      "id": "in-02-worked-run-phi-free",
+      "kind": "deterministic",
+      "title": "The worked incident run contains no PHI-shaped values",
+      "input": {
+        "command": "node scripts/automation/scan-phi.mjs docs/capstone/example-runs/incident-lastn-ward-board/*.md; echo \"exit=$?\""
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "PASS: no PHI-shaped values found",
+          "exit=0"
+        ]
+      }
+    },
+    {
+      "id": "in-03-no-site-changes",
+      "kind": "deterministic",
+      "title": "The skill pre-approves no bench command and cannot start itself",
+      "input": {
+        "command": "sed -n '1,20p' .claude/skills/incident/SKILL.md | grep -E '^(allowed-tools|disable-model-invocation):'"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "allowed-tools: Read Grep Glob Bash(date *)",
+          "disable-model-invocation: true"
+        ],
+        "stdoutNotContains": [
+          "Bash(bench"
+        ]
+      }
+    },
+    {
+      "id": "in-04-lastn-incident",
+      "kind": "live",
+      "title": "The lastn ward-board incident is traced to the N+1 and handed to /bug-fix",
+      "input": {
+        "invoke": "/incident INC-2026-0922-01 ward board slow on ke.spice.example, evidence in .claude/skills/production-rca/examples/INC-2026-0922-lastn"
+      },
+      "expect": {
+        "sreHandoffContains": [
+          "lastn",
+          "N+1"
+        ],
+        "handoverContains": "/bug-fix",
+        "bashCommandsNotRun": [
+          "migrate",
+          "execute",
+          "console",
+          "set-config"
+        ],
+        "checkHandoffOnRunFolder": "PASS for every file"
+      }
+    }
+  ]
+}

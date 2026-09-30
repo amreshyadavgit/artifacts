@@ -116,7 +116,7 @@ without one.
   patch or recording.
 - Every `contextFiles` path must exist; every `mustNotExist` path must not (`harness.test.mjs` checks
   both).
-- Every diff must apply with `git apply --check` from `AI-SDLC-frappe/` to the committed app. If a
+- Every diff must apply with `git apply --check --directory=$(git rev-parse --show-prefix)` from `AI-SDLC-frappe/` to the committed app (the harness test adds `--directory` and fails on "Skipped patch"). If a
   test fails here while you have your own change applied to `sample-app/`, that is why.
 - A case changes only with a `datasetVersion` bump and a note in the pull request, because it changes
   every historical comparison.

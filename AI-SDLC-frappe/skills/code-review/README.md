@@ -19,10 +19,10 @@ Claude Code ships a bundled `/code-review`. Per the skills docs, a project skill
 ## Inputs
 - The diff, captured when the skill loads by the `` !`git diff ...` `` and `` !`git status --short -- sample-app` `` injections, pre-approved by `allowed-tools`.
 - Optional base ref in `$ARGUMENTS`, validated against `^[A-Za-z0-9._/~^-]+$` before use.
-- Untracked files do not appear in `git diff`. After `git apply`, run `git add -N sample-app` so new files show up.
+- Untracked files do not appear in `git diff`. After `git apply --directory=...`, run `git add -N sample-app` so new files show up.
 
 ## Golden patches (measured, not guessed)
-Each patch applies to the unmodified app with `git apply --check`. With each one applied, `bench --site test.localhost run-tests --app spice_lite` was run under the shared bench lock, and a throwaway `FrappeTestCase` probe measured the behaviour the expected findings describe. All six leave CI green (`Ran 46 tests`, `OK`; 47 for the test-only control): the review, not the build, has to catch the five defective ones. `patient-national-id-no-patch.patch` is green only because `run-tests` does not migrate; on a scratch site after `bench migrate` the same suite gives `Ran 27 tests`, `FAILED (errors=14)`, all `MandatoryError: ... national_id`.
+Each patch applies to the unmodified app with `git apply --check --directory="$(git rev-parse --show-prefix)"` from `AI-SDLC-frappe/` (without `--directory`, `git apply` skips the `sample-app/...` paths there and still exits 0). With each one applied, `bench --site test.localhost run-tests --app spice_lite` was run under the shared bench lock, and a throwaway `FrappeTestCase` probe measured the behaviour the expected findings describe. All six leave CI green (`Ran 46 tests`, `OK`; 47 for the test-only control): the review, not the build, has to catch the five defective ones. `patient-national-id-no-patch.patch` is green only because `run-tests` does not migrate; on a scratch site after `bench migrate` the same suite gives `Ran 27 tests`, `FAILED (errors=14)`, all `MandatoryError: ... national_id`.
 
 ## Output contract
 Defined in `.claude/skills/code-review/output-format.md` and enforced by `.claude/skills/code-review/scripts/validate-findings.mjs` (which also rejects a recommendation that suggests switching to `frappe.get_all`).
@@ -42,4 +42,4 @@ for p in .claude/skills/code-review/examples/*.patch skills/code-review/tests/pa
 ## Change policy
 - Any change to `SKILL.md`, `review-checklist.md` or `output-format.md` bumps the version in `CHANGELOG.md`.
 - A new checklist item needs a golden case whose patch triggers it.
-- After any change to `sample-app`, re-run `git apply --check` for every patch and re-measure `testsAfterPatch`.
+- After any change to `sample-app`, re-run the `git apply --check --directory=...` loop above for every patch and re-measure `testsAfterPatch`.

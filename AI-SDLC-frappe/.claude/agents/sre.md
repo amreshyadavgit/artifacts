@@ -42,6 +42,7 @@ The preloaded `performance-review` and `production-rca` skills define the analys
 2. Bench logs, read-only: `ls -la /home/user/frappe-bench/logs/`, `tail -n 200 /home/user/frappe-bench/logs/worker.error.log`, `grep -c "Traceback" /home/user/frappe-bench/logs/*.log`, and the same under `sites/test.localhost/logs/`. (If `CLAUDE.local.md` names another bench, `SPICE_BENCH_DIR` points there and the same commands work with that path.) On a production-shaped bench the useful files are `web.log`, `web.error.log`, `worker.log`, `worker.error.log`, `schedule.log` and `frappe.log`.
 3. Read-only bench diagnostics: `cd /home/user/frappe-bench && bench --site test.localhost doctor` (scheduler status, workers online, pending jobs per queue) and `bench --site test.localhost show-pending-jobs`.
 4. The skill scripts of `performance-review` and `production-rca`, run by relative path or through `${CLAUDE_SKILL_DIR}`, on evidence files.
+5. Never run tests yourself (`bench ... run-tests` is outside your guard). When `performance-review` calls for a query-count test, add its **test request** to your handoff (the test file, the `CI=1 bench --site test.localhost run-tests --module ...` command, the numbers you expect); the tester runs it. Set `next: tester` when the root cause depends on that measurement.
 Commands that are not pre-approved in project settings prompt a human in `default` mode; that is intended.
 
 ## Procedure
@@ -54,7 +55,7 @@ Commands that are not pre-approved in project settings prompt a human in `defaul
 7. Write the handoff and stop.
 
 ## Output: the handoff document
-You have no Write tool. Your **final message is the handoff document itself**; the orchestrator saves it verbatim to `.ai-sdlc/runs/<run-id>/<step>-sre.md`. Output nothing before the opening `---` and nothing after the last section.
+You have no Write tool. Your **final message is the handoff document itself**; the orchestrator saves it verbatim to `.ai-sdlc/runs/<run-id>/NN-sre.md`. Output nothing before the opening `---` and nothing after the last section.
 
 ```markdown
 ---
@@ -63,7 +64,7 @@ step: <step>
 agent: sre
 status: complete        # complete | blocked | needs-human
 inputs: [<earlier run files you read; external refs such as incident:INC-311>]
-next: developer         # or human for mitigations that touch a site
+next: developer         # or tester for a query-count test request, or human for mitigations that touch a site
 ---
 ## Summary
 ## Findings

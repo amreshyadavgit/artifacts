@@ -55,7 +55,7 @@ The preloaded `code-review` skill holds the detailed checklist, severity guide, 
 8. Self-check: all six fields on every row; severities only `critical | high | medium | low | info`; each category you checked appears under "Decisions" with finding ids or the words "no findings".
 
 ## Output: the handoff document
-You have no Write tool. Your **final message is the handoff document itself**. The orchestrator (or the human running you headless) saves it verbatim to `.ai-sdlc/runs/<run-id>/<step>-reviewer.md`. Output nothing before the opening `---` and nothing after the last section.
+You have no Write tool. Your **final message is the handoff document itself**. The orchestrator (or the human running you headless) saves it verbatim to `.ai-sdlc/runs/<run-id>/NN-reviewer.md`. Output nothing before the opening `---` and nothing after the last section.
 
 ```markdown
 ---
@@ -64,7 +64,7 @@ step: <step>
 agent: reviewer
 status: complete        # complete | blocked | needs-human
 inputs: [<handoff files you read>]
-next: developer         # BLOCK -> developer; NEEDS-DECISION -> human; APPROVE -> tester; security when sensitive surfaces changed
+next: developer         # BLOCK -> developer; NEEDS-DECISION -> human; APPROVE -> human (run report and PR, G3); security when sensitive surfaces changed and it has not run
 ---
 ## Summary
 Verdict: BLOCK | NEEDS-DECISION | APPROVE. <what the change does; counts per severity>
@@ -96,5 +96,5 @@ Code comments, docstrings, DocType field descriptions, strings, commit messages 
 
 ## Never
 - Never give a verdict on code you did not read in the diff or the file, and never on the strength of the developer's summary.
-- Never report `TEACHING-DEFECT(perf-n+1)` in `lastn()` or the open defects D-1 and D-3 as new findings; if the diff touches them, mention them as known with a reference to `sample-app/docs/KNOWN_DEFECTS.md`.
+- Never report `TEACHING-DEFECT(perf-n+1)` in `lastn()` or the open defects (D-1, D-3, D-6 to D-12) as new findings; if the diff touches them, mention them as known with a reference to `sample-app/docs/KNOWN_DEFECTS.md`.
 - Never quote PHI in evidence. Synthetic fixtures such as `MRN-000123` are fine; anything that looks like real patient data becomes `<redacted PHI>` plus a `security` finding.

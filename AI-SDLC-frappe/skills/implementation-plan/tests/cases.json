@@ -1,0 +1,94 @@
+{
+  "skill": "implementation-plan",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --output-format json from AI-SDLC-frappe/ (after input.setup, if any) and compare .result and the files it wrote with expect.",
+    "deterministic": "Run input.command with bash from AI-SDLC-frappe/ and compare the exit code and combined stdout+stderr with expect (exitCode, stdoutContains, stdoutNotContains)."
+  },
+  "cases": [
+    {
+      "id": "ip-01-worked-example-valid",
+      "kind": "deterministic",
+      "title": "The worked plan passes the handoff validator",
+      "input": {
+        "command": "node .claude/hooks/check-handoff.mjs workflows/examples/feature-observation-code-vocabulary/03-implementation-plan.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "PASS"
+        ],
+        "stdoutNotContains": [
+          "FAIL"
+        ]
+      }
+    },
+    {
+      "id": "ip-02-gate-g1",
+      "kind": "deterministic",
+      "title": "The worked plan stops at gate G1 and states its security scope",
+      "input": {
+        "command": "grep -E '^status:|Security scope:' workflows/examples/feature-observation-code-vocabulary/03-implementation-plan.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "status: needs-human",
+          "Security scope: YES"
+        ]
+      }
+    },
+    {
+      "id": "ip-03-plan-agrees-with-diff",
+      "kind": "deterministic",
+      "title": "The plan's security scope matches what security-scope.mjs says about the developer's real diff",
+      "input": {
+        "command": "node workflows/composition/security-scope.mjs workflows/examples/feature-observation-code-vocabulary/patches/04-developer.patch | head -1"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "SECURITY STEP: MANDATORY"
+        ]
+      }
+    },
+    {
+      "id": "ip-04-read-only",
+      "kind": "deterministic",
+      "title": "The skill cannot edit files or run commands",
+      "input": {
+        "command": "grep -E '^(allowed-tools|disallowed-tools):' .claude/skills/implementation-plan/SKILL.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "allowed-tools: Read Grep Glob",
+          "disallowed-tools: Edit Bash"
+        ]
+      }
+    },
+    {
+      "id": "ip-05-new-doctype-plan",
+      "kind": "live",
+      "title": "A plan for a new DocType names the Frappe layout, a patches.txt section and the migrate prompt",
+      "input": {
+        "invoke": "/implementation-plan <run-id of a feature run that reached step 02>"
+      },
+      "expect": {
+        "resultContains": [
+          "clinical/doctype/",
+          "patches.txt",
+          "post_model_sync",
+          "bench --site test.localhost migrate",
+          "status: needs-human"
+        ],
+        "resultNotContains": [
+          "IntegrationTestCase",
+          "patches/v0_1/"
+        ]
+      }
+    }
+  ]
+}

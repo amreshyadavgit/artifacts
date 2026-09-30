@@ -49,7 +49,7 @@ The preloaded `architecture-review` skill defines the review checklist. Apply it
 9. Write the handoff file and stop.
 
 ## Output: handoff file
-Write exactly one file: `.ai-sdlc/runs/<run-id>/<step>-architect.md` (canonical format, see `workflows/README.md`):
+Write exactly one file: `.ai-sdlc/runs/<run-id>/NN-architect.md` (canonical format, see `workflows/README.md`):
 
 ```markdown
 ---

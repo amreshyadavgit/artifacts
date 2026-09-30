@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const hook = join(dirname(fileURLToPath(import.meta.url)), "guard-bench.mjs");
+delete process.env.SPICE_TEST_SITE; // cases assume the default test site unless they set env
 const cases = [
   { name: "run-tests on the test site passes through", cmd: "bench --site test.localhost run-tests --app spice_lite", expect: null },
   { name: "run-tests module inside su -c passes through", cmd: "su - frappe -c \"source ~/.spice-lite-bench-env && cd /home/user/frappe-bench && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api\"", expect: null },
@@ -29,17 +30,19 @@ const cases = [
   { name: "DB shell is denied", cmd: "bench --site test.localhost postgres", expect: "deny" },
   { name: "reading site_config.json through the shell is denied", cmd: "cat /home/user/frappe-bench/sites/test.localhost/site_config.json | jq .db_name", expect: "deny" },
   { name: "execute of get_site_config is denied", cmd: "bench --site test.localhost execute frappe.get_site_config", expect: "deny" },
-  { name: "execute of generate_keys is denied", cmd: "bench --site test.localhost execute frappe.core.doctype.user.user.generate_keys --args \"['integration.erpnext@spice.example']\"", expect: "deny" },
+  { name: "execute of generate_keys is denied", cmd: "bench --site test.localhost execute frappe.core.doctype.user.user.generate_keys --args \"['erpnext.integration@spice-lite.test']\"", expect: "deny" },
   { name: "drop-site is denied", cmd: "bench drop-site test.localhost --force", expect: "deny" },
   { name: "--site all with migrate is denied", cmd: "bench --site all migrate", expect: "deny" },
   { name: "deny wins over ask in a compound command", cmd: "bench --site test.localhost migrate && bench --site test.localhost set-admin-password x", expect: "deny" },
   { name: "non-Bash tool is ignored", tool: "Read", cmd: "bench --site test.localhost show-config", expect: null },
+  { name: "SPICE_TEST_SITE moves the no-prompt test site", env: { SPICE_TEST_SITE: "dev.spice.localhost" }, cmd: "bench --site dev.spice.localhost run-tests --app spice_lite", expect: null },
+  { name: "with SPICE_TEST_SITE set, run-tests on test.localhost asks", env: { SPICE_TEST_SITE: "dev.spice.localhost" }, cmd: "bench --site test.localhost run-tests --app spice_lite", expect: "ask" },
 ];
 
 let failed = 0;
 for (const c of cases) {
   const payload = JSON.stringify({ session_id: "test", hook_event_name: "PreToolUse", tool_name: c.tool || "Bash", tool_input: { command: c.cmd, description: "test" }, tool_use_id: "toolu_test", cwd: process.cwd(), permission_mode: "default" });
-  const r = spawnSync(process.execPath, [hook], { input: payload, encoding: "utf8" });
+  const r = spawnSync(process.execPath, [hook], { input: payload, encoding: "utf8", env: { ...process.env, ...(c.env || {}) } });
   let decision = null;
   let reason = "";
   if (r.stdout.trim()) {

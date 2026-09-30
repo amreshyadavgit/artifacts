@@ -418,7 +418,7 @@ INVALID  11 findings {"critical":1,"high":6,"medium":2,"low":2,"info":0} verdict
  "testCases": [
   {"name": "At least six golden cases per skill", "input": "for s in architecture-review code-review test-strategy; do node -e \"console.log(process.argv[1], JSON.parse(require('fs').readFileSync('skills/'+process.argv[1]+'/tests/cases.json','utf8')).cases.length)\" $s; done", "expected": "architecture-review 7\ncode-review 6\ntest-strategy 6"},
   {"name": "Every case has input and expected", "input": "node -e \"for (const s of ['architecture-review','code-review','test-strategy']) for (const c of JSON.parse(require('fs').readFileSync('skills/'+s+'/tests/cases.json','utf8')).cases) if (!c.input || !c.expected) console.log('bad', s, c.id)\"", "expected": "No output."},
-  {"name": "Patch outcomes are recorded from real runs", "input": "Under the bench lock: git apply skills/code-review/tests/patches/observations-get-all-no-permission.patch, run `bench --site test.localhost run-tests --app spice_lite`, then revert", "expected": "Ran 46 tests, OK, matching `testsAfterPatch` of cr-02; the recorded probe says a user without roles got 200 with values from the new method."},
+  {"name": "Patch outcomes are recorded from real runs", "input": "Under the bench lock, from AI-SDLC-frappe/: git apply --directory=$(git rev-parse --show-prefix) skills/code-review/tests/patches/observations-get-all-no-permission.patch, run `bench --site test.localhost run-tests --app spice_lite`, then revert", "expected": "Ran 46 tests, OK, matching `testsAfterPatch` of cr-02; the recorded probe says a user without roles got 200 with values from the new method."},
   {"name": "Schema patch outcome depends on migrate", "input": "Read testsAfterPatch of cr-03 in skills/code-review/tests/cases.json", "expected": "Green on the unmigrated test site (46, OK); after `bench migrate` on a scratch site: Ran 27 tests, FAILED (errors=14), all MandatoryError on national_id."},
   {"name": "Versions agree", "input": "grep -h '^## 1.0.0' skills/{architecture-review,code-review,test-strategy}/CHANGELOG.md | wc -l; grep -h '\"skillVersion\"' skills/{architecture-review,code-review,test-strategy}/tests/cases.json | sort -u", "expected": "3\n  \"skillVersion\": \"1.0.0\","},
   {"name": "Regression is caught although the verdict is unchanged", "input": "Step 3 of exampleInput", "expected": "Exit code 1 with `FAIL case cr-01-front-desk-lookup: no finding matches {...\"allow_guest\"}` while the report still says verdict=BLOCK."},
@@ -426,13 +426,13 @@ INVALID  11 findings {"critical":1,"high":6,"medium":2,"low":2,"info":0} verdict
  "evaluationCriteria": [
   "Each README names owner, consumers (which agent preloads the skill), invocation, whether it writes files, and how to test.",
   "Golden cases cite real files and line-level facts, marked `read:` or `run:`; `run:` facts were measured on the bench (Postgres, and MariaDB where it differs).",
-  "Every patch applies with `git apply --check`, and `testsAfterPatch` records the real suite result, including the migrate caveat for DocType changes.",
+  "Every patch applies with `git apply --check --directory=$(git rev-parse --show-prefix)`, and `testsAfterPatch` records the real suite result, including the migrate caveat for DocType changes.",
   "At least one false-positive control case exists (a clean change that must be approved).",
   "Validators and their tests run with Node 22 and no dependencies, so CI can run them without a model or API key.",
   "CHANGELOG uses semantic versioning with the output-format change rule stated.",
  ],
  "improvements": [
-  "Add a CI job that runs the three validator suites and `git apply --check` for every golden patch on each pull request that touches `sample-app/` or `.claude/skills/`.",
+  "Add a CI job that runs the three validator suites and `git apply --check --directory=...` for every golden patch on each pull request that touches `sample-app/` or `.claude/skills/`.",
   "Automate the apply, run-tests, revert loop as a script that takes the bench lock, so `testsAfterPatch` can be re-measured after every app change.",
   "Wire the live golden runs into the eval harness of module 09-agent-evaluation and track pass rate per skill version.",
  ],
@@ -465,7 +465,7 @@ mod = {
   "The `lastn` plan covers all eight categories and validates with `--repo .`; its performance case uses a query counter, not `assertQueryCount`, on Postgres.",
   "The example tests give `Ran 14 tests`, `OK (skipped=4)` on Postgres and MariaDB, and the four skipped tests fail for the documented reasons when enabled.",
   "Each skill has `skills/<name>/README.md`, `CHANGELOG.md` at 1.0.0 and `tests/cases.json` with at least six cases.",
-  "Every golden patch passes `git apply --check`.",
+  "Every golden patch passes `git apply --check --directory=$(git rev-parse --show-prefix)` from `AI-SDLC-frappe/`.",
   "`git status --short sample-app` prints nothing after the exercises: patches reverted, example tests removed, no scratch site left behind.",
  ],
 }

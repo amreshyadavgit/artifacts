@@ -34,7 +34,7 @@ The runtime/asset split and the reason for it are taught in module 03-skills-arc
 | `architecture-review` | Core change vs country app vs integration app; `doc_events` vs controller; sync vs `frappe.enqueue`; ADR | @example-org/architecture | architect | `/feature` workflow | `skills/architecture-review/` |
 | `code-review` | Diff review against Frappe standards (`get_list` vs `get_all`, `ignore_permissions`, SQL params, whitelist rules, patches, fixtures) | @example-org/spice-core | reviewer | `/code-review` (replaces the bundled one here) | `skills/code-review/` |
 | `test-strategy` | Test plan mapped to `FrappeTestCase`, `run-tests` flags, test records, `frappe.set_user`, pure mapper tests | @example-org/qa | tester | `/feature`, `/bug-fix` | `skills/test-strategy/` |
-| `security-review` | Whitelist and `allow_guest`, permission hooks, `ignore_permissions`, SQL injection, site_config secrets, API keys, PHI in Error Log | @example-org/appsec | security | `/security-review` (replaces the bundled one here) | `skills/security-review/` |
+| `security-review` | Whitelist and `allow_guest`, permission Frappe hooks, `ignore_permissions`, SQL injection, site_config secrets, API keys, PHI in Error Log | @example-org/appsec | security | `/security-review` (replaces the bundled one here) | `skills/security-review/` |
 | `performance-review` | N+1 (the real one in `lastn`), `search_index`, `frappe.cache`, report queries, queue timeouts | @example-org/sre | sre | `/incident`, `/feature` | `skills/performance-review/` |
 | `production-rca` | RCA from gunicorn/worker logs, RQ backlog, `RQ Job`/`Error Log` excerpts, Postgres slow log | @example-org/sre | sre | `/incident` | `skills/production-rca/` |
 | `ticket-intake` | Jira ticket to a PHI-free requirements handoff, ticket text quoted as untrusted | @example-org/spice-core | none | `/ticket-intake` | `skills/ticket-intake/` |
@@ -45,7 +45,7 @@ The runtime/asset split and the reason for it are taught in module 03-skills-arc
 | `implementation-plan` | Implementation plan for the developer agent | @example-org/ai-governance | none | `/implementation-plan` | `skills/implementation-plan/` |
 | `skill-library-check` | Run this policy's validator | @example-org/ai-governance | none | `/company-ai:skill-library-check` | plugin-native (`company-ai/skills/`) |
 
-Current versions come from each `CHANGELOG.md`; the validator prints them. They are not repeated here so this index never goes stale. A runtime skill without a `skills/<name>/` entry is reported as a warning (and fails `--strict`) until its library folder exists.
+Current versions come from each `CHANGELOG.md`; the validator prints them. They are not repeated here so this index never goes stale. A runtime skill without a `skills/<name>/` entry is reported as a warning (and fails `--strict`) until its library folder exists. Every runtime skill in the table above has its library entry (README with Owner and Version, CHANGELOG, `tests/cases.json` with deterministic cases that run without a model and live cases for the harness), so `validate-skill-library.mjs --strict` passes. The workflow skills (`feature`, `bug-fix`, `incident`, `requirements`, `implementation-plan`) test their contract deterministically by running `.claude/hooks/check-handoff.mjs` and `workflows/composition/security-scope.mjs` on the worked runs in `workflows/examples/` and `docs/capstone/example-runs/`.
 
 ## Policy
 

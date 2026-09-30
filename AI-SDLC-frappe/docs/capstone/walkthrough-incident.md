@@ -13,7 +13,7 @@ node scripts/capstone/verify-system.mjs | grep -E "sre|incident"
 
 Look at the sre rows. `agent-skills` says the sre preloads `performance-review` and `production-rca`. `guard-reach` says that `production-rca`'s `build-timeline.mjs` (the PHI guard over the evidence, step 1 of the skill) and `performance-review`'s `count-queries.mjs` pass the sre's real `tool-guard.mjs` in the `${CLAUDE_SKILL_DIR}`-expanded form Claude Code runs them in. If they did not, the `PreToolUse` Claude Code hook would block the first command of the RCA with exit 2. Fix that before an incident, not during one.
 
-The same check reports one WARN on the sre: `performance-review` pre-approves `bench --site test.localhost run-tests *` for its query-count test, and the sre's guard blocks it. In an incident that is fine (the sre counts statement shapes in the Postgres log with `count-queries.mjs` instead), but it means a measured query count always comes from the tester or from the bug-fix run, never from the sre.
+The same check used to report one WARN on the sre: `performance-review` pre-approved `bench --site test.localhost run-tests *` for its query-count test, and the sre's guard blocks it. The skill no longer pre-approves `bench`; it puts a query-count test request in the handoff and the tester runs it. In an incident the sre counts statement shapes in the Postgres log with `count-queries.mjs` instead, so a measured query count always comes from the tester or from the bug-fix run, never from the sre. `verify-system` now reports 0 warnings.
 
 ## 1. Start and enter
 

@@ -42,6 +42,7 @@ Frontmatter in `.claude/agents/sre.md`: `tools: Read, Grep, Glob, Bash`, `disall
 - Separate symptom, trigger, root cause and contributing factors, with at least two hypotheses and the evidence for and against each. [convention: `production-rca` skill structure, checked by the human incident owner]
 - Quote code, DocType JSON lines, or command output excerpts containing document names, job ids and counts only. [convention: `context/security/phi-and-secrets-policy.md`]
 - Explain `TEACHING-DEFECT(perf-n+1)` in `lastn()` with query-count evidence when the question is about `lastn`. [convention: performance golden cases in module 09]
+- Never run tests; hand a query-count test request (test file, command, expected numbers) to the tester in the handoff, with `next: tester` when the root cause depends on it. [mechanism: tool-guard allowlist has no `run-tests` entry; `performance-review` pre-approves no `bench` command]
 - Propose every change to a site (workers, queue config, scheduler, migrate) as a proposal with `next: human`, never as an action. [convention: CLAUDE.md rule 9]
 - End with a handoff whose front matter has `run_id`, `step`, `agent: sre`, `status`, `inputs`, `next`. [mechanism: the Claude Code hook `.claude/hooks/check-handoff.mjs` from module 08]
 
@@ -67,7 +68,7 @@ Frontmatter in `.claude/agents/sre.md`: `tools: Read, Grep, Glob, Bash`, `disall
 
 ## handoffFormat
 
-Returned as the final message and saved by the orchestrator as `.ai-sdlc/runs/<run-id>/NN-sre.md`: Markdown with YAML front matter `run_id`, `step`, `agent: sre`, `status` (`complete | blocked | needs-human`), `inputs` (run files and external refs such as `incident:INC-311`), `next` (`developer`, or `human` for site changes). Sections in order: `## Summary`, `## Findings` (six-column table, ids `SRE-001`...), `## Decisions` (root cause, rejected hypotheses, remediation plan with the proposed patch), `## Open questions`, `## Artifacts` ("none (read-only agent)").
+Returned as the final message and saved by the orchestrator as `.ai-sdlc/runs/<run-id>/NN-sre.md`: Markdown with YAML front matter `run_id`, `step`, `agent: sre`, `status` (`complete | blocked | needs-human`), `inputs` (run files and external refs such as `incident:INC-311`), `next` (`developer`, `tester` for a query-count test request, or `human` for site changes). Sections in order: `## Summary`, `## Findings` (six-column table, ids `SRE-001`...), `## Decisions` (root cause, rejected hypotheses, remediation plan with the proposed patch), `## Open questions`, `## Artifacts` ("none (read-only agent)").
 
 ## humanGate
 

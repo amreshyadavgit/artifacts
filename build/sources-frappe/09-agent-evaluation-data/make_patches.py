@@ -1,6 +1,6 @@
 # Builds AI-SDLC-frappe/evaluations/datasets/reviewer-diffs/REV-0N.patch from the committed spice_lite.
 # Usage: python3 make_patches.py <scratch-dir>   (the scratch dir gets a throwaway git repo; the real
-# sample-app is never touched). Each patch must then pass `git apply --check` from AI-SDLC-frappe/.
+# sample-app is never touched). Each patch must then pass `git apply --check --directory=$(git rev-parse --show-prefix)` from AI-SDLC-frappe/.
 import pathlib, subprocess, sys, shutil
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]

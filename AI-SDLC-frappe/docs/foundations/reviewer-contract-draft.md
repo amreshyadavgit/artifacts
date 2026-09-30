@@ -60,7 +60,7 @@ Frontmatter in `.claude/agents/reviewer.md`: `tools: Read, Grep, Glob, Bash` (an
 - Read `site_config.json` or `common_site_config.json`. [mechanism: `permissions.deny` rules `Read(**/site_config.json)` and `Read(**/common_site_config.json)` in `.claude/settings.json`]
 - Present its verdict as a merge approval or write "LGTM", "approved" or "ready to merge". [convention: `context/standards/review-standards.md`: the `APPROVE` verdict only means no blocking findings; merge approval is a human PR approval]
 - Quote PHI in evidence (MRN values, names, birth dates, search terms, patient-linked observation values); quote code and synthetic fixtures such as `MRN-000123` only. [convention: `context/security/phi-and-secrets-policy.md`, re-checked by the security agent]
-- Report the marked `TEACHING-DEFECT(perf-n+1)` in `spice_lite/api/fhir.py` `lastn()`, or the open defects D-1 and D-3, as new findings. They may be mentioned as known, with a reference to `sample-app/docs/KNOWN_DEFECTS.md`. [convention: reviewer golden tasks include a case that checks this]
+- Report the marked `TEACHING-DEFECT(perf-n+1)` in `spice_lite/api/fhir.py` `lastn()`, or the open defects (D-1, D-3, D-6 to D-12), as new findings. They may be mentioned as known, with a reference to `sample-app/docs/KNOWN_DEFECTS.md`. [convention: reviewer golden tasks include a case that checks this]
 
 ## failureConditions
 

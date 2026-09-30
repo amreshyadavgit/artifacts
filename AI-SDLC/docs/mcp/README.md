@@ -45,7 +45,7 @@ Details and the permission rules: [permissions.md](permissions.md). When to reac
 ## The local fhir-readonly server
 
 - Zero dependencies, Node 22. Newline-delimited JSON-RPC 2.0 over stdin/stdout; logs to stderr only.
-- **Dual-era.** It answers the legacy `initialize` / `notifications/initialized` handshake (what Claude Code uses for stdio servers by default) and the 2026-07-28 stateless style (`server/discover`, per-request `_meta["io.modelcontextprotocol/protocolVersion"]`, `resultType`, `ttlMs`/`cacheScope` on list results, error `-32022` for an unsupported version).
+- **Dual-era.** It answers the legacy `initialize` / `notifications/initialized` handshake (what the docs say Claude Code uses for stdio servers unless `MCP_PROTOCOL_NEGOTIATION=auto` or a feature flag turns probing on) and the 2026-07-28 stateless style (`server/discover`, per-request `_meta["io.modelcontextprotocol/protocolVersion"]`, `resultType`, `ttlMs`/`cacheScope` on list results, error `-32022` for an unsupported version).
 - Four tools, all `readOnlyHint: true`, all with `additionalProperties: false`: `get_schema` (parsed from the real Flyway migrations), `count_observations_by_code` (groups under 5 reported as `<5`), `list_observation_ids`, `explain_query_plan` (named fixture plans only; no SQL input).
 - Any argument that looks like a PHI selector or raw SQL (`sql`, `fields`, `mrn`, `name`, ...) is refused with `isError: true`. Every result passes `assertNoPhi()` before it is written.
 
@@ -56,4 +56,4 @@ node mcp/fhir-readonly-server/test-client.mjs            # 23/23 checks passed
 MCP_PROTOCOL_NEGOTIATION=auto claude mcp get fhir-readonly   # v2 runtime probes stdio with server/discover
 ```
 
-Both eras were checked against the real Claude Code 2.1.285 client in this container: the default connection sent `initialize` with `protocolVersion: "2025-11-25"`; with `MCP_PROTOCOL_NEGOTIATION=auto` it sent `server/discover` first and then modern `tools/list`. An early version of the server omitted `ttlMs`/`cacheScope` and Claude Code reported `Connected · tools fetch failed`, which is how we learned those fields are required in 2026-07-28.
+Both eras were checked against the real Claude Code 2.1.285 client in this container. With a clean config and no variable it sent `initialize` with `protocolVersion: "2025-11-25"` (the documented default for stdio); with `MCP_PROTOCOL_NEGOTIATION=auto` it sent `server/discover` first and then modern `tools/list`; with `=legacy` it sent `initialize`. With the container's cached feature flags and no variable, the same binary sent `server/discover` first: a feature flag can switch stdio probing on, so set the variable explicitly when the era matters. An early version of the server omitted `ttlMs`/`cacheScope` and Claude Code reported `Connected · tools fetch failed`, which is how we learned those fields are required in 2026-07-28.

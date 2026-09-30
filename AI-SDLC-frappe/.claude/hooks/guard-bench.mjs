@@ -16,7 +16,7 @@
 //          (drop-site, reinstall, restore, trim-*), weakens access (set-password, add-system-manager,
 //          browse, ngrok), or targets `--site all` with a write command.
 //   ask  : changes schema, data or site config (migrate, console, execute, install-app, run-patch,
-//          set-config, export-fixtures, backup, ...), run-tests on a site other than test.localhost,
+//          set-config, export-fixtures, backup, ...), run-tests on a site other than TEST_SITE (test.localhost),
 //          bench-level changes (update, get-app, setup, new-site), and any unknown subcommand.
 //   none : read-only or allow-listed commands (run-tests on test.localhost, list-apps, version, ...),
 //          so the normal permission rules decide.
@@ -24,7 +24,9 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-export const TEST_SITE = "test.localhost";
+// The test site agents may run tests on without a prompt. Override with SPICE_TEST_SITE (for
+// example in the settings `env` block) when your bench uses another test site name.
+export const TEST_SITE = process.env.SPICE_TEST_SITE || "test.localhost";
 
 const DENY = {
   "show-config": "prints site_config.json (db_password, encryption_key) to stdout",

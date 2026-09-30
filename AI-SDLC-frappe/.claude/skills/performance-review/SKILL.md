@@ -3,7 +3,7 @@ name: performance-review
 description: Performance review of the spice_lite Frappe app or a diff covering SQL statements per request, indexes and search_index, N+1 loops over frappe.get_doc/get_all, frappe.cache, latency, concurrency (gunicorn sync workers, RQ queues and timeouts), memory, CPU and network. Measures statement counts with a query-count test and a zero-dependency log parser, proposes set-based permission-aware fixes, and proves them with assertQueryCount.
 when_to_use: When a whitelisted method is slow or its latency grows with input size, before merging a change that adds a query inside a loop, a list endpoint, a report or a frappe.enqueue job, or when an RCA points at the database, gunicorn workers or an RQ queue.
 argument-hint: "[diff | path | method]"
-allowed-tools: Read Grep Glob Bash(git diff *) Bash(bench --site test.localhost run-tests *) Bash(node ${CLAUDE_SKILL_DIR}/scripts/count-queries.mjs *)
+allowed-tools: Read Grep Glob Bash(git diff *) Bash(node ${CLAUDE_SKILL_DIR}/scripts/count-queries.mjs *)
 ---
 
 # Performance review (measure, then fix)
@@ -24,8 +24,8 @@ Use [checklist.md](checklist.md). Cover all nine areas: `queries`, `indexes`, `n
 ## 3. Measure statements per request
 For any method that returns a collection, count SQL statements for a small and a large input. A constant count is fine; a count that grows with the input is an N+1.
 
-1. **Query-count test** (preferred; it becomes the regression test). [examples/lastn-fix/test_lastn_query_count.py](examples/lastn-fix/test_lastn_query_count.py) wraps `frappe.db.sql`, prints `LASTN_QUERY_COUNT subjects=N queries=Q rows_returned_by_sql=R` for 1, 20 and 100 subjects, and asserts `with self.assertQueryCount(6)`. Copy it into `sample-app/spice_lite/spice_lite/tests/`, run `bench --site test.localhost run-tests --module spice_lite.tests.test_lastn_query_count`, delete it. The proof is the test's own counter around `frappe.db.sql`, not Frappe's helper: on Postgres, `FrappeTestCase.assertQueryCount` crashes in Frappe v15 with `TypeError: sequence item 0: expected str instance, LazyDecode found` even when the count is under the limit (`sample-app/docs/KNOWN_DEFECTS.md` D-10). The file also carries `PostgresQueryCountMixin`, which makes `assertQueryCount` usable as a second check.
-2. **Statement log plus the helper.** The test prints every statement of the 20-subject call between `LASTN_BEGIN` and `LASTN_END`. Save the output, then:
+1. **Query-count test** (preferred; it becomes the regression test). [examples/lastn-fix/test_lastn_query_count.py](examples/lastn-fix/test_lastn_query_count.py) wraps `frappe.db.sql`, prints `LASTN_QUERY_COUNT subjects=N queries=Q rows_returned_by_sql=R` for 1, 20 and 100 subjects, and asserts `with self.assertQueryCount(6)`. This skill never runs it itself (it has no Bash pre-approval for `bench`, and the sre agent that preloads it is read-only). Put a **query-count test request** in your handoff instead: the test file to copy into `sample-app/spice_lite/spice_lite/tests/`, the command `CI=1 bench --site test.localhost run-tests --module spice_lite.tests.test_lastn_query_count`, and the numbers you expect. The tester agent (or a human) copies it, runs it, reports the `LASTN_QUERY_COUNT` lines and deletes it. The proof is the test's own counter around `frappe.db.sql`, not Frappe's helper: on Postgres, `FrappeTestCase.assertQueryCount` crashes in Frappe v15 with `TypeError: sequence item 0: expected str instance, LazyDecode found` even when the count is under the limit (`sample-app/docs/KNOWN_DEFECTS.md` D-10). The file also carries `PostgresQueryCountMixin`, which makes `assertQueryCount` usable as a second check.
+2. **Statement log plus the helper.** The test prints every statement of the 20-subject call between `LASTN_BEGIN` and `LASTN_END`. When the tester's saved output (or a Postgres log from an evidence pack) is available, run:
    ```bash
    node ${CLAUDE_SKILL_DIR}/scripts/count-queries.mjs /tmp/lastn.out --from LASTN_BEGIN --to LASTN_END
    ```
@@ -62,6 +62,9 @@ A Markdown section in the handoff format of `workflows/README.md`:
 
 ## Measurements
 | scenario | statements | rows returned | how measured |
+
+## Test request (for the tester)
+Test file, `CI=1 bench --site test.localhost run-tests --module ...` command, expected `LASTN_QUERY_COUNT` numbers.
 
 ## Proposed fix
 Patch path, the test that proves it, and the command to run.

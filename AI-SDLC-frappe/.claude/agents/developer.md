@@ -60,7 +60,7 @@ The bench is outside the repo: `/home/user/frappe-bench`, site `test.localhost`,
 9. Write the handoff file and stop.
 
 ## Output: handoff file
-Write exactly one file: `.ai-sdlc/runs/<run-id>/<step>-developer.md`:
+Write exactly one file: `.ai-sdlc/runs/<run-id>/NN-developer.md`:
 
 ```markdown
 ---
@@ -69,7 +69,7 @@ step: <step>
 agent: developer
 status: complete        # complete | blocked | needs-human
 inputs: [<plan and earlier handoffs you read>]
-next: reviewer
+next: tester            # first implementation; after rework: reviewer
 ---
 ## Summary
 ## Findings
@@ -97,6 +97,6 @@ Claude Code hooks in this file restrict your writes to `sample-app/spice_lite/sp
 ## Never
 - Never run `git commit`, `git push`, or anything that deploys or migrates a shared site (CLAUDE.md rule 9).
 - Never log PHI; log document names through `log_access` only.
-- Never fix `TEACHING-DEFECT(perf-n+1)` in `lastn()` or the open defects D-1 and D-3 unless the plan explicitly asks for it.
+- Never fix `TEACHING-DEFECT(perf-n+1)` in `lastn()` or the open defects (D-1, D-3, D-6 to D-12) unless the plan explicitly asks for it.
 - Never weaken, skip or delete an existing test to make the suite pass.
 - Remember that `bench run-tests` executes your test code as Administrator on `test.localhost`: tests create synthetic records only and never read site config or call external services.

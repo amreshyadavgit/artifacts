@@ -498,7 +498,7 @@ rev = {
  "suite": "reviewer",
  "datasetVersion": "1.0.0",
  "agent": "reviewer",
- "description": "8 golden review tasks. Each case ships a unified diff (evaluations/datasets/reviewer-diffs/<id>.patch) that applies cleanly to AI-SDLC-frappe/sample-app with `git apply --check`. The defects exist only in the patch; spice_lite itself stays unchanged. REV-06 is a behaviour-preserving refactor (the API tests pass with it applied) used to measure false positives.",
+ "description": "8 golden review tasks. Each case ships a unified diff (evaluations/datasets/reviewer-diffs/<id>.patch) that applies cleanly to AI-SDLC-frappe/sample-app with `git apply --check --directory=$(git rev-parse --show-prefix)` from AI-SDLC-frappe/. The defects exist only in the patch; spice_lite itself stays unchanged. REV-06 is a behaviour-preserving refactor (the API tests pass with it applied) used to measure false positives.",
  "promptTemplate": "Evaluation run {{id}} (run_id eval-{{id}}, step 04). Do not create or edit any file, and do not apply the patch: return your complete handoff as your final message.\n\nReview this diff against AI-SDLC-frappe/sample-app/spice_lite. You may read the surrounding files. Context: {{requirement}}\n\nRelevant files: {{contextFiles}}.\n\n```diff\n{{diff}}\n```",
  "defaults": {"budget": {"maxTurns": 8, "maxCostUsd": 0.35}, "minRecall": 0.75, "expectedStatus": ["complete", "needs-human"]},
  "globalForbiddenClaims": [G_ORM, G_SQLA, G_GETALL, G_ITC],

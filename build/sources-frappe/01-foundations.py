@@ -154,7 +154,7 @@ This course's design decision built on those facts:
 - The **orchestrator** runs as the main thread (`claude --agent orchestrator`, or the `/feature` skill in the main session). It is the only place delegation happens.
 - Roster agents (`architect`, `developer`, `reviewer`, `tester`, `security`, `sre`) do **not** list `Agent` in `tools`. They run at depth 1, so every delegation is visible in one place and every handoff is a file you can audit.
 
-On a Frappe change the flat chain has a concrete payoff. A feature that touches `sl_observation.json`, the controller, a patch and the tests produces, in order, a developer handoff, a reviewer handoff whose `next` is `security` because the `permissions` array changed, and a tester handoff with the `bench --site test.localhost run-tests` result. A human reads three files and decides; nobody has to reconstruct which nested agent ran `migrate`, because no agent can.
+On a Frappe change the flat chain has a concrete payoff. A feature that touches `sl_observation.json`, the controller, a patch and the tests produces, in the order of `workflows/feature-delivery.md`, a developer handoff, a tester handoff with the `bench --site test.localhost run-tests` result and a security handoff (mandatory because the `permissions` array changed), then a reviewer handoff. A human reads four files and decides; nobody has to reconstruct which nested agent ran `migrate`, because no agent can.
 
 For the anatomy that means element 12 (handoffs) and element 2 (boundaries) meet: leaving `Agent` out of `tools` is a mechanism that keeps the handoff chain linear. The reviewer draft's `mustNot` records it as exactly that."""}
  ],

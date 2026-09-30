@@ -38,4 +38,4 @@ Run id: `<today>-bug-<slug>`. Read `workflows/bug-fix.md` and `workflows/README.
 | next | `NN-reviewer.md` | reviewer | confirms the regression test failed before the fix (evidence in 04) |
 | last | `NN-run-report.md` | you | overwrite `.ai-sdlc/runs/.active` with `none` |
 
-Do not fix `TEACHING-DEFECT(perf-n+1)` or the open defects D-1 and D-3 unless the bug report is explicitly about them (CLAUDE.md rule 8).
+Do not fix `TEACHING-DEFECT(perf-n+1)` or the open defects (D-1, D-3, D-6 to D-12) unless the bug report is explicitly about them (CLAUDE.md rule 8).

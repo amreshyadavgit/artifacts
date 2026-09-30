@@ -1,0 +1,92 @@
+{
+  "skill": "requirements",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --output-format json from AI-SDLC-frappe/ (after input.setup, if any) and compare .result and the files it wrote with expect.",
+    "deterministic": "Run input.command with bash from AI-SDLC-frappe/ and compare the exit code and combined stdout+stderr with expect (exitCode, stdoutContains, stdoutNotContains)."
+  },
+  "cases": [
+    {
+      "id": "rq-01-worked-example-valid",
+      "kind": "deterministic",
+      "title": "The worked requirements handoff passes the handoff validator",
+      "input": {
+        "command": "node .claude/hooks/check-handoff.mjs workflows/examples/feature-observation-code-vocabulary/01-requirements.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "PASS"
+        ],
+        "stdoutNotContains": [
+          "FAIL"
+        ]
+      }
+    },
+    {
+      "id": "rq-02-worked-example-phi-free",
+      "kind": "deterministic",
+      "title": "The worked requirements handoff has no PHI-shaped values",
+      "input": {
+        "command": "node scripts/automation/scan-phi.mjs workflows/examples/feature-observation-code-vocabulary/01-requirements.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "PASS: no PHI-shaped values found"
+        ]
+      }
+    },
+    {
+      "id": "rq-03-read-only",
+      "kind": "deterministic",
+      "title": "The skill cannot edit files or run commands",
+      "input": {
+        "command": "grep -E '^(allowed-tools|disallowed-tools):' .claude/skills/requirements/SKILL.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "allowed-tools: Read Grep Glob",
+          "disallowed-tools: Edit Bash"
+        ]
+      }
+    },
+    {
+      "id": "rq-04-acceptance-criteria-ids",
+      "kind": "deterministic",
+      "title": "The worked example numbers its acceptance criteria AC-1 upwards",
+      "input": {
+        "command": "grep -cE '^\\| AC-[0-9]+ ' workflows/examples/feature-observation-code-vocabulary/01-requirements.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "7\n"
+        ]
+      }
+    },
+    {
+      "id": "rq-05-permission-path",
+      "kind": "live",
+      "title": "Acceptance criteria always include the norole user and the OperationOutcome error path",
+      "input": {
+        "invoke": "/requirements OBS-51 controlled vocabulary for observation codes"
+      },
+      "expect": {
+        "resultContains": [
+          "AC-1",
+          "norole@spice-lite.test",
+          "OperationOutcome",
+          "bench migrate"
+        ],
+        "resultNotContains": [
+          "MRN-2",
+          "Kamau"
+        ]
+      }
+    }
+  ]
+}

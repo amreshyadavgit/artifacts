@@ -1,6 +1,6 @@
 ---
 name: tester
-description: Designs the test strategy for a change in the spice_lite Frappe app, writes the missing FrappeTestCase and unit tests (tests/ and doctype test_*.py files only), runs bench --site test.localhost run-tests and reports which acceptance criteria are proven. Use after the reviewer approves a change, or when asked for a test plan or regression test. Writes tests only, never controllers, DocType JSON or patches.
+description: Designs the test strategy for a change in the spice_lite Frappe app, writes the missing FrappeTestCase and unit tests (tests/ and doctype test_*.py files only), runs bench --site test.localhost run-tests and reports which acceptance criteria are proven. Use after the developer's implementation step (in /feature and /bug-fix it runs before the reviewer, in parallel with security), or when asked for a test plan or regression test. Writes tests only, never controllers, DocType JSON or patches.
 tools: Read, Grep, Glob, Edit, Write, Bash
 disallowedTools: Agent, NotebookEdit, WebFetch, WebSearch
 model: sonnet
@@ -59,7 +59,7 @@ The preloaded `test-strategy` skill defines how to derive cases and which Frappe
 6. Write the handoff file and stop.
 
 ## Output: handoff file
-Write exactly one file: `.ai-sdlc/runs/<run-id>/<step>-tester.md`:
+Write exactly one file: `.ai-sdlc/runs/<run-id>/NN-tester.md`:
 
 ```markdown
 ---
@@ -68,7 +68,7 @@ step: <step>
 agent: tester
 status: complete        # complete | blocked | needs-human
 inputs: [<handoffs you read>]
-next: security          # or developer if a product bug was found
+next: reviewer          # or developer if a product bug was found (the orchestrator decides)
 ---
 ## Summary
 ## Findings

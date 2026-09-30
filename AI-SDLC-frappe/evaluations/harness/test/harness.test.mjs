@@ -191,9 +191,14 @@ test("datasets: 20 architecture and >= 8 reviewer cases, well-formed and grounde
 });
 
 test("reviewer diffs apply cleanly to sample-app/spice_lite", { skip: spawnSync("git", ["--version"]).status !== 0 }, () => {
+  // Plain `git apply` from a subdirectory of a larger repository skips every path outside it and
+  // still exits 0, so pass --directory=<prefix> and fail on "Skipped patch".
+  const prefix = spawnSync("git", ["rev-parse", "--show-prefix"], { cwd: ROOT, encoding: "utf8" }).stdout.trim();
   for (const c of loadSuites("reviewer")[0].cases) {
-    const p = spawnSync("git", ["apply", "--check", c.diff], { cwd: ROOT, encoding: "utf8" });
+    const args = ["apply", "--check", "-v", ...(prefix ? [`--directory=${prefix}`] : []), c.diff];
+    const p = spawnSync("git", args, { cwd: ROOT, encoding: "utf8" });
     assert.equal(p.status, 0, `${c.diff}: ${p.stderr}`);
+    assert.ok(!/Skipped patch/.test(p.stderr + p.stdout), `${c.diff}: git apply skipped the patch`);
   }
 });
 

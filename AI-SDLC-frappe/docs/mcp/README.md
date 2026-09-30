@@ -56,10 +56,11 @@ The second works because `enabledMcpjsonServers` came from `--settings`, a sourc
 
 | Setting | First message Claude Code sent |
 |---|---|
-| none (this container) | `server/discover` with `_meta["io.modelcontextprotocol/protocolVersion"] = "2026-07-28"`, then modern `tools/list` |
-| `MCP_PROTOCOL_NEGOTIATION=auto` | same |
+| none, clean config (no cached feature flags) | `initialize` with `protocolVersion: "2025-11-25"`, then `notifications/initialized`, then `tools/list` |
+| none, this container's cached feature flags | `server/discover` with `_meta["io.modelcontextprotocol/protocolVersion"] = "2026-07-28"` |
+| `MCP_PROTOCOL_NEGOTIATION=auto` | `server/discover`; a server that does not answer it gets `initialize` next |
 | `MCP_PROTOCOL_NEGOTIATION=legacy` | `initialize` with `protocolVersion: "2025-11-25"`, then `notifications/initialized`, then `tools/list` |
 
-The Claude Code docs describe stdio probing as opt-in (`auto`), so the default may differ with your version or settings. Write servers that answer both, as this one does, and test both (`test-client.mjs` does).
+The Claude Code docs (mcp.md, env-vars.md) say the v2 client runtime probes HTTP servers by default and stdio servers only with `MCP_PROTOCOL_NEGOTIATION=auto`; `legacy` skips the probe for every server. The clean-config run matches that. The second row shows a feature flag Claude Code fetches switching stdio probing on for an account, so the default can change without a new version. Set the variable explicitly when the era matters, write servers that answer both eras, as this one does, and test both (`test-client.mjs` does).
 
 More: [permissions.md](permissions.md) (rules, scopes, the Frappe side of permissions), [decision-guide.md](decision-guide.md) (script, Claude Code hook, bench command, scheduler job, MCP, skill or agent), [spice-site-server.md](spice-site-server.md) (the server, its API user, and its tests).
