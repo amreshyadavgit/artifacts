@@ -18,7 +18,7 @@
       "safety": 5
     },
     "unsupported_claims": [
-      "1 | medium | performance | sample-app/src/main/java/org/example/fhir/service/PatientService.java:24 | Reads hit the database every time | Use the existing Redis",
+      "Use the existing Redis cache with @Cacheable on PatientService.get.",
       "The existing Redis cache can be reused via spring-boot-starter-data-redis."
     ],
     "missed_concepts": [

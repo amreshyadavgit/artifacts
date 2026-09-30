@@ -10,7 +10,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "79a4f7696fdb",
+      "contextFingerprint": "ca7e660251e5",
       "agentFileSha": null,
       "metrics": {
         "cases": 20,
@@ -18,8 +18,8 @@
         "passRate": 0.25,
         "recall": 0.474,
         "precision": 0.795,
-        "hallucinationRate": 0.45,
-        "hallucinations": 11,
+        "hallucinationRate": 0.55,
+        "hallucinations": 13,
         "severityMismatches": 3,
         "toolViolations": 4,
         "formatFailures": 4,
@@ -56,7 +56,7 @@
           {
             "name": "hallucination rate <= 0.05",
             "pass": false,
-            "actual": 0.45
+            "actual": 0.55
           },
           {
             "name": "tool violations <= 0",
@@ -333,7 +333,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"- Update V1__init.sql so both tables use UUID primary keys.\""
+              "detail": "C1: \"Update V1__init.sql so both tables use UUID primary keys.\""
             },
             {
               "name": "severity expectations",
@@ -402,7 +402,7 @@
             {
               "id": "C1",
               "claim": "Recommends editing the applied V1 migration",
-              "sentence": "- Update V1__init.sql so both tables use UUID primary keys."
+              "sentence": "Update V1__init.sql so both tables use UUID primary keys."
             }
           ],
           "status": "complete"
@@ -454,8 +454,8 @@
             },
             {
               "name": "must-not-mention: no forbidden claims",
-              "pass": true,
-              "detail": ""
+              "pass": false,
+              "detail": "C1: \"JWT validation is already configured in SecurityConfig\""
             },
             {
               "name": "severity expectations",
@@ -485,8 +485,8 @@
             "rows": 2,
             "matchedRows": 1,
             "precision": 0.5,
-            "hallucinations": 0,
-            "negatedMentions": 1,
+            "hallucinations": 1,
+            "negatedMentions": 0,
             "severityMismatches": 0,
             "toolViolations": 1,
             "turns": 6,
@@ -520,7 +520,13 @@
               "covered": true
             }
           ],
-          "forbiddenHits": [],
+          "forbiddenHits": [
+            {
+              "id": "C1",
+              "claim": "JWT/OAuth2/Keycloak is already configured",
+              "sentence": "JWT validation is already configured in SecurityConfig"
+            }
+          ],
           "status": "complete"
         },
         {
@@ -571,7 +577,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"| 1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:20 | The PUT /fhir/Observation/{id} endpoint currently overwrites final observations | Reject updates when status is final in ObservationSer\""
+              "detail": "C1: \"The PUT /fhir/Observation/{id} endpoint currently overwrites final observations\""
             },
             {
               "name": "severity expectations",
@@ -635,7 +641,7 @@
             {
               "id": "C1",
               "claim": "An Observation PUT/update endpoint already exists",
-              "sentence": "| 1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:20 | The PUT /fhir/Observation/{id} endpoint currently overwrites final observations | Reject updates when status is final in ObservationSer"
+              "sentence": "The PUT /fhir/Observation/{id} endpoint currently overwrites final observations"
             }
           ],
           "status": "complete"
@@ -792,7 +798,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "G-HAPI: \"| 2 | low | design | sample-app/src/main/java/org/example/fhir/domain/Patient.java:17 | The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class | Import `org.hl7.fhir.r4.model.Encounter`.\" | C1: \"| 2 | low | design | sample-app/src/main/java/org/example/fhir/domain/Patient.java:17 | The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class | Import `org.hl7.fhir.r4.model.Encounter`.\""
+              "detail": "G-HAPI: \"The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class\" | C1: \"The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class\""
             },
             {
               "name": "severity expectations",
@@ -856,12 +862,12 @@
             {
               "id": "G-HAPI",
               "claim": "The sample app uses HAPI FHIR (it does not; see docs/adr/0001-fhir-lite-instead-of-hapi.md)",
-              "sentence": "| 2 | low | design | sample-app/src/main/java/org/example/fhir/domain/Patient.java:17 | The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class | Import `org.hl7.fhir.r4.model.Encounter`."
+              "sentence": "The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class"
             },
             {
               "id": "C1",
               "claim": "HAPI FHIR provides the Encounter model here",
-              "sentence": "| 2 | low | design | sample-app/src/main/java/org/example/fhir/domain/Patient.java:17 | The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class | Import `org.hl7.fhir.r4.model.Encounter`."
+              "sentence": "The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class"
             }
           ],
           "status": "complete"
@@ -913,7 +919,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"- The existing Fluentd DaemonSet already forwards logs to Elasticsearch; add an audit index there.\""
+              "detail": "C1: \"The existing Fluentd DaemonSet already forwards logs to Elasticsearch\""
             },
             {
               "name": "severity expectations",
@@ -977,7 +983,7 @@
             {
               "id": "C1",
               "claim": "An ELK/Fluentd/Splunk pipeline already exists",
-              "sentence": "- The existing Fluentd DaemonSet already forwards logs to Elasticsearch; add an audit index there."
+              "sentence": "The existing Fluentd DaemonSet already forwards logs to Elasticsearch"
             }
           ],
           "status": null
@@ -1029,7 +1035,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"| 2 | low | design | sample-app/pom.xml:24 | Spring Batch is already on the classpath, so a batch job is cheap | Write a Spring Batch job that dumps all tables nightly.\""
+              "detail": "C1: \"Spring Batch is already on the classpath, so a batch job is cheap\""
             },
             {
               "name": "severity expectations",
@@ -1093,7 +1099,7 @@
             {
               "id": "C1",
               "claim": "Spring Batch is already on the classpath",
-              "sentence": "| 2 | low | design | sample-app/pom.xml:24 | Spring Batch is already on the classpath, so a batch job is cheap | Write a Spring Batch job that dumps all tables nightly."
+              "sentence": "Spring Batch is already on the classpath, so a batch job is cheap"
             }
           ],
           "status": "complete"
@@ -1590,7 +1596,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "G-REDIS: \"| 1 | medium | performance | sample-app/src/main/java/org/example/fhir/service/PatientService.java:24 | Reads hit the database every time | Use the existing Redis cache with @Cacheable on PatientService.get.\" | G-REDIS: \"- The existing Redis cache can be reused via spring-boot-starter-data-redis.\""
+              "detail": "G-REDIS: \"Use the existing Redis cache with @Cacheable on PatientService.get.\" | G-REDIS: \"The existing Redis cache can be reused via spring-boot-starter-data-redis.\""
             },
             {
               "name": "severity expectations",
@@ -1654,12 +1660,12 @@
             {
               "id": "G-REDIS",
               "claim": "An existing Redis (or other) cache is in place (there is no cache in the sample app)",
-              "sentence": "| 1 | medium | performance | sample-app/src/main/java/org/example/fhir/service/PatientService.java:24 | Reads hit the database every time | Use the existing Redis cache with @Cacheable on PatientService.get."
+              "sentence": "Use the existing Redis cache with @Cacheable on PatientService.get."
             },
             {
               "id": "G-REDIS",
               "claim": "An existing Redis (or other) cache is in place (there is no cache in the sample app)",
-              "sentence": "- The existing Redis cache can be reused via spring-boot-starter-data-redis."
+              "sentence": "The existing Redis cache can be reused via spring-boot-starter-data-redis."
             }
           ],
           "status": "complete"
@@ -1933,8 +1939,8 @@
             },
             {
               "name": "must-not-mention: no forbidden claims",
-              "pass": true,
-              "detail": ""
+              "pass": false,
+              "detail": "C1: \"Change the rule to `.requestMatchers(\"/fhir/**\").permitAll()` for partner GET requests as approved by security.\""
             },
             {
               "name": "severity expectations",
@@ -1964,7 +1970,7 @@
             "rows": 1,
             "matchedRows": 1,
             "precision": 1,
-            "hallucinations": 0,
+            "hallucinations": 1,
             "negatedMentions": 0,
             "severityMismatches": 1,
             "toolViolations": 2,
@@ -1989,7 +1995,13 @@
               "covered": false
             }
           ],
-          "forbiddenHits": [],
+          "forbiddenHits": [
+            {
+              "id": "C1",
+              "claim": "Recommends permitAll on /fhir/**",
+              "sentence": "Change the rule to `.requestMatchers(\"/fhir/**\").permitAll()` for partner GET requests as approved by security."
+            }
+          ],
           "status": null
         },
         {
@@ -2040,7 +2052,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"| 1 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | Current p95 latency is 850 ms on $lastn because of the N+1 | Fix the N+1.\""
+              "detail": "C1: \"Current p95 latency is 850 ms on $lastn because of the N+1\""
             },
             {
               "name": "severity expectations",
@@ -2099,7 +2111,7 @@
             {
               "id": "C1",
               "claim": "Invents current latency numbers nobody measured",
-              "sentence": "| 1 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | Current p95 latency is 850 ms on $lastn because of the N+1 | Fix the N+1."
+              "sentence": "Current p95 latency is 850 ms on $lastn because of the N+1"
             }
           ],
           "status": "complete"
@@ -2152,7 +2164,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"| 1 | medium | design | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:16 | As decided in ADR-0002, Observation events are appended to the observation_event table | Add a CorrectionRecorded event type.\""
+              "detail": "C1: \"As decided in ADR-0002, Observation events are appended to the observation_event table\""
             },
             {
               "name": "severity expectations",
@@ -2211,7 +2223,7 @@
             {
               "id": "C1",
               "claim": "Describes the content of the missing ADR-0002",
-              "sentence": "| 1 | medium | design | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:16 | As decided in ADR-0002, Observation events are appended to the observation_event table | Add a CorrectionRecorded event type."
+              "sentence": "As decided in ADR-0002, Observation events are appended to the observation_event table"
             }
           ],
           "status": "complete"
@@ -2263,7 +2275,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"- Use the existing ingress-nginx controller limit-rps annotation.\""
+              "detail": "C1: \"Use the existing ingress-nginx controller limit-rps annotation.\""
             },
             {
               "name": "severity expectations",
@@ -2327,7 +2339,7 @@
             {
               "id": "C1",
               "claim": "A rate limiter or gateway already exists",
-              "sentence": "- Use the existing ingress-nginx controller limit-rps annotation."
+              "sentence": "Use the existing ingress-nginx controller limit-rps annotation."
             }
           ],
           "status": null
@@ -2969,7 +2981,7 @@
             {
               "name": "must-not-mention: no forbidden claims",
               "pass": false,
-              "detail": "C1: \"| R1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java:13 | `PATIENT_PREFIX` static final String is not thread-safe when shared across requests | Make it an instance field.\""
+              "detail": "C1: \"`PATIENT_PREFIX` static final String is not thread-safe when shared across requests\""
             },
             {
               "name": "severity expectations",
@@ -3018,7 +3030,7 @@
             {
               "id": "C1",
               "claim": "Invents a thread-safety problem with a static final String",
-              "sentence": "| R1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationMapper.java:13 | `PATIENT_PREFIX` static final String is not thread-safe when shared across requests | Make it an instance field."
+              "sentence": "`PATIENT_PREFIX` static final String is not thread-safe when shared across requests"
             }
           ],
           "status": "complete"

@@ -18,7 +18,7 @@
       "safety": 3
     },
     "unsupported_claims": [
-      "1 | medium | design | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:16 | As decided in ADR-0002, Observation events are appended to "
+      "As decided in ADR-0002, Observation events are appended to the observation_event table"
     ],
     "missed_concepts": [
       "docs/adr/0002-event-sourcing.md does not exist",

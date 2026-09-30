@@ -1,0 +1,212 @@
+{
+  "skill": "production-rca",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC/",
+  "howToRun": {
+    "live": "For setup 'files', write each input.files entry into the directory named in input.invoke (for example /tmp/rca-02/k8s-events.txt). Run claude -p \"<input.invoke>\" --permission-mode plan --output-format json and compare .result with expect.",
+    "deterministic": "Run input.command from AI-SDLC/ and compare exit code, stdout and stderr with expect."
+  },
+  "matching": {
+    "outputContains": "substrings anywhere in the RCA",
+    "rootCauseMustMention": "claims a grader checks in section 7 (semantic, not literal)",
+    "candidatesMustInclude": "hypotheses that must appear in section 6 with the stated verdict",
+    "sections": "headings that must all be present",
+    "mustNotContain": "substrings that must not appear"
+  },
+  "cases": [
+    {
+      "id": "rca-01-lastn-incident",
+      "kind": "live",
+      "title": "Full evidence pack: root cause is the $lastn N+1 plus the missing subject cap, triggered by CHG-4472",
+      "input": {
+        "setup": "none",
+        "invoke": "/production-rca .claude/skills/production-rca/examples/INC-2026-0922-lastn INC-2026-0922-01"
+      },
+      "expect": {
+        "outputContains": [
+          "ObservationService",
+          "lastN",
+          "CHG-4472",
+          "CHG-4471",
+          "512",
+          "137",
+          "timeoutSeconds"
+        ],
+        "rootCauseMustMention": [
+          "N+1 or two queries per subject",
+          "no upper bound on subjects"
+        ],
+        "candidatesMustInclude": [
+          "bad deploy (rejected: rollout-history.txt)",
+          "OOM (rejected: Reason Error, not OOMKilled)",
+          "database degradation (rejected)"
+        ],
+        "mustNotContain": [
+          "OOMKilled was the cause",
+          "roll back the deployment"
+        ],
+        "sections": [
+          "Summary",
+          "Impact",
+          "Timeline",
+          "Symptoms",
+          "Evidence index",
+          "Root-cause candidates",
+          "Root cause",
+          "Fix",
+          "Preventive actions",
+          "Verification",
+          "Open questions"
+        ]
+      },
+      "answerKey": "skills/production-rca/tests/expected/INC-2026-0922-01-rca.md"
+    },
+    {
+      "id": "rca-02-oomkilled-variant",
+      "kind": "live",
+      "title": "Same symptoms but OOMKilled and no traffic change: the RCA must not blame the N+1",
+      "input": {
+        "setup": "files",
+        "invoke": "/production-rca /tmp/rca-02 INC-2026-1003-01",
+        "files": {
+          "k8s-events.txt": "LAST SEEN (UTC)        TYPE      REASON      OBJECT                            MESSAGE\n2026-10-03T14:12:40Z   Normal    Killing     fhir-lite-api-6d8f7c9b5-k2x7p     Stopping container api\n2026-10-03T14:12:41Z   Warning   BackOff     fhir-lite-api-6d8f7c9b5-k2x7p     Back-off restarting failed container api\n",
+          "pod-describe.txt": "    Last State:     Terminated\n      Reason:       OOMKilled\n      Exit Code:    137\n      Started:      Sat, 03 Oct 2026 09:02:11 +0000\n      Finished:     Sat, 03 Oct 2026 14:12:40 +0000\n    Restart Count:  1\n    Limits:\n      memory:  768Mi\n",
+          "metrics.md": "| time | lastn_rps | lastn_p95_s | mem_ws_mi |\n|---|---|---|---|\n| 12:00 | 0.10 | 0.19 | 611 |\n| 13:00 | 0.09 | 0.18 | 690 |\n| 14:00 | 0.10 | 0.19 | 751 |\n| 14:12 | 0.10 | 0.20 | 768 |\n",
+          "changes.md": "| Change | Window | Description |\n|---|---|---|\n| CHG-4520 | 2026-10-03T08:55:00Z | JAVA_OPTS changed from -XX:MaxRAMPercentage=75 to -XX:MaxRAMPercentage=90 in the Deployment |\n"
+        }
+      },
+      "expect": {
+        "rootCauseMustMention": [
+          "OOMKilled",
+          "MaxRAMPercentage=90 leaves too little non-heap memory under the 768Mi limit"
+        ],
+        "mustNotContain": [
+          "N+1 caused"
+        ],
+        "notes": "$lastn latency and rate are flat, so the N+1 is at most a background observation."
+      }
+    },
+    {
+      "id": "rca-03-bad-deploy-variant",
+      "kind": "live",
+      "title": "Errors start 40 s after a rollout with a failing Flyway validation: root cause is the deploy",
+      "input": {
+        "setup": "files",
+        "invoke": "/production-rca /tmp/rca-03 INC-2026-1008-01",
+        "files": {
+          "rollout-history.txt": "REVISION  CHANGE-CAUSE\n7         2026-09-18 image fhir-lite-api:0.1.0 (CHG-4410)\n8         2026-10-08 image fhir-lite-api:0.1.1 (CHG-4561)\n",
+          "k8s-events.txt": "LAST SEEN (UTC)        TYPE      REASON              OBJECT                            MESSAGE\n2026-10-08T10:02:05Z   Normal    ScalingReplicaSet   fhir-lite-api                     Scaled up replica set fhir-lite-api-58c9d7f6b to 1\n2026-10-08T10:02:48Z   Warning   BackOff             fhir-lite-api-58c9d7f6b-h7k2d     Back-off restarting failed container api\n",
+          "app-logs.log": "[pod/fhir-lite-api-58c9d7f6b-h7k2d/api] 2026-10-08T10:02:44.310Z ERROR 1 --- [fhir-lite-api] [           main] o.s.boot.SpringApplication               : Application run failed\n[pod/fhir-lite-api-58c9d7f6b-h7k2d/api] org.flywaydb.core.api.exception.FlywayValidateException: Validate failed: Migrations have failed validation\n[pod/fhir-lite-api-58c9d7f6b-h7k2d/api] Migration checksum mismatch for migration version 1\n"
+        }
+      },
+      "expect": {
+        "rootCauseMustMention": [
+          "V1__init.sql was edited after it was applied (checksum mismatch)",
+          "CHG-4561"
+        ],
+        "fixMustMention": [
+          "roll back to revision 7",
+          "never edit an applied migration (coding-standards rule 10)"
+        ],
+        "notes": "Old pods kept serving (rolling update), so impact is a stalled rollout, not an outage; the RCA must say so."
+      }
+    },
+    {
+      "id": "rca-04-phi-in-evidence",
+      "kind": "live",
+      "title": "Evidence containing a database error that echoes a patient name stops the RCA",
+      "input": {
+        "setup": "files",
+        "invoke": "/production-rca /tmp/rca-04 INC-2026-1011-01",
+        "files": {
+          "app-logs.log": "2026-10-11T09:14:02.118Z ERROR 1 --- [fhir-lite-api] [nio-8080-exec-7] o.h.engine.jdbc.spi.SqlExceptionHelper   : Value too long for column \"given_names CHARACTER VARYING(255)\": \"'[synthetic 280-character value]... (280)\"\n"
+        }
+      },
+      "expect": {
+        "outputContains": [
+          "app-logs.log:1",
+          "privacy"
+        ],
+        "mustNotContain": [
+          "[synthetic 280-character value]"
+        ],
+        "notes": "The skill reports the guard hit and recommends a privacy-incident review. It links the finding to security-review SEC-001 (GlobalExceptionHandler logs driver messages)."
+      }
+    },
+    {
+      "id": "rca-05-insufficient-evidence",
+      "kind": "live",
+      "title": "Only Kubernetes events: root cause is not determined and the RCA lists the evidence to collect",
+      "input": {
+        "setup": "files",
+        "invoke": "/production-rca /tmp/rca-05 INC-2026-1015-01",
+        "files": {
+          "k8s-events.txt": "LAST SEEN (UTC)        TYPE      REASON      OBJECT                            MESSAGE\n2026-10-15T07:40:10Z   Warning   Unhealthy   fhir-lite-api-6d8f7c9b5-k2x7p     Liveness probe failed: Get \"http://10.42.1.17:8080/actuator/health/liveness\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n2026-10-15T07:40:40Z   Normal    Killing     fhir-lite-api-6d8f7c9b5-k2x7p     Container api failed liveness probe, will be restarted\n"
+        }
+      },
+      "expect": {
+        "outputContains": [
+          "not determined",
+          "ingress",
+          "pg_stat_statements",
+          "change calendar"
+        ],
+        "mustNotContain": [
+          "root cause is the N+1"
+        ]
+      }
+    },
+    {
+      "id": "rca-06-timeline-pack",
+      "kind": "deterministic",
+      "title": "The timeline builder merges all eight evidence files in UTC order and collapses repeats",
+      "input": {
+        "command": "node .claude/skills/production-rca/scripts/build-timeline.mjs .claude/skills/production-rca/examples/INC-2026-0922-lastn/*.log .claude/skills/production-rca/examples/INC-2026-0922-lastn/*.txt .claude/skills/production-rca/examples/INC-2026-0922-lastn/*.md --collapse"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stderrContains": [
+          "86 events from 8 file(s)"
+        ],
+        "stdoutContains": [
+          "| 1 | 2026-09-22 06:30:00 | changes.md |",
+          "(x2 until 08:01:26)",
+          "| app-logs.log:8 |"
+        ]
+      }
+    },
+    {
+      "id": "rca-07-timeline-phi-guard",
+      "kind": "deterministic",
+      "title": "The timeline builder refuses evidence with an MRN and prints only file:line",
+      "input": {
+        "command": "printf '2026-10-11T09:14:03Z INFO lookup MRN-483920\\n' > /tmp/rca07.log && node .claude/skills/production-rca/scripts/build-timeline.mjs /tmp/rca07.log"
+      },
+      "expect": {
+        "exitCode": 3,
+        "stderrContains": [
+          "rca07.log:1: MRN value"
+        ],
+        "stdoutContains": [],
+        "mustNotContain": [
+          "MRN-483920"
+        ]
+      }
+    },
+    {
+      "id": "rca-08-timeline-window",
+      "kind": "deterministic",
+      "title": "--grep and --json select the eight Killing events, first at 08:05:48",
+      "input": {
+        "command": "node .claude/skills/production-rca/scripts/build-timeline.mjs .claude/skills/production-rca/examples/INC-2026-0922-lastn/k8s-events.txt --grep Killing --json | node -e \"const a=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(a.length, a[0].time, a[0].ref)\""
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "8 2026-09-22T08:05:48.000Z k8s-events.txt:7"
+        ]
+      }
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 
 ## architecture (architect-v2)
 
-Mode: replay. Agent file: `.claude/agents/architect.md`. Dataset 1.0.0, context fingerprint `79a4f7696fdb`.
+Mode: replay. Agent file: `.claude/agents/architect.md`. Dataset 1.0.0, context fingerprint `ca7e660251e5`.
 
 | Metric | Value |
 |---|---|

@@ -200,19 +200,25 @@ test("live mode end to end against a stub claude on PATH (no API key needed)", {
   chmodSync(join(bin, "claude"), 0o755);
   const p = spawnSync(process.execPath, [HARNESS, "--mode", "live", "--suite", "architecture", "--case", "ARCH-06", "--version", "v1", "--judge", "--record", "tmp-live-test", "--out-dir", "evaluations/reports/.tmp-live", "--quiet"],
     { cwd: ROOT, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
-  assert.equal(p.status, 0, p.stderr); // the replayed ARCH-06 output passes, so the one-case run passes its gates
-  const calls = readFileSync(join(bin, "argv.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
-  assert.equal(calls.length, 2, "one agent call and one judge call");
-  assert.ok(calls[0].includes("--agents") && calls[0].includes("--agent"));
-  assert.ok(calls[1].includes("--json-schema") && !calls[1].includes("--agents"));
-  const rec = JSON.parse(read("evaluations/recordings/tmp-live-test/ARCH-06.json"));
-  assert.equal(rec._synthetic, false);
-  assert.equal(rec._agentFile, "evaluations/agent-versions/architect-v1.md");
-  const report = JSON.parse(read("evaluations/reports/.tmp-live/live-v1.json"));
-  assert.equal(report.runs[0].results[0].id, "ARCH-06");
-  assert.equal(report.runs[0].results[0].judge.verdict, "pass");
-  assert.match(report.runs[0].agentFileSha, /^[0-9a-f]{12}$/);
-  rmSync(join(ROOT, "evaluations/recordings/tmp-live-test"), { recursive: true, force: true });
-  rmSync(join(ROOT, "evaluations/reports/.tmp-live"), { recursive: true, force: true });
-  rmSync(bin, { recursive: true, force: true });
+  const cleanup = () => {
+    rmSync(join(ROOT, "evaluations/recordings/tmp-live-test"), { recursive: true, force: true });
+    rmSync(join(ROOT, "evaluations/reports/.tmp-live"), { recursive: true, force: true });
+    rmSync(bin, { recursive: true, force: true });
+  };
+  try {
+    assert.equal(p.status, 0, p.stderr); // the replayed ARCH-06 output passes, so the one-case run passes its gates
+    const calls = readFileSync(join(bin, "argv.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    assert.equal(calls.length, 2, "one agent call and one judge call");
+    assert.ok(calls[0].includes("--agents") && calls[0].includes("--agent"));
+    assert.ok(calls[1].includes("--json-schema") && !calls[1].includes("--agents"));
+    const rec = JSON.parse(read("evaluations/recordings/tmp-live-test/ARCH-06.json"));
+    assert.equal(rec._synthetic, false);
+    assert.equal(rec._agentFile, "evaluations/agent-versions/architect-v1.md");
+    const report = JSON.parse(read("evaluations/reports/.tmp-live/live-v1.json"));
+    assert.equal(report.runs[0].results[0].id, "ARCH-06");
+    assert.equal(report.runs[0].results[0].judge.verdict, "pass");
+    assert.match(report.runs[0].agentFileSha, /^[0-9a-f]{12}$/);
+  } finally {
+    cleanup();
+  }
 });

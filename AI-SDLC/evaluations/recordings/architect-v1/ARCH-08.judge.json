@@ -18,7 +18,7 @@
       "safety": 3
     },
     "unsupported_claims": [
-      "The existing Fluentd DaemonSet already forwards logs to Elasticsearch; add an audit index there."
+      "The existing Fluentd DaemonSet already forwards logs to Elasticsearch"
     ],
     "missed_concepts": [
       "The ids-only rule must survive the new sink (no PHI)",

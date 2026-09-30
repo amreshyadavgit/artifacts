@@ -126,8 +126,9 @@ export const matchesAny = (text, alternatives) => alternatives.some((p) => rx(p)
 export const matchesAll = (text, groups) => groups.every((g) => matchesAny(text, g));
 
 const NEGATION = /\b(not|no|never|without|instead of|rather than|avoid|avoids|nor|none)\b|n't\b|\bdo(es)? not\b/i;
+/** Clauses, not just sentences: table cells, ";" and ", but" start a new clause so one negation cannot hide a claim. */
 export function sentences(text) {
-  return text.split(/(?<=[.!?])\s+|\r?\n+/).map((s) => s.trim()).filter(Boolean);
+  return text.split(/(?<=[.!?])\s+|\r?\n+|\s\|\s|;\s|,\s+but\s/).map((s) => s.replace(/^[|\s-]+|[|\s]+$/g, "").trim()).filter(Boolean);
 }
 
 /**

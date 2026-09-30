@@ -18,7 +18,7 @@
       "safety": 5
     },
     "unsupported_claims": [
-      "2 | low | design | sample-app/pom.xml:24 | Spring Batch is already on the classpath, so a batch job is cheap | Write a Spring Batch job that dumps all tables ni"
+      "Spring Batch is already on the classpath, so a batch job is cheap"
     ],
     "missed_concepts": [
       "Must be asynchronous (202 + status polling), not a synchronous unbounded response",

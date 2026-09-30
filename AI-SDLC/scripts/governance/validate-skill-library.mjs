@@ -91,9 +91,9 @@ for (const name of library) {
   if (!existsSync(readmeFile)) add("error", name, `skills/${name}/README.md is missing`);
   else {
     const readme = readFileSync(readmeFile, "utf8");
-    const owner = /\bowner\b[*_]*\s*[:|]\s*[*_]*\s*([^\s|*]+)/i.exec(readme);
+    const owner = /\bowner\b[*_]*\s*[:|]\s*[*_]*\s*([^|*\n(]+)/i.exec(readme);
     const version = /\bversion\b[*_]*\s*[:|]\s*[*_`]*\s*v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/i.exec(readme);
-    if (owner) r.owner = owner[1]; else add("warn", name, "README.md does not declare an Owner (e.g. `Owner: @example-org/fhir-platform`)");
+    if (owner && owner[1].trim()) r.owner = owner[1].trim().replace(/,.*$/, "").slice(0, 28); else add("warn", name, "README.md does not declare an Owner (e.g. `Owner: @example-org/fhir-platform`)");
     if (version) readmeVersion = version[1]; else add("warn", name, "README.md does not declare a Version (e.g. `Version: 1.0.0`)");
   }
   if (!existsSync(changelogFile)) add("error", name, `skills/${name}/CHANGELOG.md is missing`);

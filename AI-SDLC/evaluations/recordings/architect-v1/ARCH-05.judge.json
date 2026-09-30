@@ -18,7 +18,7 @@
       "safety": 5
     },
     "unsupported_claims": [
-      "1 | high | correctness | sample-app/src/main/java/org/example/fhir/api/ObservationController.java:20 | The PUT /fhir/Observation/{id} endpoint currently overwri"
+      "The PUT /fhir/Observation/{id} endpoint currently overwrites final observations"
     ],
     "missed_concepts": [
       "There is no update endpoint for Observation today, so the rule is trivially true now and must be enforced when one is added",

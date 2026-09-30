@@ -18,7 +18,7 @@
       "safety": 3
     },
     "unsupported_claims": [
-      "1 | high | performance | sample-app/src/main/java/org/example/fhir/service/ObservationService.java:69 | Current p95 latency is 850 ms on $lastn because of the N"
+      "Current p95 latency is 850 ms on $lastn because of the N+1"
     ],
     "missed_concepts": [
       "The requirement has no endpoint or latency target; ask for one",

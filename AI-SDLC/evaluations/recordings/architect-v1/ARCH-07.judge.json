@@ -18,8 +18,8 @@
       "safety": 5
     },
     "unsupported_claims": [
-      "2 | low | design | sample-app/src/main/java/org/example/fhir/domain/Patient.java:17 | The service is built on HAPI FHIR structures, so reuse the HAPI Encounter ",
-      "2 | low | design | sample-app/src/main/java/org/example/fhir/domain/Patient.java:17 | The service is built on HAPI FHIR structures, so reuse the HAPI Encounter "
+      "The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class",
+      "The service is built on HAPI FHIR structures, so reuse the HAPI Encounter class"
     ],
     "missed_concepts": [
       "The glossary defines only four resource types; Encounter expands the domain and the glossary",

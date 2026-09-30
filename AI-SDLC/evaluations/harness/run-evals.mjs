@@ -158,7 +158,7 @@ export function runSuite(suite, version, opts) {
       if (opts.record) {
         const p = join(opts.recordings, opts.record, `${c.id}.json`);
         mkdirSync(dirname(rel(p)), { recursive: true });
-        writeFileSync(rel(p), JSON.stringify({ _synthetic: false, _agentFile: agentFile, _agentFileSha: sha(readFileSync(rel(agentFile), "utf8")), ...out }, null, 2) + "\n");
+        writeFileSync(rel(p), JSON.stringify({ ...out, _synthetic: false, _note: undefined, _agentFile: agentFile, _agentFileSha: sha(readFileSync(rel(agentFile), "utf8")), _recordedAt: new Date().toISOString() }, null, 2) + "\n");
       }
     }
     const scored = scoreCase(c, out, suite);
