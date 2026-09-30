@@ -128,4 +128,4 @@ next: developer
 - Resources: `Patient` (identifier MRN, name family/given, gender, birthDate, active) and `Observation` (status, code LOINC, subject `Patient/{id}`, effectiveDateTime, valueQuantity).
 - Errors are FHIR `OperationOutcome`.
 - PHI = anything identifying a patient. PHI must never appear in logs, prompts sent to external tools, eval datasets, or commit messages. Use synthetic data only (e.g. MRN `MRN-000123`, patient "Test Patient").
-- The sample app contains exactly one planted teaching defect (`perf-n+1`) and three real, discovered defects D-01..D-03, all listed in `AI-SDLC/sample-app/docs/KNOWN_DEFECTS.md`. Any other defect used in an exercise must be introduced by the exercise itself via a starting file or patch, and clearly labelled.
+- The sample app contains exactly one planted teaching defect (`perf-n+1`) and three real, discovered defects D-01..D-04, all listed in `AI-SDLC/sample-app/docs/KNOWN_DEFECTS.md`. Any other defect used in an exercise must be introduced by the exercise itself via a starting file or patch, and clearly labelled.

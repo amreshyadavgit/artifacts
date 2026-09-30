@@ -23,7 +23,7 @@ This repository is a working AI-assisted SDLC system for a small FHIR-lite API. 
 3. Follow the layering in `context/standards/coding-standards.md`: controllers call services, services call repositories.
 4. Findings use the format in `context/standards/review-standards.md` (id, severity, category, location, evidence, recommendation).
 5. Agent handoffs go to `.ai-sdlc/runs/<run-id>/NN-<agent>.md` with the YAML front matter defined in `workflows/README.md`.
-6. Do not fix the `TEACHING-DEFECT(perf-n+1)` or the discovered defects D-01..D-03 listed in `sample-app/docs/KNOWN_DEFECTS.md` unless the task explicitly asks for it; exercises depend on them.
+6. Do not fix the `TEACHING-DEFECT(perf-n+1)` or the discovered defects D-01..D-04 listed in `sample-app/docs/KNOWN_DEFECTS.md` unless the task explicitly asks for it; exercises depend on them.
 7. Never push, merge, or deploy. A human does that after review.
 
 ## Commands

@@ -24,3 +24,4 @@ unless an exercise tells you to.
 | D-01 | `ObservationService.create` | Does not check that the subject Patient is `active` (glossary business rule 3): observations can be recorded against inactive patients. | reviewer agent; exercise `05-roster-smoke-test` |
 | D-02 | `ObservationService.lastN` | An Observation with no `effectiveDateTime` can be returned as the "latest" one (null ordering). | code-review / test-strategy skills; module 03 (recorded as an `@Disabled` test in the exercise material) |
 | D-03 | `ObservationService.lastN` | Duplicate subject ids (`subjects=1,1`) return the same Observation twice. | code-review / test-strategy skills; module 03 |
+| D-04 | `GlobalExceptionHandler` (+ Hibernate `SqlExceptionHelper` logging) | An over-long `given` name (e.g. 280 characters) causes a 500, and the DB error logged at ERROR level contains the submitted name: PHI in logs. | security-review skill (finding SEC-001); module 04 |
