@@ -1,0 +1,52 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py
+index 9b086ce..0564ec4 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py
+@@ -5,7 +5,8 @@ import frappe
+ from frappe.tests.utils import FrappeTestCase
+ 
+ from spice_lite.patches.v0_2 import backfill_observation_codes
+-from spice_lite.tests.utils import ensure_test_users, make_observation, make_patient
++from spice_lite.api import fhir
++from spice_lite.tests.utils import CLINICIAN, call, ensure_test_users, make_observation, make_patient
+ 
+ SHIPPED = {"8480-6", "8462-4", "8867-4", "2339-0", "29463-7", "8302-2"}
+ 
+@@ -36,6 +37,20 @@ class TestSLObservationCode(FrappeTestCase):
+ 	def test_final_unit_must_match_code_unit(self):
+ 		self.assertRaises(frappe.ValidationError, make_observation, self.patient.name, code="8480-6", unit="kPa")
+ 
++	def test_create_observation_fills_display_from_code(self):
++		# AC-2 through the API: a client that sends no code_display gets the vocabulary display
++		frappe.set_user(CLINICIAN)
++		status, body = call(fhir.create_observation, patient=self.patient.name, code="8867-4", value=64, unit="/min")
++		self.assertEqual(status, 201)
++		self.assertEqual(body["code"]["coding"][0]["display"], "Heart rate")
++
++	def test_clinician_can_read_but_not_maintain_codes(self):
++		# AC-5: only System Manager maintains the vocabulary
++		frappe.set_user(CLINICIAN)
++		self.assertTrue(frappe.has_permission("SL Observation Code", "read"))
++		self.assertFalse(frappe.has_permission("SL Observation Code", "create"))
++		self.assertFalse(frappe.has_permission("SL Observation Code", "write"))
++
+ 	def test_disabled_code_rejected_for_new_observations(self):
+ 		frappe.get_doc({"doctype": "SL Observation Code", "code": "99990-1", "display": "Retired test code", "disabled": 1}).insert()
+ 		self.assertRaises(frappe.ValidationError, make_observation, self.patient.name, code="99990-1", unit="x")
+@@ -61,3 +76,16 @@ class TestBackfillObservationCodes(FrappeTestCase):
+ 		legacy.db_insert()
+ 		backfill_observation_codes.execute()
+ 		self.assertEqual(frappe.db.get_value("SL Observation Code", "99991-2", "display"), "Legacy local code")
++
++	def test_backfill_is_idempotent_when_codes_exist(self):
++		# frappe-coding-standards rule 6: patches are idempotent. A code that is already in the
++		# vocabulary (shipped fixture, or added by a System Manager) must not break `bench migrate`.
++		make_observation(make_patient().name, code="8480-6")
++		frappe.db.savepoint("sl_backfill")
++		try:
++			backfill_observation_codes.execute()
++			backfill_observation_codes.execute()
++		except Exception:
++			frappe.db.rollback(save_point="sl_backfill")  # Postgres aborts the transaction on error
++			raise
++		self.assertEqual(frappe.db.get_value("SL Observation Code", "8480-6", "display"), "Systolic blood pressure")

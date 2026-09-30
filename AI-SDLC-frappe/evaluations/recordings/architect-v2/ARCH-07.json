@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 60100,
+  "duration_api_ms": 49883,
+  "num_turns": 9,
+  "result": "---\nrun_id: eval-ARCH-07\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [context/architecture/overview.md, sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/docs/KNOWN_DEFECTS.md, sample-app/README.md]\nnext: human\n---\n## Summary\nUganda is a new site with its own database on a bench (or its own bench), configured with `spice_lite_country_code UG` before the first migrate. Main risks: per-site MRN uniqueness, per-site migrations, and Frappe v15's frozen Postgres support.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | info | design | context/architecture/overview.md:10 | `W --> DB[(\"PostgreSQL 16: one DB per site\")]` | One site per country, each with its own database: `bench new-site ug.localhost --db-type postgres ...`. |\n| ARC-002 | medium | correctness | sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py:16 | `code = (frappe.conf.get(\"spice_lite_country_code\") or \"\").strip().upper()` | Set `bench --site ug.localhost set-config spice_lite_country_code UG` (and `spice_lite_country_name Uganda`) before install, or the backfill patch silently does nothing. |\n| ARC-003 | medium | correctness | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:27 | `\"unique\": 1` | MRN is unique per site only: a patient treated across the border gets two records with possibly equal MRNs. Decide on a cross-country identifier before any data exchange. |\n| ARC-004 | medium | standards | sample-app/README.md:57 | `bench --site test.localhost set-config allow_tests true` | Migrations and patches run per site: the release runbook runs `bench --site all migrate` (or each site in turn) and checks Patch Log on every site. |\n| ARC-005 | medium | design | sample-app/docs/KNOWN_DEFECTS.md:75 | `Fixes for earlier versions will not be added.` | Frappe v15 on Postgres gets no more fixes (D-2): pin the Frappe commit, run the suite on Postgres per release, plan the v16 upgrade. |\n\n## Decisions\n- Chosen: separate site (same bench) for the pilot, separate bench per country for production.\n- Where it lives: deployment configuration; no code change.\n\n## Open questions\n- Does Uganda need the Kenya country app? (It must not be installed there.)\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "e1956bc2-5266-19e5-ed13-b51b07c6aa5a",
+  "total_cost_usd": 0.269,
+  "usage": {
+    "input_tokens": 4950,
+    "cache_creation_input_tokens": 18900,
+    "cache_read_input_tokens": 66800,
+    "output_tokens": 1160
+  },
+  "permission_denials": []
+}

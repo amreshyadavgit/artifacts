@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 61200,
+  "duration_api_ms": 50796,
+  "num_turns": 9,
+  "result": "---\nrun_id: eval-ARCH-01\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/spice_lite/spice_lite/hooks.py, context/architecture/overview.md, context/standards/frappe-coding-standards.md, context/domain/spice-lite-glossary.md, docs/adr/0001-fhir-lite-over-whitelisted-methods.md]\nnext: human\n---\n## Summary\nKenya-only, mandatory national ID. It belongs in a Kenya country app (`spice_ke`) as a Custom Field shipped as a fixture, not in the core `sl_patient.json` that every country deployment migrates. The ID is PHI. Proposed ADR: `docs/adr/0002-kenya-national-id-in-country-app.md` (not written: evaluation run).\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:65 | `\"fieldname\": \"country\"`: the core DocType is shared by every country deployment | Do not change the core DocType for one country; a field in `sl_patient.json` reaches every country deployment at its next `bench migrate` (frappe-coding-standards rule 12). |\n| ARC-002 | medium | security | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:4 | `\"autoname\": \"SLP-.#####\"` | The national ID is PHI (glossary PHI table: identifiers). Keep the opaque series as the name, never `field:national_id`, and never pass the value to `log_access` or `frappe.throw` text. |\n| ARC-003 | medium | standards | spice_ke/spice_ke/hooks.py | `fixtures = [{\"dt\": \"Custom Field\", \"filters\": [[\"module\", \"=\", \"Spice KE\"]]}]` | Ship the Custom Field `SL Patient-national_id` (Data, reqd 1, unique 1, search_index 1) as a fixture filtered to the country app's module; export it with `bench --site ke.localhost export-fixtures`. |\n| ARC-004 | low | design | spice_ke/spice_ke/hooks.py | `required_apps = [\"spice_lite\"]` | Declare the dependency so `install-app` installs spice_lite first; the Kenya app is installed on the Kenya site only. |\n| ARC-005 | low | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.py:20 | `def validate(self):` | Format checks (length, digits) go in a `doc_events` validate handler in the Kenya app, next to its Custom Field, not in `SLPatient.validate`. |\n\n## Decisions\n- Chosen: (b) country app `spice_ke` with a Custom Field fixture and a `doc_events` validate handler.\n- Rejected: (a) field in core `sl_patient.json` (ships Kenya's rule to every country); (c) integration app (no external system is involved).\n- Where it lives: country app.\n- Outline: `bench new-app spice_ke`; `required_apps`; Custom Field fixture; `doc_events = {\"SL Patient\": {\"validate\": \"spice_ke.patient.validate_national_id\"}}`; FrappeTestCase tests in spice_ke for required, unique and format, as `clinician@spice-lite.test`.\n- No patch in spice_lite. A human runs `bench --site ke.localhost migrate` after review.\n\n## Open questions\n- Existing Kenyan patients have no national ID: mandatory for new registrations only (`mandatory_depends_on: eval:doc.__islocal`) or a back-capture campaign?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "bc9477b3-529b-53b7-1a6b-e0b479ed9188",
+  "total_cost_usd": 0.284,
+  "usage": {
+    "input_tokens": 4950,
+    "cache_creation_input_tokens": 18900,
+    "cache_read_input_tokens": 66800,
+    "output_tokens": 1160
+  },
+  "permission_denials": []
+}

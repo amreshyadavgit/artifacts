@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 74100,
+  "duration_api_ms": 61503,
+  "num_turns": 11,
+  "result": "---\nrun_id: eval-ARCH-06\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/api/fhir.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json, context/security/threat-model.md, context/standards/frappe-coding-standards.md, context/security/phi-and-secrets-policy.md]\nnext: human\n---\n## Summary\nCountry scoping on a hub site needs three controls: `permission_query_conditions` for lists, a `has_permission` hook for single documents (get_patient), and a fix for lastn's `frappe.get_all`. User Permissions on SL Country are the built-in alternative. Security review required.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | security | sample-app/spice_lite/spice_lite/hooks.py:11 | `required_apps = []` | Add `permission_query_conditions = {\"SL Patient\": \"spice_lite.permissions.patient_query\", \"SL Observation\": \"spice_lite.permissions.observation_query\"}`; they filter `frappe.get_list` (search_patients). |\n| ARC-002 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:56 | `if not frappe.has_permission(\"SL Patient\", \"read\", doc=doc):` | permission_query_conditions does not apply to single-document checks: get_patient would still return another country's patient. Add a `has_permission` hook that denies when `doc.country` differs from the user's country. |\n| ARC-003 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:177 | `rows = frappe.get_all(` | lastn reads SL Observation with frappe.get_all, which runs with ignore_permissions and ignores both hooks: the known T-1 code path must move to `frappe.get_list` before the pilot. |\n| ARC-004 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:65 | `\"fieldname\": \"country\"` | Built-in alternative: a User Permission on SL Country per clinician restricts get_list and the doc-level check through the `country` Link, with no code. |\n| ARC-005 | medium | standards | context/standards/testing-standards.md:8 | `frappe.set_user(...)` with `clinician@spice-lite.test` | Permission tests per path (get_patient, search_patients, lastn, create_observation) with frappe.set_user as a Kenya and a Uganda clinician. |\n\n## Decisions\n- Chosen: User Permissions on SL Country, plus the lastn change; hooks only if User Permissions cannot express the rule.\n- Rejected: hooks alone (easy to miss the doc-level path).\n- Security agent and a human must approve (permission change).\n\n## Open questions\n- Can a clinician serve both countries?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "873098e1-f95e-8711-b1c0-3ef0af72b7ec",
+  "total_cost_usd": 0.334,
+  "usage": {
+    "input_tokens": 5650,
+    "cache_creation_input_tokens": 21100,
+    "cache_read_input_tokens": 77200,
+    "output_tokens": 1340
+  },
+  "permission_denials": []
+}

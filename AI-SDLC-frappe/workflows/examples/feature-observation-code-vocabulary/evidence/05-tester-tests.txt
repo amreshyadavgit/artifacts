@@ -1,0 +1,49 @@
+# Step 05 (tester): patches 04 + 05 applied, then 'bench --site f7.localhost run-tests --app spice_lite'. Recorded 2026-09-30. Note: bench run-tests exited 0 although tests failed (CI env var not set).
+..............
+[D-2 pinning test: frappe prints a stack trace here; omitted]
+[D-2 pinning test: frappe prints a stack trace here; omitted]
+EF..................
+[D-2 pinning test: frappe prints a stack trace here; omitted]
+[D-2 pinning test: frappe prints a stack trace here; omitted]
+......................
+======================================================================
+ERROR: test_backfill_is_idempotent_when_codes_exist (spice_lite.clinical.doctype.sl_observation_code.test_sl_observation_code.TestBackfillObservationCodes.test_backfill_is_idempotent_when_codes_exist)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/frappe-bench/apps/frappe/frappe/model/base_document.py", line 579, in db_insert
+    frappe.db.sql(
+  File "/home/user/frappe-bench/apps/frappe/frappe/database/postgres/database.py", line 220, in sql
+    return super().sql(modify_query(query), modify_values(values), *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/database/database.py", line 230, in sql
+    self._cursor.execute(query, values)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "tabSL Observation Code_pkey"
+DETAIL:  Key (name)=(8480-6) already exists.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py", line 86, in test_backfill_is_idempotent_when_codes_exist
+    backfill_observation_codes.execute()
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py", line 19, in execute
+    frappe.get_doc({"doctype": "SL Observation Code", "code": code, "display": display}).insert(
+  File "/home/user/frappe-bench/apps/frappe/frappe/model/document.py", line 320, in insert
+    self.db_insert(ignore_if_duplicate=ignore_if_duplicate)
+  File "/home/user/frappe-bench/apps/frappe/frappe/model/base_document.py", line 606, in db_insert
+    raise frappe.DuplicateEntryError(self.doctype, self.name, e)
+frappe.exceptions.DuplicateEntryError: ('SL Observation Code', '8480-6', UniqueViolation('duplicate key value violates unique constraint "tabSL Observation Code_pkey"\nDETAIL:  Key (name)=(8480-6) already exists.\n'))
+
+======================================================================
+FAIL: test_clinician_can_read_but_not_maintain_codes (spice_lite.clinical.doctype.sl_observation_code.test_sl_observation_code.TestSLObservationCode.test_clinician_can_read_but_not_maintain_codes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py", line 51, in test_clinician_can_read_but_not_maintain_codes
+    self.assertFalse(frappe.has_permission("SL Observation Code", "create"))
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 56 tests in 4.418s
+
+FAILED (failures=1, errors=1)
+'Error in query:\nduplicate key value violates unique constraint "tabSL Observation Code_pkey"\nDETAIL:  Key (name)=(8480-6) already exists.\n'
+'Error in query:\ninvalid input syntax for type timestamp: ""\nLINE 3: where "tabSL Observation"."effective_datetime" != \'\'\n                                                          ^\n'

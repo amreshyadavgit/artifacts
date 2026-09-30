@@ -1,0 +1,15 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.py
+index d60e5a0..475b555 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.py
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.py
+@@ -10,6 +10,10 @@ from spice_lite.audit import log_access
+ 
+ class SLEncounter(Document):
+ 	def validate(self):
++		self.validate_finished_has_date()
++
++	def validate_finished_has_date(self):
++		# refactor only: same rule, now reusable from a future bulk-close job
+ 		if self.status == "finished" and not self.encounter_date:
+ 			frappe.throw(_("A finished Encounter must have an Encounter Date"))
+ 

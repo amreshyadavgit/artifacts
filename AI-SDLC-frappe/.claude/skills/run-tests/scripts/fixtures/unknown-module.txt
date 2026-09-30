@@ -1,0 +1,47 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/frappe-bench/apps/frappe/frappe/utils/bench_helper.py", line 114, in <module>
+    main()
+  File "/home/user/frappe-bench/apps/frappe/frappe/utils/bench_helper.py", line 20, in main
+    click.Group(commands=commands)(prog_name="bench")
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1569, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1490, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1970, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1970, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1353, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 907, in invoke
+    return callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/decorators.py", line 34, in new_func
+    return f(get_current_context(), *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/commands/__init__.py", line 29, in _func
+    ret = f(frappe._dict(ctx.obj), *args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/commands/utils.py", line 789, in run_tests
+    ret = frappe.test_runner.main(
+          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/test_runner.py", line 101, in main
+    ret = run_tests_for_module(
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/test_runner.py", line 229, in run_tests_for_module
+    module = importlib.import_module(module)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1140, in _find_and_load_unlocked
+ModuleNotFoundError: No module named 'spice_lite.tests.test_nope'

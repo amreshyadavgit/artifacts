@@ -91,7 +91,24 @@
  	return bundle(results)
 --- a/spice_lite/tests/test_fhir_api.py
 +++ b/spice_lite/tests/test_fhir_api.py
-@@ -157,36 +157,18 @@
+@@ -10,6 +10,7 @@
+ from spice_lite.tests.utils import (
+ 	CLINICIAN,
+ 	NO_ROLE_USER,
++	PostgresQueryCountMixin,
+ 	call,
+ 	ensure_test_users,
+ 	make_observation,
+@@ -17,7 +18,7 @@
+ )
+ 
+ 
+-class TestFhirApi(FrappeTestCase):
++class TestFhirApi(PostgresQueryCountMixin, FrappeTestCase):
+ 	@classmethod
+ 	def setUpClass(cls):
+ 		super().setUpClass()
+@@ -157,36 +158,18 @@
  		self.assertEqual(status, 400)
  		self.assertEqual(body["resourceType"], "OperationOutcome")
  
@@ -134,3 +151,47 @@
  
  	def test_framework_defect_is_set_filter_on_datetime(self):
  		"""Pins discovered defect D-2 (docs/KNOWN_DEFECTS.md): in frappe v15, a filter
+--- a/spice_lite/tests/utils.py
++++ b/spice_lite/tests/utils.py
+@@ -5,6 +5,9 @@
+ All data is synthetic. Test users use the reserved `.test` TLD.
+ """
+ 
++import inspect
++from contextlib import contextmanager
++
+ import frappe
+ from frappe.utils import add_to_date, now_datetime
+ 
+@@ -98,3 +101,31 @@
+ 	body = fn(**kwargs)
+ 	status = frappe.local.response.pop("http_status_code", None) or 200
+ 	return status, body
++
++
++class PostgresQueryCountMixin:
++	"""Makes FrappeTestCase.assertQueryCount usable on Postgres (frappe v15).
++
++	On Postgres, `frappe.db.last_query` is a property returning a `LazyDecode`, and
++	assertQueryCount builds its failure message with "\\n\\n".join(queries) eagerly, so it raises
++	`TypeError: sequence item 0: expected str instance, LazyDecode found` whenever any query ran,
++	even when the count is within the limit. This wrapper exposes last_query as str while the
++	context manager runs. On MariaDB last_query is already a str and nothing is changed.
++	"""
++
++	@contextmanager
++	def assertQueryCount(self, count):
++		db_class = frappe.db.__class__  # frappe.db is a LocalProxy; type() would return the proxy class
++		lazy = inspect.getattr_static(db_class, "last_query", None)
++		own = "last_query" in vars(db_class)
++		if isinstance(lazy, property):
++			db_class.last_query = property(lambda db: str(lazy.fget(db)))
++		try:
++			with super().assertQueryCount(count):
++				yield
++		finally:
++			if isinstance(lazy, property):
++				if own:
++					db_class.last_query = lazy
++				else:
++					del db_class.last_query

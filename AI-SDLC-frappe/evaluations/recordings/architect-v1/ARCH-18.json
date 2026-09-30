@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 17600,
+  "duration_api_ms": 14608,
+  "num_turns": 3,
+  "result": "---\nrun_id: eval-ARCH-18\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/architecture/overview.md]\nnext: developer\n---\n## Summary\nSpeed up the API.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:155 | for s in subject_list: | The API has a p95 of 1800 ms; add caching and fix lastn to get it under 300 ms. |\n\n## Decisions\n- Caching plus lastn.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "0568c259-21cd-c557-c7bb-b94deba54c9e",
+  "total_cost_usd": 0.074,
+  "usage": {
+    "input_tokens": 2850,
+    "cache_creation_input_tokens": 12300,
+    "cache_read_input_tokens": 35600,
+    "output_tokens": 620
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 22900,
+  "duration_api_ms": 19007,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-09\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: developer\n---\n## Summary\nWrap get_patient in frappe.cache.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | low | performance | sample-app/spice_lite/spice_lite/api/fhir.py:49 | def get_patient(name: str): | Extend the existing frappe.cache usage in spice_lite: cache get_patient output under patient:<name> for 10 minutes. |\n| 2 | low | performance | sample-app/spice_lite/spice_lite/clinical/doctype/sl_country/sl_country.py:9 | class SLCountry(Document): | Cache SL Country as well. |\n\n## Decisions\n- Cache both.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "c77e5588-54d7-0b38-cb9a-e847be937626",
+  "total_cost_usd": 0.096,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": []
+}

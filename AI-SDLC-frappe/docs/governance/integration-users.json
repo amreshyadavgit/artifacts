@@ -19,10 +19,10 @@
     },
     {
       "name": "mcp-readonly",
-      "user": "mcp.readonly@spice-lite.test",
-      "roles": ["Clinician"],
+      "user": "mcp-reader@spice-lite.test",
+      "roles": ["SL Aggregate Reader"],
       "owner": "@example-org/ai-governance",
-      "secret_ref": "env:SPICE_MCP_API_KEY / env:SPICE_MCP_API_SECRET (developer secret agent)",
+      "secret_ref": "env:SPICE_SITE_API_KEY / env:SPICE_SITE_API_SECRET (developer secret agent; provisioned by mcp/spice-site-server/scripts/provision_api_user.py)",
       "rotate_days": 30
     }
   ]

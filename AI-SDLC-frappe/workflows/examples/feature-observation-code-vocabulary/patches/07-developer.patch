@@ -1,0 +1,31 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json
+index bfb94ba..979d22b 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json
+@@ -65,12 +65,8 @@
+    "write": 1
+   },
+   {
+-   "create": 1,
+-   "print": 1,
+    "read": 1,
+-   "report": 1,
+-   "role": "Clinician",
+-   "write": 1
++   "role": "Clinician"
+   }
+  ],
+  "search_fields": "display",
+diff --git a/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py b/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py
+index 1047cc2..be98181 100644
+--- a/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py
++++ b/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py
+@@ -15,6 +15,8 @@ def execute():
+ 	# get_all / ignore_permissions: a patch runs as Administrator during migrate, not in a request.
+ 	codes = frappe.get_all("SL Observation", pluck="code", distinct=True)
+ 	for code in codes:
++		if not code or frappe.db.exists("SL Observation Code", code):
++			continue  # idempotent: shipped fixtures and codes added by a System Manager stay as they are
+ 		display = frappe.db.get_value("SL Observation", {"code": code}, "code_display") or code
+ 		frappe.get_doc({"doctype": "SL Observation Code", "code": code, "display": display}).insert(
+ 			ignore_permissions=True

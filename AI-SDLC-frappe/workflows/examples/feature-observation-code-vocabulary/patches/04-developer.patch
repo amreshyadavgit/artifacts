@@ -1,0 +1,380 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json
+index e545074..bcaaa59 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json
+@@ -35,13 +35,16 @@
+   },
+   {
+    "fieldname": "code",
+-   "fieldtype": "Data",
++   "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Code (LOINC)",
++   "options": "SL Observation Code",
+    "reqd": 1,
+    "search_index": 1
+   },
+   {
++   "fetch_from": "code.display",
++   "fetch_if_empty": 1,
+    "fieldname": "code_display",
+    "fieldtype": "Data",
+    "label": "Code Display"
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py
+index d375daf..95dcc48 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py
+@@ -27,6 +27,7 @@ class SLObservation(Document):
+ 	def validate(self):
+ 		self.validate_immutable()  # first: nothing else matters if the doc is locked
+ 		self.validate_patient()
++		self.validate_code()
+ 		self.validate_encounter()
+ 		self.validate_value_for_final()
+ 		self.validate_amendment()
+@@ -35,6 +36,17 @@ class SLObservation(Document):
+ 		if not self.patient or not frappe.db.exists("SL Patient", self.patient):
+ 			frappe.throw(_("Patient {0} does not exist").format(self.patient), frappe.LinkValidationError)
+ 
++	def validate_code(self):
++		vocab = frappe.db.get_value("SL Observation Code", self.code, ["unit", "disabled"], as_dict=True)
++		if not vocab:
++			frappe.throw(_("Unknown Observation code {0}").format(self.code), frappe.LinkValidationError)
++		if vocab.disabled and self.is_new():
++			frappe.throw(_("Observation code {0} is disabled").format(self.code))
++		if self.status in LOCKED_STATUSES and vocab.unit and self.unit and self.unit != vocab.unit:
++			frappe.throw(
++				_("Unit {0} does not match unit {1} of code {2}").format(self.unit, vocab.unit, self.code)
++			)
++
+ 	def validate_encounter(self):
+ 		if not self.encounter:
+ 			return
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/__init__.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json
+new file mode 100644
+index 0000000..bfb94ba
+--- /dev/null
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json
+@@ -0,0 +1,83 @@
++{
++ "actions": [],
++ "allow_rename": 0,
++ "autoname": "field:code",
++ "creation": "2026-09-30 00:00:00.000000",
++ "doctype": "DocType",
++ "engine": "InnoDB",
++ "field_order": [
++  "code",
++  "display",
++  "unit",
++  "disabled"
++ ],
++ "fields": [
++  {
++   "description": "LOINC code, e.g. 8480-6. Becomes the document name.",
++   "fieldname": "code",
++   "fieldtype": "Data",
++   "in_list_view": 1,
++   "label": "Code (LOINC)",
++   "reqd": 1,
++   "unique": 1
++  },
++  {
++   "fieldname": "display",
++   "fieldtype": "Data",
++   "in_list_view": 1,
++   "label": "Display",
++   "reqd": 1
++  },
++  {
++   "description": "UCUM unit that final and amended Observations with this code must use. Empty = any unit.",
++   "fieldname": "unit",
++   "fieldtype": "Data",
++   "in_list_view": 1,
++   "label": "Unit (UCUM)"
++  },
++  {
++   "default": "0",
++   "description": "Disabled codes cannot be used for new Observations. Existing Observations keep them.",
++   "fieldname": "disabled",
++   "fieldtype": "Check",
++   "label": "Disabled"
++  }
++ ],
++ "index_web_pages_for_search": 0,
++ "links": [],
++ "modified": "2026-09-30 00:00:00.000000",
++ "modified_by": "Administrator",
++ "module": "Clinical",
++ "name": "SL Observation Code",
++ "naming_rule": "By fieldname",
++ "owner": "Administrator",
++ "permissions": [
++  {
++   "create": 1,
++   "delete": 1,
++   "email": 1,
++   "export": 1,
++   "print": 1,
++   "read": 1,
++   "report": 1,
++   "role": "System Manager",
++   "share": 1,
++   "write": 1
++  },
++  {
++   "create": 1,
++   "print": 1,
++   "read": 1,
++   "report": 1,
++   "role": "Clinician",
++   "write": 1
++  }
++ ],
++ "search_fields": "display",
++ "show_title_field_in_link": 1,
++ "sort_field": "creation",
++ "sort_order": "DESC",
++ "states": [],
++ "title_field": "display",
++ "track_changes": 1
++}
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.py
+new file mode 100644
+index 0000000..dd46682
+--- /dev/null
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.py
+@@ -0,0 +1,20 @@
++# Copyright (c) 2026, AI-SDLC Course and contributors
++# For license information, please see license.txt
++
++import frappe
++from frappe import _
++from frappe.model.document import Document
++
++
++class SLObservationCode(Document):
++	"""One entry of the deployment's Observation vocabulary (LOINC code, display, UCUM unit).
++
++	Shipped codes live in `spice_lite/fixtures/sl_observation_code.json` and are re-imported
++	(overwritten) on every `bench migrate`. Country-specific codes belong in the country app.
++	"""
++
++	def validate(self):
++		self.code = (self.code or "").strip()
++		if not self.code or any(c.isspace() for c in self.code):
++			frappe.throw(_("Code must be a single LOINC code without spaces"))
++		self.unit = (self.unit or "").strip() or None
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py
+new file mode 100644
+index 0000000..9b086ce
+--- /dev/null
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/test_sl_observation_code.py
+@@ -0,0 +1,63 @@
++# Copyright (c) 2026, AI-SDLC Course and contributors
++# See license.txt
++
++import frappe
++from frappe.tests.utils import FrappeTestCase
++
++from spice_lite.patches.v0_2 import backfill_observation_codes
++from spice_lite.tests.utils import ensure_test_users, make_observation, make_patient
++
++SHIPPED = {"8480-6", "8462-4", "8867-4", "2339-0", "29463-7", "8302-2"}
++
++
++class TestSLObservationCode(FrappeTestCase):
++	@classmethod
++	def setUpClass(cls):
++		super().setUpClass()
++		ensure_test_users()
++
++	def setUp(self):
++		self.patient = make_patient()
++
++	def tearDown(self):
++		frappe.set_user("Administrator")
++
++	def test_shipped_codes_are_installed_from_fixtures(self):
++		installed = set(frappe.get_all("SL Observation Code", pluck="name"))
++		self.assertTrue(SHIPPED <= installed, SHIPPED - installed)
++
++	def test_unknown_code_rejected(self):
++		self.assertRaises(frappe.LinkValidationError, make_observation, self.patient.name, code="0000-0")
++
++	def test_display_fetched_when_empty(self):
++		obs = make_observation(self.patient.name, code="8480-6", code_display=None)
++		self.assertEqual(obs.code_display, "Systolic blood pressure")
++
++	def test_final_unit_must_match_code_unit(self):
++		self.assertRaises(frappe.ValidationError, make_observation, self.patient.name, code="8480-6", unit="kPa")
++
++	def test_disabled_code_rejected_for_new_observations(self):
++		frappe.get_doc({"doctype": "SL Observation Code", "code": "99990-1", "display": "Retired test code", "disabled": 1}).insert()
++		self.assertRaises(frappe.ValidationError, make_observation, self.patient.name, code="99990-1", unit="x")
++
++
++class TestBackfillObservationCodes(FrappeTestCase):
++	@classmethod
++	def setUpClass(cls):
++		super().setUpClass()
++		ensure_test_users()
++
++	def test_backfill_creates_codes_for_legacy_rows(self):
++		# a row saved before `code` became a Link: insert it without validation
++		legacy = frappe.get_doc(
++			{
++				"doctype": "SL Observation",
++				"patient": make_patient().name,
++				"code": "99991-2",
++				"code_display": "Legacy local code",
++				"status": "preliminary",
++			}
++		)
++		legacy.db_insert()
++		backfill_observation_codes.execute()
++		self.assertEqual(frappe.db.get_value("SL Observation Code", "99991-2", "display"), "Legacy local code")
+diff --git a/sample-app/spice_lite/spice_lite/fixtures/sl_observation_code.json b/sample-app/spice_lite/spice_lite/fixtures/sl_observation_code.json
+new file mode 100644
+index 0000000..4f019aa
+--- /dev/null
++++ b/sample-app/spice_lite/spice_lite/fixtures/sl_observation_code.json
+@@ -0,0 +1,62 @@
++[
++ {
++  "code": "8480-6",
++  "disabled": 0,
++  "display": "Systolic blood pressure",
++  "docstatus": 0,
++  "doctype": "SL Observation Code",
++  "modified": "2026-09-30 00:00:00.000000",
++  "name": "8480-6",
++  "unit": "mm[Hg]"
++ },
++ {
++  "code": "8462-4",
++  "disabled": 0,
++  "display": "Diastolic blood pressure",
++  "docstatus": 0,
++  "doctype": "SL Observation Code",
++  "modified": "2026-09-30 00:00:00.000000",
++  "name": "8462-4",
++  "unit": "mm[Hg]"
++ },
++ {
++  "code": "8867-4",
++  "disabled": 0,
++  "display": "Heart rate",
++  "docstatus": 0,
++  "doctype": "SL Observation Code",
++  "modified": "2026-09-30 00:00:00.000000",
++  "name": "8867-4",
++  "unit": "/min"
++ },
++ {
++  "code": "2339-0",
++  "disabled": 0,
++  "display": "Glucose [Mass/volume] in Blood",
++  "docstatus": 0,
++  "doctype": "SL Observation Code",
++  "modified": "2026-09-30 00:00:00.000000",
++  "name": "2339-0",
++  "unit": "mg/dL"
++ },
++ {
++  "code": "29463-7",
++  "disabled": 0,
++  "display": "Body weight",
++  "docstatus": 0,
++  "doctype": "SL Observation Code",
++  "modified": "2026-09-30 00:00:00.000000",
++  "name": "29463-7",
++  "unit": "kg"
++ },
++ {
++  "code": "8302-2",
++  "disabled": 0,
++  "display": "Body height",
++  "docstatus": 0,
++  "doctype": "SL Observation Code",
++  "modified": "2026-09-30 00:00:00.000000",
++  "name": "8302-2",
++  "unit": "cm"
++ }
++]
+diff --git a/sample-app/spice_lite/spice_lite/hooks.py b/sample-app/spice_lite/spice_lite/hooks.py
+index 3c3085c..0b7acb2 100644
+--- a/sample-app/spice_lite/spice_lite/hooks.py
++++ b/sample-app/spice_lite/spice_lite/hooks.py
+@@ -21,6 +21,12 @@ after_install = "spice_lite.install.after_install"
+ # Re-run the idempotent role/bootstrap step on every `bench migrate`.
+ after_migrate = ["spice_lite.install.after_migrate"]
+ 
++# Fixtures
++# --------
++# `bench export-fixtures` writes these to spice_lite/fixtures/; every file in that folder is
++# imported (overwritten) on install and on every `bench migrate`.
++fixtures = [{"dt": "SL Observation Code"}]
++
+ # Document Events
+ # ---------------
+ # Not needed: each DocType controller implements its own validate/on_update.
+diff --git a/sample-app/spice_lite/spice_lite/patches.txt b/sample-app/spice_lite/spice_lite/patches.txt
+index b0c3e0e..de7dbe3 100644
+--- a/sample-app/spice_lite/spice_lite/patches.txt
++++ b/sample-app/spice_lite/spice_lite/patches.txt
+@@ -5,3 +5,4 @@
+ [post_model_sync]
+ # Patches added in this section will be executed after doctypes are migrated
+ spice_lite.patches.v0_1.backfill_patient_country
++spice_lite.patches.v0_2.backfill_observation_codes
+diff --git a/sample-app/spice_lite/spice_lite/patches/v0_2/__init__.py b/sample-app/spice_lite/spice_lite/patches/v0_2/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py b/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py
+new file mode 100644
+index 0000000..1047cc2
+--- /dev/null
++++ b/sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py
+@@ -0,0 +1,21 @@
++# Copyright (c) 2026, AI-SDLC Course and contributors
++# License: MIT. See license.txt
++"""v0.2: SL Observation.code became a Link to SL Observation Code.
++
++Rows saved before that change may use codes that are not in the vocabulary; they would fail
++link validation on their next save (for example when a clinician amends them). Create a
++vocabulary entry for every distinct code in use. Runs in [post_model_sync] because it needs
++the new DocType; the shipped fixtures are imported after it and overwrite shipped codes.
++"""
++
++import frappe
++
++
++def execute():
++	# get_all / ignore_permissions: a patch runs as Administrator during migrate, not in a request.
++	codes = frappe.get_all("SL Observation", pluck="code", distinct=True)
++	for code in codes:
++		display = frappe.db.get_value("SL Observation", {"code": code}, "code_display") or code
++		frappe.get_doc({"doctype": "SL Observation Code", "code": code, "display": display}).insert(
++			ignore_permissions=True
++		)
+diff --git a/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py b/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
+index 1e1d3e9..9be8a81 100644
+--- a/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
++++ b/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
+@@ -132,6 +132,12 @@ class TestFhirApi(FrappeTestCase):
+ 		self.assertEqual(body["resourceType"], "OperationOutcome")
+ 		self.assertEqual(body["issue"][0]["code"], "invalid")
+ 
++	def test_create_observation_unknown_code_is_422(self):
++		frappe.set_user(CLINICIAN)
++		status, body = call(fhir.create_observation, patient=self.p1.name, code="0000-0", value=1, unit="x")
++		self.assertEqual(status, 422)
++		self.assertEqual(body["issue"][0]["code"], "invalid")
++
+ 	# ---- lastn -------------------------------------------------------------
+ 	def test_lastn_returns_latest_per_patient(self):
+ 		old = make_observation(self.p1.name, minutes_ago=60, value=150.0)

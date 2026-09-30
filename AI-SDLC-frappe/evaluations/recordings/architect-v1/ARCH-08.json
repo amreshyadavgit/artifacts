@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 32300,
+  "duration_api_ms": 26809,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-08\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/spice_lite/spice_lite/patches.txt, sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py, sample-app/spice_lite/spice_lite/api/mappers.py]\nnext: developer\n---\n## Summary\nAdd given_names with a data patch and keep first_name for now.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | standards | sample-app/spice_lite/spice_lite/patches.txt:5 | [post_model_sync] | Add an idempotent patch in post_model_sync listed in patches.txt that copies first_name into given_names with one frappe.qb update. |\n| 2 | medium | design | sample-app/spice_lite/spice_lite/api/mappers.py:46 | given = [row[\"first_name\"]] | patient_to_fhir reads first_name for given: update the mapper and keep first_name until clients move. |\n| 3 | low | testing | sample-app/spice_lite/spice_lite/tests/test_fhir_api.py:207 | def test_backfill_country_patch(self): | Test the new patch like test_backfill_country_patch. |\n\n## Decisions\n- Additive field and patch.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "cdd56556-369a-ded9-8b0b-3ff8ac0def7a",
+  "total_cost_usd": 0.137,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 19700,
+  "duration_api_ms": 16351,
+  "num_turns": 3,
+  "result": "---\nrun_id: eval-REV-01\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-01.patch, sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: developer\n---\n## Summary\nThe new search builds SQL from user input.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | critical | security | sample-app/spice_lite/spice_lite/api/fhir.py:102 | f-string into frappe.db.sql | SQL injection through `given`; use parameters or frappe.get_list. |\n| R2 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:100 | frappe.db.sql | Raw SQL ignores permissions; frappe.get_list applies them. |\n| R3 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:103 | no limit | Add a limit like MAX_SEARCH_RESULTS. |",
+  "stop_reason": "end_turn",
+  "session_id": "46235af2-fcb8-3a5a-ff51-d387888cc530",
+  "total_cost_usd": 0.081,
+  "usage": {
+    "input_tokens": 2850,
+    "cache_creation_input_tokens": 12300,
+    "cache_read_input_tokens": 35600,
+    "output_tokens": 620
+  },
+  "permission_denials": []
+}

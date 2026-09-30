@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT}"
+      }
+    },
+    "atlassian": {
+      "type": "http",
+      "url": "${ATLASSIAN_MCP_URL:-https://mcp.atlassian.com/v1/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${ATLASSIAN_MCP_TOKEN}"
+      }
+    },
+    "spice-site": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/mcp/spice-site-server/server.mjs"],
+      "env": {
+        "SPICE_SITE_MODE": "${SPICE_SITE_MODE:-fixture}",
+        "SPICE_SITE_URL": "${SPICE_SITE_URL:-http://127.0.0.1:8000}",
+        "SPICE_SITE_HOST": "${SPICE_SITE_HOST:-test.localhost}",
+        "SPICE_SITE_API_KEY": "${SPICE_SITE_API_KEY:-}",
+        "SPICE_SITE_API_SECRET": "${SPICE_SITE_API_SECRET:-}"
+      }
+    }
+  }
+}

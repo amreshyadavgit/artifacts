@@ -9,8 +9,8 @@
 //   - no output (exit 0) for read-only verbs (get/list/search/...), so normal permission
 //     rules apply unchanged.
 // Why a hook and not only an "ask" rule: permission rules match tool names, and MCP servers
-// name tools differently (Jira `addCommentToJiraIssue`, GitHub `add_issue_comment`, a Frappe site
-// server's `call_method`). The hook classifies by verb, so a new server is gated on day one.
+// name tools differently (Jira `addCommentToJiraIssue`, GitHub `add_issue_comment`, a generic Frappe
+// REST server's `call_method`). The hook classifies by verb, so a new server is gated on day one.
 // A Frappe whitelisted-method bridge ("call", "invoke") is treated as unknown -> ask, because a
 // whitelisted method can write.
 import { readFileSync, realpathSync } from "node:fs";

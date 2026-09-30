@@ -1,0 +1,36 @@
+test_amend_via_new_document (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_amend_via_new_document) ... ok
+test_clinician_cannot_delete (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_clinician_cannot_delete) ... ok
+test_encounter_must_belong_to_patient (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_encounter_must_belong_to_patient) ... ok
+test_final_requires_value_and_unit (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_final_requires_value_and_unit) ... FAIL
+test_missing_value_is_stored_as_zero_known_defect (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_missing_value_is_stored_as_zero_known_defect)
+Pins discovered defect D-1: Frappe stores a NULL Float as 0.0 (NOT NULL DEFAULT 0 column). ... ok
+test_preliminary_can_be_finalised_then_is_immutable (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_preliminary_can_be_finalised_then_is_immutable) ... ok
+test_unknown_patient_rejected (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_unknown_patient_rejected) ... ok
+
+======================================================================
+FAIL: test_final_requires_value_and_unit (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_final_requires_value_and_unit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/test_sl_observation.py", line 25, in test_final_requires_value_and_unit
+    self.assertRaises(frappe.ValidationError, make_observation, self.patient.name, value=None)
+    self = <spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation testMethod=test_final_requires_value_and_unit>
+AssertionError: ValidationError not raised by make_observation
+
+----------------------------------------------------------------------
+Ran 7 tests in 2.426s
+
+FAILED (failures=1)
+Running "before_tests" hooks
+Message: Newly created user clinician@spice-lite.test has no roles enabled.
+Message: Notification Settings clinician@spice-lite.test not found
+Message: Newly created user norole@spice-lite.test has no roles enabled.
+Message: Notification Settings norole@spice-lite.test not found
+Message: An amended Observation must reference the Observation it replaces
+Message: User clinician@spice-lite.test does not have access to this document: SL Observation - SLO-00004
+Message: User not allowed to delete SL Observation: SLO-00004
+Message: Encounter SLE-00001 does not belong to Patient SLP-00003
+Message: A final Observation must have a value and a unit
+Message: Observation SLO-00009 is final and cannot be changed. Create an amended Observation instead.
+Message: Observation SLO-00009 is final and cannot be changed. Create an amended Observation instead.
+Message: A final Observation cannot be deleted
+Message: Could not find Patient: SLP-NOPE

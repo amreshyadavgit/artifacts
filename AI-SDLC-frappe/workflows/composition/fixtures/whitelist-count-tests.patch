@@ -1,0 +1,26 @@
+diff --git a/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py b/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
+index 1e1d3e9..2f49285 100644
+--- a/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
++++ b/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
+@@ -132,6 +132,21 @@ class TestFhirApi(FrappeTestCase):
+ 		self.assertEqual(body["resourceType"], "OperationOutcome")
+ 		self.assertEqual(body["issue"][0]["code"], "invalid")
+ 
++	# ---- count_observations (tester, step 05) ------------------------------
++	def test_count_observations_counts_per_code(self):
++		p = make_patient()  # own patient: class-level data is shared with the lastn tests
++		make_observation(p.name, minutes_ago=3)
++		make_observation(p.name, minutes_ago=2, code="8867-4", unit="/min", value=66.0)
++		frappe.set_user(CLINICIAN)
++		status, body = call(fhir.count_observations, subject="Patient/" + p.name, code="8867-4")
++		self.assertEqual((status, body["parameter"][0]["valueInteger"]), (200, 1))
++
++	def test_count_observations_requires_read_permission(self):
++		frappe.set_user(NO_ROLE_USER)
++		status, body = call(fhir.count_observations, subject=self.p1.name)
++		self.assertEqual(status, 403)
++		self.assertEqual(body["issue"][0]["code"], "forbidden")
++
+ 	# ---- lastn -------------------------------------------------------------
+ 	def test_lastn_returns_latest_per_patient(self):
+ 		old = make_observation(self.p1.name, minutes_ago=60, value=150.0)

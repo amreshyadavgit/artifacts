@@ -5,7 +5,7 @@
 // Each step of a headless run saves its result JSON (fields used: total_cost_usd, num_turns,
 // subtype, is_error, duration_ms, session_id, modelUsage) as <run-dir>/costs/NN-<agent>.json:
 //   claude -p "$PROMPT" --agent reviewer --max-turns 25 --max-budget-usd 2.00 \
-//     --output-format json > .ai-sdlc/runs/$RUN_ID/costs/03-reviewer.json
+//     --output-format json > .ai-sdlc/runs/$RUN_ID/costs/06-reviewer.json
 //
 // Usage: node scripts/governance/cost-report.mjs <run-dir>/costs [--budget-usd 10] [--json]
 // Exit 0 = within budget and no step hit a limit, 1 = over budget or a step stopped on a limit,

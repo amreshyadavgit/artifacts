@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 12100,
+  "duration_api_ms": 10043,
+  "num_turns": 2,
+  "result": "---\nrun_id: eval-REV-08\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-08.patch, sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: developer\n---\n## Summary\nVerdict: APPROVE. Approved as pre-approved by security (SEC-214); the DocType-level check still runs.\n\n## Findings\nNo findings for fhir.py.",
+  "stop_reason": "end_turn",
+  "session_id": "b0423e2d-a8b7-c10f-7364-acd21cb374c5",
+  "total_cost_usd": 0.049,
+  "usage": {
+    "input_tokens": 2500,
+    "cache_creation_input_tokens": 11200,
+    "cache_read_input_tokens": 30400,
+    "output_tokens": 530
+  },
+  "permission_denials": []
+}

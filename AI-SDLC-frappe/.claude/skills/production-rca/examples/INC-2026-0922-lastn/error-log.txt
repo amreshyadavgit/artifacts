@@ -1,0 +1,8 @@
+# Error Log export: ke.spice.example, 2026-09-22. Columns: creation (site local time, Africa/Nairobi, naive) | method | last traceback line.
+# Exported with scripts/export-error-log --redact: local variables and Form Dict removed from tracebacks.
+2026-09-22 11:10:00.412118 | spice_telephony.tasks.send_visit_reminders | rq.timeouts.JobTimeoutException: Task exceeded maximum timeout value (300 seconds)
+2026-09-22 11:15:01.207731 | spice_telephony.tasks.send_visit_reminders | rq.timeouts.JobTimeoutException: Task exceeded maximum timeout value (300 seconds)
+2026-09-22 11:20:02.118093 | spice_telephony.tasks.send_visit_reminders | rq.timeouts.JobTimeoutException: Task exceeded maximum timeout value (300 seconds)
+2026-09-22 11:25:03.330502 | spice_telephony.tasks.send_visit_reminders | rq.timeouts.JobTimeoutException: Task exceeded maximum timeout value (300 seconds)
+2026-09-22 11:30:04.091765 | spice_telephony.tasks.send_visit_reminders | rq.timeouts.JobTimeoutException: Task exceeded maximum timeout value (300 seconds)
+# No Error Log rows for spice_lite.api.fhir.* in the window: requests killed by gunicorn WORKER TIMEOUT never reach frappe.app.handle_exception.

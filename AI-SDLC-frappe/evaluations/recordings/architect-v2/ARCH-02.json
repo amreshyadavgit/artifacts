@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 66900,
+  "duration_api_ms": 55527,
+  "num_turns": 10,
+  "result": "---\nrun_id: eval-ARCH-02\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/hooks.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, context/architecture/overview.md, context/standards/frappe-coding-standards.md, context/security/phi-and-secrets-policy.md]\nnext: human\n---\n## Summary\nTelephony belongs in an integration app (`spice_telephony`, `required_apps = [\"spice_lite\"]`) that reacts to SL Encounter through `doc_events` and calls the telco from a background job. SL Patient has no phone field today, and phone numbers are PHI. ADR proposed.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | design | sample-app/spice_lite/spice_lite/hooks.py:11 | `required_apps = []` | New integration app `spice_telephony` with `required_apps = [\"spice_lite\"]`; nothing in spice_lite changes. |\n| ARC-002 | medium | design | sample-app/spice_lite/spice_lite/hooks.py:27 | `# \t\"SL Observation\": {\"on_update\": \"spice_lite.audit.some_handler\"},` | Register `doc_events = {\"SL Encounter\": {\"after_insert\": \"spice_telephony.reminders.schedule\"}}` in the integration app's hooks.py (rule 1), not in the SLEncounter controller. |\n| ARC-003 | high | performance | sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json:40 | `\"fieldname\": \"status\"` | The telco API takes 2-8 s: never call it in the request. `frappe.enqueue(\"spice_telephony.reminders.send\", queue=\"short\", timeout=60, job_id=f\"reminder::{doc.name}\", deduplicate=True, enqueue_after_commit=True, encounter=doc.name)`. |\n| ARC-004 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:8 | `\"field_order\": [` | SL Patient has no phone or mobile field. The integration app adds a Custom Field `mobile_number` (Data, options Phone) with consent, or looks the number up in the telco's own registry. |\n| ARC-005 | high | security | context/security/phi-and-secrets-policy.md:6 | `Never log PHI.` | Phone numbers are PHI: never in `log_access`, Error Log or job kwargs logged by RQ. SMS message text carries no clinical detail (\"You have a follow-up visit on 2026-10-14\"). |\n\n## Decisions\n- Chosen: integration app with `doc_events` + short-queue job + outcome written back with `frappe.db.set_value` on a Custom Field `call_outcome`.\n- Rejected: controller change in SLEncounter (couples spice_lite to one telco); synchronous call in `after_insert` (2-8 s per insert).\n- Where it lives: integration app.\n- Outline: app skeleton, Custom Fields fixture, `reminders.py` job, rate-limit handling by re-enqueueing with a delay from the scheduler, tests with a stubbed gateway.\n\n## Open questions\n- Does the Ministry hold SMS consent per patient, and where?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "537259d0-6e58-0019-433a-8c7e6ed673a5",
+  "total_cost_usd": 0.301,
+  "usage": {
+    "input_tokens": 5300,
+    "cache_creation_input_tokens": 20000,
+    "cache_read_input_tokens": 72000,
+    "output_tokens": 1250
+  },
+  "permission_denials": []
+}

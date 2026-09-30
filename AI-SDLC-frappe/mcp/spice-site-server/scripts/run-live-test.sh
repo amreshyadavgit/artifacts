@@ -21,19 +21,28 @@ RECORD=""
 as_bench() { su - "$BENCH_USER" -c "source ~/.spice-lite-bench-env && cd $BENCH_DIR && $*"; }
 provision() { as_bench "cd sites && ../env/bin/python $HERE/provision_api_user.py --site $SITE $*"; }
 
+stop_serve() {
+  # bench serve = su -> bench_helper -> werkzeug reloader child. Kill the whole chain by its command line,
+  # then wait until the port is free, so no dev server outlives the test.
+  pkill -TERM -f "bench_helper frappe --site $SITE serve --port $PORT" 2>/dev/null || true
+  pkill -TERM -f "bench --site $SITE serve --port $PORT" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    curl -s -o /dev/null "http://127.0.0.1:$PORT/" || return 0
+    sleep 0.5
+  done
+  echo "WARNING: something still listens on port $PORT" >&2
+}
+
+cleanup() {
+  # Runs on EXIT of the locked shell (success, failure or Ctrl-C), so it must not rely on local variables.
+  echo "--- stop bench serve"
+  stop_serve
+  echo "--- teardown"
+  provision teardown
+}
+
 run() {
-  local serve_pid="" status=0
-  cleanup() {
-    if [[ -n "$serve_pid" ]]; then
-      pkill -TERM -P "$serve_pid" 2>/dev/null || true
-      kill "$serve_pid" 2>/dev/null || true
-      # bench serve runs werkzeug with a reloader child; make sure nothing keeps the port.
-      pkill -f "frappe.utils.bench_helper frappe --site $SITE serve --port $PORT" 2>/dev/null || true
-      pkill -f "serve --port $PORT" 2>/dev/null || true
-    fi
-    echo "--- teardown"
-    provision teardown
-  }
+  local status=0
   trap cleanup EXIT
 
   echo "--- provision read-only API user and synthetic sample data"
@@ -46,7 +55,6 @@ run() {
 
   echo "--- bench serve on port $PORT"
   as_bench "bench --site $SITE serve --port $PORT" > /tmp/spice-site-serve.log 2>&1 &
-  serve_pid=$!
   for _ in $(seq 1 60); do
     curl -s -o /dev/null -H "Host: $SITE" "http://127.0.0.1:$PORT/api/method/ping" && break
     sleep 1
@@ -69,6 +77,6 @@ run() {
   return $status
 }
 
-export -f run as_bench provision
+export -f run cleanup stop_serve as_bench provision
 export HERE SERVER_DIR BENCH_DIR SITE PORT BENCH_USER RECORD
 flock "$LOCK" bash -c run

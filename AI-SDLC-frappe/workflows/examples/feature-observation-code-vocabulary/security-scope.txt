@@ -1,0 +1,5 @@
+SECURITY STEP: MANDATORY (rules 1, 3, 4, 5)
+- rule 1 sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation_code/sl_observation_code.json:54: DocType permissions array or permlevel changed | "permissions": [
+- rule 3 sample-app/spice_lite/spice_lite/hooks.py:24: hooks.py changed (doc_events, fixtures, permission hooks and overrides live here) | # Fixtures
+- rule 4 sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py:15: ignore_permissions added or removed | # get_all / ignore_permissions: a patch runs as Administrator during migrate, not in a request.
+- rule 5 sample-app/spice_lite/spice_lite/patches/v0_2/backfill_observation_codes.py:16: permission-bypassing query added (db.sql, get_all, qb or db.count) | codes = frappe.get_all("SL Observation", pluck="code", distinct=True)

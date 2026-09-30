@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 27800,
+  "duration_api_ms": 23074,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-16\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/standards/testing-standards.md, sample-app/spice_lite/pyproject.toml]\nnext: developer\n---\n## Summary\nKeep bench run-tests for integration tests.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | testing | context/standards/testing-standards.md:6 | FrappeTestCase, bench run-tests | Integration tests stay on FrappeTestCase with bench run-tests. |\n| 2 | low | testing | sample-app/spice_lite/pyproject.toml:28 | testpaths = [\"spice_lite/tests/unit\"] | The bench venv has no pytest, so only the unit folder can use pytest. |\n| 3 | low | testing | sample-app/spice_lite/spice_lite/tests/test_fhir_api.py:20 | class TestFhirApi(FrappeTestCase): | Use --module and --test for fast local runs, plus the mappers unit tests. |\n\n## Decisions\n- No pytest migration.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "61244df9-9908-1aee-71e6-100e5e0fea09",
+  "total_cost_usd": 0.119,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

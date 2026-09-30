@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 26100,
+  "duration_api_ms": 21663,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-02\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/hooks.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json]\nnext: developer\n---\n## Summary\nAdd telephony code to the encounter controller with a background job.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.py:17 | def on_update(self): | Call the telco from SLEncounter.on_update through frappe.enqueue(send_reminder, queue=\"default\", retry=3). |\n| 2 | low | security | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:8 | patient phone | Mask the patient's phone number in logs. |\n\n## Decisions\n- Controller change.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "44893848-a8f7-8f6d-162f-de22705dd064",
+  "total_cost_usd": 0.109,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 28900,
+  "duration_api_ms": 23987,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-REV-06\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-06.patch]\nnext: human\n---\n## Summary\nVerdict: NEEDS-DECISION. Extracts `_patient_filters` from search_patients; behaviour is unchanged. 1 medium.\nFrappe surfaces: api/fhir.py only (no DocType JSON, patches or hooks.py)\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | medium | testing | sample-app/spice_lite/spice_lite/api/fhir.py:63 | `def _patient_filters(family: str, mrn: str \\| None) -> list:` | The new helper has no direct unit test (testing-standards: every change needs tests); add a unit test for the family-only, mrn-only and both cases. |\n\n## Decisions\n- correctness: no findings\n- security: no findings\n- design: no findings\n- testing: REV-001\n- performance: no findings\n- standards: no findings\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- None.\n\n## Artifacts\n- none written; returned to main session",
+  "stop_reason": "end_turn",
+  "session_id": "4ad7be74-c4b7-2088-ee5a-1bb9260660c0",
+  "total_cost_usd": 0.121,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

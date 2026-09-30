@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 31600,
+  "duration_api_ms": 26228,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-REV-03\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-03.patch, context/standards/frappe-coding-standards.md, context/standards/api-standards.md]\nnext: security\n---\n## Summary\nVerdict: BLOCK. Adds `patient_encounters`, which lists encounters with frappe.get_all and no permission check. 1 high, 2 medium, 1 low. Routed to security.\nFrappe surfaces: whitelisted method `patient_encounters` in api/fhir.py\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:98 | `rows = frappe.get_all(` | frappe.get_all runs with ignore_permissions and the method never calls frappe.has_permission (rule 2): norole@spice-lite.test can read any patient's encounters. Use frappe.has_permission plus frappe.get_list. |\n| REV-002 | medium | security | sample-app/spice_lite/spice_lite/api/fhir.py:104 | `return {\"patient\": patient, \"encounters\": rows}` | No log_access audit line for a PHI read (rule 10). |\n| REV-003 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:102 | `order_by=\"encounter_date desc\",` | Unbounded list: add limit_page_length. |\n| REV-004 | low | design | sample-app/spice_lite/spice_lite/api/fhir.py:104 | `return {\"patient\": patient, \"encounters\": rows}` | Not a FHIR-lite Bundle (api-standards): map with bundle() or document the shape. |\n\n## Decisions\n- correctness: no findings\n- security: REV-001, REV-002\n- design: REV-004\n- testing: no findings\n- performance: REV-003\n- standards: no findings\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- None.\n\n## Artifacts\n- none written; returned to main session",
+  "stop_reason": "end_turn",
+  "session_id": "0924ecc6-6e32-2675-b6a4-b479433adde8",
+  "total_cost_usd": 0.133,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 57200,
+  "duration_api_ms": 47476,
+  "num_turns": 9,
+  "result": "---\nrun_id: eval-ARCH-10\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/api/fhir.py, sample-app/spice_lite/spice_lite/api/mappers.py, context/standards/api-standards.md, docs/adr/0001-fhir-lite-over-whitelisted-methods.md]\nnext: human\n---\n## Summary\nKeep `search_patients` unchanged for the tablet app and add a new whitelisted method for the new contract. Frappe's `/api/v2` prefix is the framework's route version, not app versioning. Deprecate the old method with usage counts from the audit log.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | design | sample-app/spice_lite/spice_lite/api/fhir.py:64 | `def search_patients(family: str \\| None = None, identifier: str \\| None = None):` | Add a new whitelisted method `spice_lite.api.fhir_v2.search_patients` (new module `api/fhir_v2.py`) with `name` and paging; leave the old one untouched for six months. |\n| ARC-002 | info | design | context/standards/api-standards.md:3 | `Endpoints are whitelisted methods under /api/method/spice_lite.api.fhir.<name>` | `/api/v2/method/spice_lite.api.fhir.search_patients` calls the same Python function as /api/method: the framework route version does not version app methods. |\n| ARC-003 | low | docs | sample-app/spice_lite/spice_lite/audit.py:31 | `def log_access(action: str, doctype: str, names=None, **counts) -> dict:` | Deprecation: count calls to the old method in the audit log per integration user, announce a sunset date, remove it after the count reaches zero. |\n| ARC-004 | medium | standards | context/standards/testing-standards.md:7 | `OperationOutcome` 4xx from the API | Contract tests for both methods: the old one must keep returning the same Bundle for `family`. |\n\n## Decisions\n- Chosen: new module api/fhir_v2.py.\n- Rejected: `override_whitelisted_methods` (it replaces a method for every caller); a `version` parameter on the old method (branches inside one function).\n\n## Open questions\n- Which paging style do partners expect (FHIR `link` next/prev)?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "6319d879-944c-ad89-d288-e642e96913f8",
+  "total_cost_usd": 0.262,
+  "usage": {
+    "input_tokens": 4950,
+    "cache_creation_input_tokens": 18900,
+    "cache_read_input_tokens": 66800,
+    "output_tokens": 1160
+  },
+  "permission_denials": []
+}

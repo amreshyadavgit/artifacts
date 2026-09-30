@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 58800,
+  "duration_api_ms": 48804,
+  "num_turns": 9,
+  "result": "---\nrun_id: eval-ARCH-04\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/hooks.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json, context/standards/frappe-coding-standards.md, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.py]\nnext: human\n---\n## Summary\nA nightly inactivation over 2 million patients must run as a long-queue scheduled job with a set-based, chunked update; it also needs an index on `encounter_date` and a decision about audit, because a query-builder update skips the controller.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | design | sample-app/spice_lite/spice_lite/hooks.py:33 | `# scheduler_events = {\"daily\": [\"spice_lite.tasks.daily\"]}` | Register `scheduler_events = {\"daily_long\": [\"spice_lite.tasks.inactivate_dormant_patients\"]}`: `daily_long` runs on the long queue (1500 s). |\n| ARC-002 | high | performance | context/standards/frappe-coding-standards.md:9 | `frappe.enqueue(method, queue=\"short\"\\|\"default\"\\|\"long\", timeout=...` | A plain `daily` event goes to the default queue with a 300 s timeout; 2 million rows will not finish in that timeout. |\n| ARC-003 | high | performance | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.py:36 | `def on_update(self):` | Do not loop `frappe.get_doc(...).save()` per patient (2 million saves, 2 million audit lines). Use a set-based `frappe.qb.update` in chunks of 10,000 names with a commit per chunk. |\n| ARC-004 | medium | performance | sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json:26 | `\"fieldname\": \"encounter_date\"` | `encounter_date` has no search_index; add one (DocType JSON + patch) before the 24-month lookup. |\n| ARC-005 | low | standards | sample-app/spice_lite/spice_lite/audit.py:31 | `def log_access(action: str, doctype: str, names=None, **counts) -> dict:` | The qb update skips validate and on_update, so there is no audit line and no Version per patient; write one summary `log_access(\"inactivate\", \"SL Patient\", [], result_count=n)`. |\n\n## Decisions\n- Chosen: daily_long job, chunked set-based update, index patch.\n- Rejected: per-document save loop; cron at 02:00 on the default queue.\n- Where it lives: core (the rule applies to every country).\n\n## Open questions\n- Is 24 months a clinical rule for every country, or per country (then a country app setting)?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "061fd640-ba3c-4a8d-b7b9-d1298b33bcb1",
+  "total_cost_usd": 0.276,
+  "usage": {
+    "input_tokens": 4950,
+    "cache_creation_input_tokens": 18900,
+    "cache_read_input_tokens": 66800,
+    "output_tokens": 1160
+  },
+  "permission_denials": []
+}

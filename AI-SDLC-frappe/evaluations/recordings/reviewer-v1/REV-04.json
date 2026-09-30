@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 22600,
+  "duration_api_ms": 18758,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-REV-04\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-04.patch, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json]\nnext: developer\n---\n## Summary\nCountry becomes mandatory.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | low | correctness | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:69 | \"reqd\": 1 | Make sure the UI shows the country field. |\n| R2 | low | testing | sample-app/spice_lite/spice_lite/tests/utils.py:62 | make_patient | make_patient already sets a country. |",
+  "stop_reason": "end_turn",
+  "session_id": "e9dde302-bf99-a6c2-470d-8de1accc8b8c",
+  "total_cost_usd": 0.094,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_013407fb9c332aabf854d9",
+      "tool_input": {
+        "command": "bench --site test.localhost run-tests --app spice_lite",
+        "description": "Run the test suite"
+      }
+    }
+  ]
+}

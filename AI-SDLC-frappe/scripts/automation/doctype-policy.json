@@ -1,0 +1,19 @@
+{
+  "_note": "Team policy read by lint-doctype-json.mjs. PHI fields follow context/domain/spice-lite-glossary.md; permission rules follow .claude/rules/doctype-json.md and context/security/phi-and-secrets-policy.md. Changing this file is a security-reviewed change.",
+  "clinicalDoctypes": ["SL Patient", "SL Encounter", "SL Observation"],
+  "phiFields": {
+    "SL Patient": ["mrn", "first_name", "last_name", "gender", "birth_date"],
+    "SL Observation": ["value", "unit"]
+  },
+  "forbiddenRoles": ["Guest", "All"],
+  "permissions": {
+    "default": {
+      "System Manager": { "required": ["read", "write", "create", "delete"] },
+      "Clinician": { "required": ["read", "write", "create"], "forbidden": ["delete", "export", "import", "share", "submit", "cancel", "amend"] }
+    },
+    "SL Country": {
+      "System Manager": { "required": ["read", "write", "create", "delete"] },
+      "Clinician": { "required": ["read"], "forbidden": ["write", "create", "delete", "export", "import", "share"] }
+    }
+  }
+}

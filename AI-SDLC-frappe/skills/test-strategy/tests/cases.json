@@ -1,0 +1,118 @@
+{
+  "skill": "test-strategy",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/test-strategy (Frappe edition). Each case names a change to spice_lite; the plan must cover the listed categories, reference the real existing tests by TestClass#test_method, and surface the listed risks. facts[] records what reading (read:) or running under bench run-tests (run:) showed, so a grader can check a plan by hand.",
+  "howToRun": [
+    "cd AI-SDLC-frappe",
+    "claude -p \"/test-strategy <case.input>\" --permission-mode plan --output-format json | jq -r '.result' > /tmp/plan.md",
+    "node .claude/skills/test-strategy/scripts/validate-test-plan.mjs /tmp/plan.md --repo . --bench /home/user/frappe-bench --case skills/test-strategy/tests/cases.json#<case.id>"
+  ],
+  "matching": "requiredCategories: at least one test case per category. mustReferenceTests: exact TestClass#test_method strings that must appear. mustMention: each term (or one of a list of alternatives), case-insensitive. minCases / minFindings: row counts.",
+  "cases": [
+    {
+      "id": "ts-01-lastn",
+      "input": "spice_lite.api.fhir.lastn",
+      "reference": ".claude/skills/test-strategy/examples/lastn-test-plan.md",
+      "facts": [
+        "run: 1, 5, 20 subjects issue 2, 10, 40 queries (Postgres, caches warm)",
+        "run: code=http://loinc.org|8480-6 returns total 0",
+        "run: an amended Observation without effective_datetime loses to the final it replaces",
+        "run: a newer preliminary Observation with no value is returned with valueQuantity.value 0.0 (D-1)",
+        "run: FrappeTestCase.assertQueryCount raises TypeError on Postgres (LazyDecode), passes on MariaDB",
+        "read: duplicates are removed by parse_subjects (mappers.py:129), unlike the Java edition",
+        "read: existing lastn tests are test_lastn_returns_latest_per_patient, test_lastn_requires_subjects, test_lastn_query_count_grows_with_subjects"
+      ],
+      "expected": {
+        "requiredCategories": ["unit", "integration", "api", "negative", "edge", "performance", "security", "regression"],
+        "mustReferenceTests": ["TestFhirApi#test_lastn_returns_latest_per_patient", "TestFhirApi#test_lastn_query_count_grows_with_subjects"],
+        "mustMention": [["query count", "queries"], "too-costly", "set_user", ["preliminary", "0.0"], ["LazyDecode", "assertQueryCount"], ["token", "system"]],
+        "minCases": 12,
+        "minFindings": 3
+      }
+    },
+    {
+      "id": "ts-02-create-observation",
+      "input": "spice_lite.api.fhir.create_observation",
+      "facts": [
+        "read: fhir.py:95 methods=[\"POST\"]; 201 on success (fhir.py:136)",
+        "read: fhir.py:130-133 ValidationError -> rollback to savepoint, 422 invalid",
+        "read: fhir.py:127-129 PermissionError on insert -> 403",
+        "read: value: float | None is coerced by pydantic in tests (\"72\" -> 72.0), see test_create_observation_as_clinician",
+        "read: no API test for an encounter of another patient, for an amendment, or for GET being refused",
+        "read: existing tests test_create_observation_as_clinician, test_create_final_observation_without_unit_is_422, test_user_without_clinician_role_is_forbidden"
+      ],
+      "expected": {
+        "requiredCategories": ["api", "negative", "edge", "security", "unit"],
+        "mustReferenceTests": ["TestFhirApi#test_create_observation_as_clinician", "TestFhirApi#test_create_final_observation_without_unit_is_422"],
+        "mustMention": ["201", "422", "POST", ["amended", "replaces"], ["encounter", "other patient"], "403"],
+        "minCases": 8,
+        "minFindings": 1
+      }
+    },
+    {
+      "id": "ts-03-search-patients",
+      "input": "spice_lite.api.fhir.search_patients",
+      "facts": [
+        "read: fhir.py:34 MAX_SEARCH_RESULTS = 50 and fhir.py:88 limit_page_length; no test reaches 51 matches",
+        "read: mappers.py:109-113 parse_token drops the system, so identifier=urn:other|X searches MRN X",
+        "read: fhir.py:69-72 rejects %, _ and backslash (D-5, test_search_rejects_like_wildcards)",
+        "run: one search_patients call issues 5 queries (Postgres, caches warm)",
+        "read: fhir.py:91 audit logs names and a count, never family or identifier"
+      ],
+      "expected": {
+        "requiredCategories": ["api", "negative", "edge", "security", "performance", "regression"],
+        "mustReferenceTests": ["TestFhirApi#test_search_rejects_like_wildcards", "TestFhirApi#test_search_without_params_is_400_operation_outcome", "TestFhirApi#test_search_by_identifier_token"],
+        "mustMention": ["50", "wildcard", ["system", "token"], "403", ["audit", "log_access"]],
+        "minCases": 10
+      }
+    },
+    {
+      "id": "ts-04-backfill-country-patch",
+      "input": "spice_lite.patches.v0_1.backfill_patient_country",
+      "facts": [
+        "read: patches.txt lists it under [post_model_sync]",
+        "read: backfill_patient_country.py:16-18 returns early when spice_lite_country_code is not set",
+        "read: backfill_patient_country.py:29-34 uses frappe.qb.update (bypasses permissions, fine in a patch)",
+        "read: test_fhir_api.py test_backfill_country_patch runs it twice (idempotent) and checks an untouched patient"
+      ],
+      "expected": {
+        "requiredCategories": ["integration", "edge", "regression"],
+        "mustReferenceTests": ["TestFhirApi#test_backfill_country_patch"],
+        "mustMention": ["post_model_sync", "idempotent", "spice_lite_country_code", ["frappe.conf", "set-config"]],
+        "minCases": 5
+      }
+    },
+    {
+      "id": "ts-05-national-health-id-adr",
+      "input": ".claude/skills/architecture-review/examples/0002-national-health-id-integration-app.md",
+      "facts": [
+        "ADR-0002: Custom Field national_health_id (unique, search_index) shipped by the integration app spice_nhid; search_patients dispatches identifier tokens by system; verification runs in frappe.enqueue",
+        "read: run-tests does not migrate, so the Custom Field must be created in the test (or by the app install) before searching",
+        "read: frappe.enqueue(now=True) runs the job body directly, the deterministic way to test it",
+        "read: existing test_search_by_identifier_token must keep passing"
+      ],
+      "expected": {
+        "requiredCategories": ["api", "negative", "edge", "security", "integration", "regression"],
+        "mustReferenceTests": ["TestFhirApi#test_search_by_identifier_token"],
+        "mustMention": ["national_health_id", "unique", ["now=True", "enqueue"], "migrate", "Custom Field"],
+        "minCases": 10
+      }
+    },
+    {
+      "id": "ts-06-bugfix-sl133-zero-value",
+      "input": "Bug SL-133: lastn returns a newer preliminary Observation whose missing value reads as 0.0. Plan the tests for the fix.",
+      "facts": [
+        "run: preliminary Observation with no value is stored as 0.0 (D-1) and wins lastn",
+        "read: testing-standards.md: every bug fix starts with a failing test named after the defect id",
+        "read: TestSLObservation#test_missing_value_is_stored_as_zero_known_defect pins D-1 and must keep passing until D-1 is fixed"
+      ],
+      "expected": {
+        "requiredCategories": ["regression", "edge", "unit"],
+        "mustReferenceTests": ["TestFhirApi#test_lastn_returns_latest_per_patient", "TestSLObservation#test_missing_value_is_stored_as_zero_known_defect"],
+        "mustMention": [["test_sl133", "test_sl_133"], "0.0", "preliminary", "failing test"],
+        "minCases": 4,
+        "minFindings": 1
+      }
+    }
+  ]
+}

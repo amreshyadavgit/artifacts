@@ -30,7 +30,8 @@ export const FRAPPE_SRC = process.env.FRAPPE_SRC || "/home/user/frappe-bench/app
 export function lineCount(p) {
   const f = rel(p);
   if (!existsSync(f) || !statSync(f).isFile()) return null;
-  return readFileSync(f, "utf8").split("\n").length;
+  const t = readFileSync(f, "utf8");
+  return t.split("\n").length - (t.endsWith("\n") ? 1 : 0);
 }
 
 export function parseArgs(argv) {
@@ -236,6 +237,7 @@ export function verifyAllTraps(suites, io = trapIO) {
       const key = `${cl.owner}/${cl.id}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      if (cl.kind === "behaviour") { rows.push({ suite: s.name, key, status: "behaviour", detail: "behavioural trap (what the agent recommends), nothing to verify in source" }); continue; }
       if (!cl.verify?.length) { rows.push({ suite: s.name, key, status: "unverified", detail: "no verify entry" }); continue; }
       for (const v of cl.verify) {
         const r = verifyTrap(v, io);
@@ -345,7 +347,7 @@ export function main(argv = process.argv.slice(2)) {
       const rows = verifyAllTraps(loadSuites(opts.suite));
       for (const r of rows) if (!opts.quiet || r.status === "FAIL") console.log(`${r.status.padEnd(10)} ${r.suite.padEnd(12)} ${r.key.padEnd(18)} ${r.detail}`);
       const count = (st) => rows.filter((r) => r.status === st).length;
-      console.log(`traps: ${count("ok")} verified, ${count("FAIL")} failed, ${count("skip")} skipped (source not found), ${count("unverified")} without evidence`);
+      console.log(`traps: ${count("ok")} checks verified, ${count("FAIL")} failed, ${count("skip")} skipped (source not found), ${count("unverified")} without evidence, ${count("behaviour")} behavioural`);
       return count("FAIL") || (opts.strict && (count("skip") || count("unverified"))) ? 1 : 0;
     }
     let suites = loadSuites(opts.suite);

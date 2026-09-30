@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 29700,
+  "duration_api_ms": 24651,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-04\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/hooks.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json]\nnext: developer\n---\n## Summary\nExtend the existing daily job spice_lite.tasks.daily to inactivate patients.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | performance | sample-app/spice_lite/spice_lite/hooks.py:33 | scheduler_events = {\"daily\": [\"spice_lite.tasks.daily\"]} | Add the inactivation to the already registered spice_lite.tasks.daily job and loop over patients with frappe.get_doc(...).save(). |\n| 2 | low | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:60 | active | Set active = 0. |\n\n## Decisions\n- Reuse the daily job.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "2894f27e-5d37-8c58-dbde-54dea5a3c61b",
+  "total_cost_usd": 0.121,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

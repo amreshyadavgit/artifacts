@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 38900,
+  "duration_api_ms": 32287,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-ARCH-03\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/hooks.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json]\nnext: developer\n---\n## Summary\nCreate the invoice in ERPNext from the encounter's on_update.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.py:17 | def on_update(self): | On finish, call frappe.get_doc(\"Sales Invoice\", ...) style code through the ERPNext API client and insert the invoice. |\n| 2 | low | performance | sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json:40 | status | Only push when status becomes finished. |\n\n## Decisions\n- Write ADR docs/adr/0002-erpnext-billing.md.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "aad9ea40-4e38-3dcd-5e2e-23ff1acfc356",
+  "total_cost_usd": 0.161,
+  "usage": {
+    "input_tokens": 3900,
+    "cache_creation_input_tokens": 15600,
+    "cache_read_input_tokens": 51200,
+    "output_tokens": 890
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Write",
+      "tool_use_id": "toolu_0156fd34fd632f40320495",
+      "tool_input": {
+        "file_path": "docs/adr/0002-erpnext-billing.md",
+        "content": "# ADR-0002: Bill encounters in ERPNext\n\n- Status: accepted\n"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 62600,
+  "duration_api_ms": 51958,
+  "num_turns": 10,
+  "result": "---\nrun_id: eval-ARCH-11\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json, sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py, sample-app/spice_lite/spice_lite/api/fhir.py, context/domain/spice-lite-glossary.md]\nnext: human\n---\n## Summary\nSwitching SL Observation to `is_submittable` changes docstatus semantics, permissions, naming of amendments and the API. Existing final rows need a patch. Recommend keeping the custom lock unless desk users need submit/cancel.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | correctness | sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py:59 | `def validate_immutable(self):` | Existing final and amended rows have docstatus 0: a post-model-sync patch must set docstatus = 1 for them, or they stay editable. |\n| ARC-002 | medium | security | sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json:93 | `\"permissions\": [` | Clinician needs `submit` (and a decision on `cancel` and `amend`) in the DocType permissions: a permissions change, so security review. |\n| ARC-003 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json:78 | `\"fieldname\": \"replaces\"` | Frappe amend creates a new document named with a `-1` suffix and sets `amended_from`; `replaces` and the FHIR `id` of corrections change meaning. |\n| ARC-004 | medium | design | sample-app/spice_lite/spice_lite/api/fhir.py:126 | `doc.insert()  # permission-aware: checks \"create\" again for this doc` | create_observation must call `doc.submit()` for final observations; the API contract changes for partners. |\n\n## Decisions\n- Chosen: keep the custom lock (ADR proposed to record the decision).\n- Rejected for now: is_submittable (large migration, contract change).\n\n## Open questions\n- Do desk users need a cancel action at all?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "a374c101-8e41-79fb-5917-d2768ccec6f8",
+  "total_cost_usd": 0.288,
+  "usage": {
+    "input_tokens": 5300,
+    "cache_creation_input_tokens": 20000,
+    "cache_read_input_tokens": 72000,
+    "output_tokens": 1250
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 51600,
+  "duration_api_ms": 42828,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-20\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/api/fhir.py, context/standards/api-standards.md, context/security/threat-model.md, context/standards/frappe-coding-standards.md]\nnext: human\n---\n## Summary\nUse Frappe's built-in `rate_limit` decorator (frappe.rate_limiter) keyed per user on search_patients, backed by Redis, plus audit alerting on unusual result counts.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | security | sample-app/spice_lite/spice_lite/api/fhir.py:63 | `@frappe.whitelist(methods=[\"GET\"])` | Stack `@rate_limit(key=None, limit=60, seconds=60, ip_based=False)` under the whitelist decorator; with ip_based False the counter is per user. |\n| ARC-002 | low | design | context/architecture/overview.md:11 | `W --> RC[\"redis-cache: frappe.cache()\"]` | Counters live in Redis (redis_cache) per site; nothing new to deploy. |\n| ARC-003 | medium | security | sample-app/spice_lite/spice_lite/api/fhir.py:91 | `log_access(\"search\", \"SL Patient\", [r.name for r in rows], result_count=len(rows))` | Enumeration also needs alerting on result_count spikes per user; the limiter answers 429, which clients must handle. |\n\n## Decisions\n- Chosen: frappe.rate_limiter.rate_limit.\n- Rejected: nginx limit per IP (integration users share IPs).\n\n## Open questions\n- Is 60 per minute right for the busiest registration desk?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "47dbc092-1ab6-0b4b-144b-2c99244c33e9",
+  "total_cost_usd": 0.231,
+  "usage": {
+    "input_tokens": 4600,
+    "cache_creation_input_tokens": 17800,
+    "cache_read_input_tokens": 61600,
+    "output_tokens": 1070
+  },
+  "permission_denials": []
+}

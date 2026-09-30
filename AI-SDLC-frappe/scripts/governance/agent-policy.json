@@ -1,5 +1,5 @@
 {
-  "$comment": "Model, effort and turn budget policy for the roster agents. Rationale: docs/governance/model-and-cost-policy.md. Checked by check-agent-policy.mjs.",
+  "$comment": "Model, effort and turn budget policy for the roster agents (Frappe edition). Rationale: docs/governance/model-and-cost-policy.md. Checked by check-agent-policy.mjs. Bench command scope is enforced at runtime by .claude/hooks/guard-bench.mjs.",
   "global": {
     "forbiddenPermissionModes": ["bypassPermissions"],
     "forbiddenModels": ["inherit"],

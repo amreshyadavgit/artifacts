@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 54100,
+  "duration_api_ms": 44903,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-14\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/audit.py, sample-app/spice_lite/spice_lite/api/fhir.py, context/security/phi-and-secrets-policy.md, sample-app/docs/KNOWN_DEFECTS.md, context/security/threat-model.md]\nnext: human\n---\n## Summary\nShip the existing audit log file with a log shipper rather than calling the SIEM from requests. Keep the names-only format; never turn on `with_more_info`.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | design | sample-app/spice_lite/spice_lite/audit.py:22 | `def _logger() -> logging.Logger:` | Tail `logs/spice_lite.audit.log` on every web and worker host with a log shipper agent; no synchronous HTTP call to the SIEM inside a request. |\n| ARC-002 | high | security | sample-app/spice_lite/spice_lite/audit.py:7 | `bodies. That is also why this module does NOT use with_more_info=True:` | Never switch the audit logger to `with_more_info=True`: it appends `frappe.form_dict` (request parameters, search terms are PHI) to every line. |\n| ARC-003 | medium | security | context/security/phi-and-secrets-policy.md:6 | `spice_lite.audit.log_access logs document names and counts only.` | Keep names-only records: the SIEM must not become a PHI store; no field values. |\n\n## Decisions\n- Chosen: file shipping with a 1-minute flush.\n- Rejected: HTTP push from `log_access` (latency, SIEM outage blocks clinicians).\n\n## Open questions\n- Which SIEM format (CEF, JSON lines)?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "0d93a2e3-8433-68ce-4baf-316939d8466d",
+  "total_cost_usd": 0.244,
+  "usage": {
+    "input_tokens": 4600,
+    "cache_creation_input_tokens": 17800,
+    "cache_read_input_tokens": 61600,
+    "output_tokens": 1070
+  },
+  "permission_denials": []
+}

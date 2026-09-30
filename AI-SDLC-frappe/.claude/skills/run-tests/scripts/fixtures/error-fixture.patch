@@ -1,0 +1,13 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..e860ee6 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -57,7 +57,7 @@ def get_patient(name: str):
+ 		return _forbidden("SL Patient")
+ 
+ 	log_access("read", "SL Patient", doc.name)
+-	return patient_to_fhir(doc.as_dict())
++	return patient_to_fhir(doc.as_json())
+ 
+ 
+ @frappe.whitelist(methods=["GET"])

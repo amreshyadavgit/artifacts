@@ -1,0 +1,43 @@
+# lastn(subjects=20, code=8480-6) statements captured by test_lastn_query_count.py on test.localhost (PostgreSQL 16), 2026-09-30. Synthetic data only.
+LASTN_BEGIN subjects=20
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00016' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00016' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00017' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00017' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00018' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00018' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00019' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00019' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00020' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00020' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00021' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00021' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00022' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00022' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00023' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00023' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00024' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00024' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00025' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00025' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00026' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00026' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00027' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00027' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00028' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00028' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00029' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00029' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00030' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00030' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00031' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00031' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00032' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00032' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00033' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00033' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00034' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00034' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+SQL: SELECT * FROM "tabSL Patient" WHERE "name"='SLP-00035' LIMIT 1
+SQL: select * from "tabSL Observation" where "tabSL Observation"."patient" = 'SLP-00035' and "tabSL Observation"."effective_datetime" > '1900-01-01 00:00:00.000000' and "tabSL Observation"."code" = '8480-6' order by effective_datetime desc, creation desc
+LASTN_END

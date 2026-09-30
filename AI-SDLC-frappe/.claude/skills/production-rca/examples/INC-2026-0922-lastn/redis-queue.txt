@@ -1,0 +1,25 @@
+# redis-cli -p 11000 LLEN rq:queue:home-frappe-frappe-bench:<queue>, sampled every minute on ke-web-1 (UTC)
+# time                 default  short  long   redis-queue used_memory
+2026-09-22T07:58:00Z  default=0 short=0 long=0 used_memory=3.1M
+2026-09-22T08:00:00Z  default=0 short=0 long=0 used_memory=3.1M
+2026-09-22T08:02:00Z  default=1 short=0 long=0 used_memory=3.1M
+2026-09-22T08:04:00Z  default=4 short=0 long=0 used_memory=3.2M
+2026-09-22T08:06:00Z  default=9 short=0 long=0 used_memory=3.2M
+2026-09-22T08:08:00Z  default=15 short=1 long=0 used_memory=3.3M
+2026-09-22T08:10:00Z  default=22 short=1 long=0 used_memory=3.3M
+2026-09-22T08:12:00Z  default=27 short=0 long=0 used_memory=3.4M
+2026-09-22T08:14:00Z  default=33 short=2 long=0 used_memory=3.4M
+2026-09-22T08:16:00Z  default=38 short=1 long=0 used_memory=3.5M
+2026-09-22T08:18:00Z  default=44 short=2 long=0 used_memory=3.5M
+2026-09-22T08:20:00Z  default=51 short=1 long=0 used_memory=3.6M
+2026-09-22T08:22:00Z  default=57 short=2 long=0 used_memory=3.6M
+2026-09-22T08:24:00Z  default=62 short=1 long=0 used_memory=3.7M
+2026-09-22T08:26:00Z  default=68 short=2 long=0 used_memory=3.7M
+2026-09-22T08:28:00Z  default=73 short=1 long=0 used_memory=3.8M
+2026-09-22T08:30:00Z  default=79 short=2 long=0 used_memory=3.8M
+2026-09-22T08:32:00Z  default=81 short=0 long=0 used_memory=3.8M
+2026-09-22T08:34:00Z  default=64 short=0 long=0 used_memory=3.7M
+2026-09-22T08:38:00Z  default=37 short=0 long=0 used_memory=3.5M
+2026-09-22T08:42:00Z  default=15 short=0 long=0 used_memory=3.3M
+2026-09-22T08:46:00Z  default=3 short=0 long=0 used_memory=3.2M
+2026-09-22T08:48:00Z  default=0 short=0 long=0 used_memory=3.1M

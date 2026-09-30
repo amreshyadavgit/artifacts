@@ -4,7 +4,7 @@
 # lives in settings.json, in the repo, or in a long-lived shell variable.
 #
 # Configure it in USER or MANAGED settings, not in the committed project settings:
-#   ~/.claude/settings.json   { "apiKeyHelper": "/opt/ai-sdlc/api-key-helper.sh" }
+#   ~/.claude/settings.json   { "apiKeyHelper": "/opt/ai-sdlc-frappe/api-key-helper.sh" }
 #
 # Sources, in order:
 #   1. CLAUDE_KEY_FILE: a file readable only by you (chmod 600), e.g. mounted by your secret agent.

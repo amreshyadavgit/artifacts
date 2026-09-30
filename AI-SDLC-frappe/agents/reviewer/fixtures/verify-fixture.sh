@@ -31,6 +31,8 @@ cleanup() {
   echo "reverted country-roster.patch"
 }
 trap cleanup EXIT
+# keep only result lines and drop the dotted class path bench --verbose prints after each test name
+show() { grep -E "$1" | sed -E 's/ \(spice_lite\.[^)]*\)//' || true; }
 
 cd "$PROJECT"
 patch -p1 --dry-run < "$HERE/country-roster.patch"
@@ -39,11 +41,10 @@ echo "applied country-roster.patch"
 
 cd "$BENCH_DIR"
 echo "== existing suite on $SITE (the seeded defects are invisible to it)"
-$BENCH --site "$SITE" run-tests --app spice_lite 2>&1 | grep -E '^(Ran|OK|FAILED)'
+$BENCH --site "$SITE" run-tests --app spice_lite 2>&1 | show '^(Ran|OK|FAILED)'
 cp "$HERE/test_country_roster_defects.py" "$APP_PKG/tests/"
 echo "== defect proofs on $SITE"
-$BENCH --site "$SITE" run-tests --module "$MODULE" 2>&1 | grep -E '^(test_|Ran|OK|FAILED)|skipped' || true
-$BENCH --verbose --site "$SITE" run-tests --module "$MODULE" 2>&1 | grep -E ' \.\.\. ' || true
+$BENCH --verbose --site "$SITE" run-tests --module "$MODULE" 2>&1 | show ' \.\.\. |^(Ran|OK|FAILED)'
 
 if [[ $SCRATCH == 1 ]]; then
   echo "== DocType JSON change on throw-away site $SCRATCH_SITE"
@@ -52,9 +53,9 @@ if [[ $SCRATCH == 1 ]]; then
     --admin-password admin --install-app spice_lite >/dev/null 2>&1
   $BENCH --site "$SCRATCH_SITE" set-config allow_tests true >/dev/null
   $BENCH --verbose --site "$SCRATCH_SITE" run-tests --module spice_lite.clinical.doctype.sl_patient.test_sl_patient 2>&1 \
-    | grep -E ' \.\.\. |^(Ran|OK|FAILED)|AssertionError' || true
+    | show ' \.\.\. |^(Ran|OK|FAILED)|AssertionError'
   $BENCH --verbose --site "$SCRATCH_SITE" run-tests --module "$MODULE" --test test_rev_clinician_delete_permission_after_migrate 2>&1 \
-    | grep -E ' \.\.\. |^(Ran|OK|FAILED)' || true
+    | show ' \.\.\. |^(Ran|OK|FAILED)'
   ARCHIVE="$(mktemp -d)"; chmod 777 "$ARCHIVE"          # drop-site moves the site folder here
   $BENCH drop-site "$SCRATCH_SITE" --db-root-username "${DB_ROOT_USER:-postgres}" \
     --db-root-password "${DB_ROOT_PASSWORD:-postgres}" --no-backup --force --archived-sites-path "$ARCHIVE" >/dev/null 2>&1

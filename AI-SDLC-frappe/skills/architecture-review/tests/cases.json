@@ -1,0 +1,137 @@
+{
+  "skill": "architecture-review",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/architecture-review (Frappe edition). Each case is a requirement; the skill must produce an ADR that follows docs/adr/0000-template.md, cites the real spice_lite code (and Frappe source where the decision depends on it), decides the Frappe axes (core vs country app vs integration app; controller vs doc_events; sync vs frappe.enqueue), and names the risks specific to this codebase. facts[] lists line-level facts (read: from the code, run: measured on the bench) so a grader can check an ADR by hand.",
+  "howToRun": [
+    "cd AI-SDLC-frappe",
+    "claude -p \"/architecture-review <case.input>\" --permission-mode acceptEdits --output-format json | jq -r '.result'",
+    "node .claude/skills/architecture-review/scripts/validate-adr.mjs docs/adr/<new-file>.md --repo . --bench /home/user/frappe-bench --status proposed --case skills/architecture-review/tests/cases.json#<case.id>",
+    "rm docs/adr/<new-file>.md   # golden runs must not leave ADRs behind"
+  ],
+  "matching": "mustCite: each entry must appear as a cited path (substring). mustMention: each entry (or one of a list of alternatives) must appear, case-insensitive. mustNotMention: must not appear. minOptions/minRisks: row counts in the Options and Risks tables.",
+  "cases": [
+    {
+      "id": "ar-01-national-health-id",
+      "input": "The Kenya deployment must store a national health ID per patient, search patients by it through search_patients, return it in the Patient resource, and verify it against the national client registry (an external API with outages). Other countries do not use it yet.",
+      "reference": ".claude/skills/architecture-review/examples/0002-national-health-id-integration-app.md",
+      "facts": [
+        "read: overview.md:40 country-specific behaviour belongs in a country app",
+        "read: spice-lite-glossary.md:15 an integration app has required_apps = [\"spice_lite\"] and connects e.g. a national ID service",
+        "read: fhir.py:33 PATIENT_FIELDS is a fixed list, so a Custom Field never reaches the API",
+        "run: mappers.parse_token('urn:spice:ke:nhid|12345678') returns '12345678' (system dropped), which fhir.py:80-81 searches as an MRN",
+        "read: hooks.py:11 required_apps = [] and no doc_events",
+        "read: frappe rq_job.py:170 shows job kwargs in desk (arguments=frappe.as_json(job.kwargs))",
+        "read: frappe base_document.py:409-412 blank unique values are stored as NULL"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 3,
+        "mustCite": ["api/fhir.py", "api/mappers.py", "hooks.py", "overview.md", "spice-lite-glossary.md"],
+        "mustMention": ["required_apps", "Custom Field", ["frappe.enqueue", "enqueue"], "doc_events", ["job_id", "deduplicate"], "PHI", ["parse_token", "system"]],
+        "mustNotMention": ["Status: accepted"]
+      }
+    },
+    {
+      "id": "ar-02-cursor-pagination-search-patients",
+      "input": "search_patients returns at most 50 patients. Add cursor pagination so clients can fetch the next page of a family-name search, with a stable order.",
+      "facts": [
+        "read: fhir.py:34 MAX_SEARCH_RESULTS = 50; fhir.py:87-88 order_by last_name asc, name asc, limit_page_length",
+        "read: mappers.py:87 Bundle total is len(resources), not the match count",
+        "read: sl_patient.json last_name has search_index but there is no index on (last_name, name)",
+        "read: frappe.get_list takes limit_start (offset); a keyset condition (last_name > X) or (last_name = X and name > Y) cannot be written with filters/or_filters, and frappe.qb would bypass permissions",
+        "read: a cursor that encodes last_name puts PHI into URLs and access logs"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 2,
+        "mustCite": ["api/fhir.py", "api/mappers.py", "sl_patient.json", "api-standards.md"],
+        "mustMention": [["cursor", "keyset"], "limit_start", "total", "50", ["frappe.qb", "permission"], "PHI"]
+      }
+    },
+    {
+      "id": "ar-03-telephony-call-log-app",
+      "input": "Follow-up calls are made through a telephony provider. Record each call against the patient's SL Encounter; the provider posts a webhook when a call ends and the recording must be downloaded.",
+      "facts": [
+        "read: glossary integration app row names telephony",
+        "read: phi-and-secrets-policy.md:14 integration users authenticate with an API key and secret; no allow_guest on clinical data (frappe-coding-standards.md#3)",
+        "read: sl_encounter.py has only validate and on_update; call logic belongs in the integration app's doc_events or its own DocType",
+        "read: recording download is slow external I/O: frappe.enqueue on the long queue (1500 s) with job_id per call"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 2,
+        "mustCite": ["phi-and-secrets-policy.md", "hooks.py", "frappe-coding-standards.md", "sl_encounter"],
+        "mustMention": ["required_apps", "allow_guest", ["token", "API key"], "enqueue", "POST"]
+      }
+    },
+    {
+      "id": "ar-04-erpnext-billing-event",
+      "input": "When an SL Encounter is set to finished, create a billable item in the country's ERPNext instance.",
+      "facts": [
+        "read: overview.md:4 ERPNext is an external integration target, not part of the clinical core",
+        "read: sl_encounter.py validate requires encounter_date when status is finished",
+        "read: frappe-coding-standards.md:9 background work through frappe.enqueue with job_id and deduplicate; never slow external calls inside a web request"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 2,
+        "mustCite": ["overview.md", "sl_encounter.py", "frappe-coding-standards.md"],
+        "mustMention": ["ERPNext", ["external", "not a required app"], ["idempotent", "job_id"], "enqueue", ["scheduler", "retry"], "finished"]
+      }
+    },
+    {
+      "id": "ar-05-lastn-set-based",
+      "input": "Make spice_lite.api.fhir.lastn use a constant number of queries regardless of how many subjects are requested, without weakening permissions.",
+      "facts": [
+        "run: 1, 5, 20 subjects cost 2, 10, 40 queries on Postgres",
+        "read: fhir.py:177 frappe.get_all ignores User Permissions and permission_query_conditions; frappe.qb window functions also bypass permissions",
+        "read: fhir.py:174 uses (>, 1900-01-01) because (is, set) fails on Postgres (D-2)",
+        "run: FrappeTestCase.assertQueryCount raises TypeError on Postgres in Frappe v15.121.2; a query counter is needed",
+        "read: test_fhir_api.py test_lastn_returns_latest_per_patient must keep passing"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 2,
+        "mustCite": ["api/fhir.py", "KNOWN_DEFECTS.md", "test_fhir_api.py"],
+        "mustMention": [["window function", "row_number"], "get_list", "permission", ["query count", "queries"], "D-2", "test_lastn_returns_latest_per_patient"]
+      }
+    },
+    {
+      "id": "ar-06-country-scoped-visibility",
+      "input": "A regional deployment will serve three countries from one site. Clinicians may only see patients and observations of their own country.",
+      "facts": [
+        "read: overview.md:4 today the platform runs one deployment per country; this requirement changes that assumption",
+        "read: sl_patient.json country is a Link to SL Country with search_index, so User Permissions on SL Country can restrict SL Patient",
+        "read: permission_query_conditions applies to frappe.get_list only; fhir.py:177 lastn uses frappe.get_all",
+        "read: a has_permission Frappe hook can only deny, never grant"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 2,
+        "mustCite": ["api/fhir.py", "overview.md", "sl_patient.json", "hooks.py"],
+        "mustMention": ["permission_query_conditions", "User Permission", "get_all", "lastn", "has_permission", ["one deployment per country", "per country"]]
+      }
+    },
+    {
+      "id": "ar-07-adopt-fhir-server-app",
+      "input": "We need real FHIR conformance: replace the FHIR-lite whitelisted methods with a conformant FHIR server app.",
+      "facts": [
+        "read: docs/adr/0001-fhir-lite-over-whitelisted-methods.md is accepted and decided the opposite",
+        "read: every endpoint lives in spice_lite/api/fhir.py with pure mappers in api/mappers.py"
+      ],
+      "expected": {
+        "status": "proposed",
+        "minOptions": 2,
+        "minRisks": 1,
+        "mustCite": ["0001-fhir-lite-over-whitelisted-methods.md"],
+        "mustMention": ["ADR-0001", ["supersede", "supersedes"], ["/api/method", "whitelisted"]]
+      }
+    }
+  ]
+}

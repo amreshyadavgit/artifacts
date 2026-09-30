@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 63900,
+  "duration_api_ms": 53037,
+  "num_turns": 9,
+  "result": "---\nrun_id: eval-ARCH-13\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/architecture/overview.md, sample-app/spice_lite/spice_lite/api/fhir.py, sample-app/docs/KNOWN_DEFECTS.md, sample-app/docker/docker-compose.yml]\nnext: developer\n---\n## Summary\nThe web tier scales, but the database is the limit: 16 gunicorn workers plus more RQ workers each hold a Postgres connection, and lastn's N+1 multiplies the load. A clinic that cannot open records during the campaign is a patient-safety event, so connection exhaustion is rated critical.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | critical | performance | context/architecture/overview.md:10 | `W --> DB[(\"PostgreSQL 16: one DB per site\")]` | Every gunicorn worker and every RQ worker opens its own Postgres connection: 16 web + 5 workers + scheduler per site against max_connections 100. Check max_connections and put PgBouncer in front. |\n| ARC-002 | high | performance | sample-app/spice_lite/spice_lite/api/fhir.py:156 | `# TEACHING-DEFECT(perf-n+1): one get_doc + one get_all PER SUBJECT -> 2N queries` | lastn's N+1 (2N queries per call) multiplies DB load as throughput grows; schedule its fix before the campaign. |\n| ARC-003 | medium | performance | sample-app/docker/docker-compose.yml:112 | `command: [bench, worker, --queue, \"short,default\"]` | Size workers per queue and watch the RQ backlog per queue; three more default workers do not help a long-queue backlog. |\n\n## Decisions\n- Chosen: raise workers to 12, PgBouncer in transaction mode, queue dashboards.\n\n## Open questions\n- What is max_connections on the production PostgreSQL?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "deec200b-eb75-2621-add1-0d21c28a967a",
+  "total_cost_usd": 0.281,
+  "usage": {
+    "input_tokens": 4950,
+    "cache_creation_input_tokens": 18900,
+    "cache_read_input_tokens": 66800,
+    "output_tokens": 1160
+  },
+  "permission_denials": []
+}

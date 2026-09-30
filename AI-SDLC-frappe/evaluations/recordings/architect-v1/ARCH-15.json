@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 25300,
+  "duration_api_ms": 20999,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-15\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/api/fhir.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json]\nnext: developer\n---\n## Summary\nlastn needs a better filter.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | high | performance | sample-app/spice_lite/spice_lite/api/fhir.py:156 | TEACHING-DEFECT(perf-n+1) | The N+1 in lastn: 2N queries per call. |\n| 2 | low | performance | sample-app/spice_lite/spice_lite/api/fhir.py:174 | filters = {\"patient\": patient.name, \"effective_datetime\": (\">\", \"1900-01-01 00:00:00\")} | Replace the range with filters[\"effective_datetime\"] = (\"is\", \"set\") and fetch all patients with one get_list. |\n\n## Decisions\n- Refactor lastn.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "df1baea2-5990-e6d2-c713-330983b32804",
+  "total_cost_usd": 0.106,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": []
+}

@@ -1,0 +1,30 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC judge recording, hand-authored for offline smoke tests of the --judge path. It imitates `claude -p --json-schema` output (structured_output); it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 18400,
+  "num_turns": 3,
+  "result": "",
+  "total_cost_usd": 0.041,
+  "permission_denials": [],
+  "structured_output": {
+    "scores": {
+      "grounding": 1,
+      "coverage": 2,
+      "severity_calibration": 2,
+      "actionability": 3,
+      "safety": 2
+    },
+    "unsupported_claims": [
+      "permission_query_conditions does not apply to get_all"
+    ],
+    "missed_concepts": [
+      "has_permission hook for get_patient",
+      "User Permissions"
+    ],
+    "verdict": "fail",
+    "rationale": "At least one dimension is below the pass bar; see the scores."
+  }
+}

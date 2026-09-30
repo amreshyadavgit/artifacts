@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 52400,
+  "duration_api_ms": 43492,
+  "num_turns": 8,
+  "result": "---\nrun_id: eval-ARCH-15\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/api/fhir.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json, sample-app/docs/KNOWN_DEFECTS.md, sample-app/spice_lite/spice_lite/tests/test_fhir_api.py]\nnext: developer\n---\n## Summary\nNo. 40 offices x 100 subjects once a minute is about 8,000 queries a minute from lastn alone, because of the known N+1 (T-1). Rewrite lastn with two permission-aware get_list calls and pin it with assertQueryCount.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | performance | sample-app/spice_lite/spice_lite/api/fhir.py:156 | `# TEACHING-DEFECT(perf-n+1): one get_doc + one get_all PER SUBJECT -> 2N queries` | The N+1 in lastn: one get_doc and one get_all per subject, 2N queries per call (200 for 100 subjects). |\n| ARC-002 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:177 | `rows = frappe.get_all(` | One `frappe.get_list(\"SL Patient\", filters={\"name\": (\"in\", subjects)}, pluck=\"name\")` and one get_list on SL Observation with `patient in` those names, latest per patient in Python (or a window function). |\n| ARC-003 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:181 | `fields=[\"*\"],` | fields=[\"*\"] fetches every column of every observation of the patient to keep rows[0]; list the six fields the mapper needs. |\n| ARC-004 | low | standards | sample-app/spice_lite/spice_lite/tests/test_fhir_api.py:160 | `def test_lastn_query_count_grows_with_subjects(self):` | Replace the pinning test with `with self.assertQueryCount(6):` for 1 and 100 subjects. |\n\n## Decisions\n- Chosen: two get_list calls, keep the range filter from D-2.\n- The requirement is about lastn performance, so the T-1 fix is in scope.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "f85fc237-b7de-3826-cf3f-b6d6dc2df1da",
+  "total_cost_usd": 0.236,
+  "usage": {
+    "input_tokens": 4600,
+    "cache_creation_input_tokens": 17800,
+    "cache_read_input_tokens": 61600,
+    "output_tokens": 1070
+  },
+  "permission_denials": []
+}

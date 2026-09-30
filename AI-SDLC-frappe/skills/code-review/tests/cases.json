@@ -1,0 +1,143 @@
+{
+  "skill": "code-review",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/code-review (Frappe edition). Each case applies a patch to sample-app, runs /code-review, and grades the report with the validator. Every patch applies cleanly to the unmodified sample-app. testsAfterPatch records what `bench --site test.localhost run-tests --app spice_lite` printed with the patch applied, and probe records behaviour measured with a throwaway FrappeTestCase module on the same site (Postgres 16), not guessed.",
+  "howToRun": [
+    "cd AI-SDLC-frappe",
+    "git apply --directory=\"$(git rev-parse --show-prefix)\" <case.patch> && git add -N sample-app",
+    "claude -p \"/code-review\" --output-format json | jq -r '.result' > /tmp/review.md",
+    "node .claude/skills/code-review/scripts/validate-findings.mjs /tmp/review.md --repo . --case skills/code-review/tests/cases.json#<case.id>",
+    "git apply -R --directory=\"$(git rev-parse --show-prefix)\" <case.patch> && git reset -q -- sample-app"
+  ],
+  "matching": "A required finding matches when every given key matches: category (string or list, exact), minSeverity (finding is at least this severe), location (substring), evidenceIncludes (case-insensitive substring). forbidden entries use the same keys and must match no finding. maxSeverity fails the case if any finding is more severe.",
+  "cases": [
+    {
+      "id": "cr-01-front-desk-lookup",
+      "title": "Guest-accessible lookup with f-string SQL, PHI in Error Log, raw rows, no tests",
+      "patch": ".claude/skills/code-review/examples/front-desk-lookup.patch",
+      "reference": ".claude/skills/code-review/examples/expected-review-front-desk-lookup.md",
+      "input": "/code-review",
+      "testsAfterPatch": "Ran 46 tests, OK (CI stays green)",
+      "probe": [
+        "fhir.find_patients in frappe.guest_methods -> True",
+        "as Guest, name=\"zz%' or last_name is not null or '%'='\" -> 3 of 3 patients",
+        "as Guest, name=\"%\" -> 3 of 3 patients",
+        "name=\"O'Brien\" -> psycopg2.errors.SyntaxError syntax error at or near \"Brien\"",
+        "an unmatched lookup adds 1 Error Log row whose error text contains the search term"
+      ],
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "critical", "location": "api/fhir.py:19", "evidenceIncludes": "{name}" },
+          { "category": "security", "minSeverity": "critical", "location": "api/fhir.py:190", "evidenceIncludes": "allow_guest" },
+          { "category": "security", "minSeverity": "high", "location": "api/fhir.py:201", "evidenceIncludes": "log_error" },
+          { "category": "testing", "minSeverity": "high" },
+          { "category": ["design", "standards"], "minSeverity": "high", "location": "api/fhir.py:202", "evidenceIncludes": "return rows" }
+        ],
+        "forbidden": [
+          { "evidenceIncludes": "TEACHING-DEFECT" },
+          { "category": "performance", "location": "api/fhir.py:15" }
+        ]
+      }
+    },
+    {
+      "id": "cr-02-get-all-without-permission",
+      "title": "New whitelisted read with frappe.get_all and no has_permission",
+      "patch": "skills/code-review/tests/patches/observations-get-all-no-permission.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "Ran 46 tests, OK",
+      "probe": [
+        "as norole@spice-lite.test: frappe.has_permission(\"SL Observation\", \"read\") -> False",
+        "as norole@spice-lite.test: observations_for_patient -> 200 with total 2 and valueQuantity 120.0 mm[Hg]",
+        "as norole@spice-lite.test: lastn on the same patient -> 403 forbidden"
+      ],
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "high", "location": "api/fhir.py:19", "evidenceIncludes": "frappe.get_all" },
+          { "category": "testing", "minSeverity": "high" }
+        ],
+        "forbidden": [
+          { "evidenceIncludes": "allow_guest" },
+          { "evidenceIncludes": "TEACHING-DEFECT" }
+        ]
+      }
+    },
+    {
+      "id": "cr-03-doctype-field-without-patch",
+      "title": "Required unique field added to SL Patient JSON with no patch and no tests",
+      "patch": "skills/code-review/tests/patches/patient-national-id-no-patch.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "test.localhost (not migrated): Ran 46 tests, OK. Scratch site f3.localhost after `bench --site f3.localhost migrate`: Ran 27 tests, FAILED (errors=14), every error `frappe.exceptions.MandatoryError: [SL Patient, SLP-000NN]: national_id`",
+      "probe": [
+        "after migrate: saving an existing seeded patient raises MandatoryError [SL Patient, SLP-00001]: national_id",
+        "after migrate: make_patient() without national_id raises MandatoryError",
+        "after migrate on Postgres: unique indexes \"tabSL Patient_national_id_key\" and unique_national_id both exist"
+      ],
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": ["standards", "correctness"], "minSeverity": "high", "location": "sl_patient.json", "evidenceIncludes": "reqd" },
+          { "category": "testing", "minSeverity": "high" }
+        ],
+        "forbidden": [
+          { "evidenceIncludes": "\"modified\"" },
+          { "category": "performance" }
+        ]
+      }
+    },
+    {
+      "id": "cr-04-error-log-with-values",
+      "title": "Observation values written to the Error Log on validation failure",
+      "patch": "skills/code-review/tests/patches/create-observation-error-log-values.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "Ran 46 tests, OK",
+      "probe": [
+        "create_observation(patient, code=\"8867-4\", value=72) without a unit -> 422, and 1 Error Log row with error text `patient=SLP-000NN code=8867-4 value=72.0 unit=None: A final Observation must have a value and a unit`"
+      ],
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "high", "location": "api/fhir.py:13", "evidenceIncludes": "log_error" }
+        ],
+        "forbidden": [
+          { "category": "performance" },
+          { "evidenceIncludes": "TEACHING-DEFECT" }
+        ]
+      }
+    },
+    {
+      "id": "cr-05-audit-logger-with-more-info",
+      "title": "Audit logger switched to with_more_info=True",
+      "patch": "skills/code-review/tests/patches/audit-logger-with-more-info.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "Ran 46 tests, OK (test_audit_record_has_names_only checks the returned dict, not the log line)",
+      "probe": [
+        "the audit logger handler gets a SiteContextFilter",
+        "with frappe.local.form_dict = {family, identifier}, one log_access call writes `... 'result_count': 1} | Site: test.localhost | Form Dict: {'family': 'Zzprobefamily', 'identifier': 'urn:spice-lite:mrn|MRN-000123'}` to sites/test.localhost/logs/spice_lite.audit.log"
+      ],
+      "expected": {
+        "verdict": "BLOCK",
+        "findings": [
+          { "category": "security", "minSeverity": "high", "location": "audit.py:2", "evidenceIncludes": "with_more_info" }
+        ],
+        "forbidden": [
+          { "category": "performance" },
+          { "evidenceIncludes": "TEACHING-DEFECT" }
+        ]
+      }
+    },
+    {
+      "id": "cr-06-clean-test-only-change",
+      "title": "False-positive control: a well-formed test-only change",
+      "patch": "skills/code-review/tests/patches/test-only-plain-mrn-search.patch",
+      "input": "/code-review",
+      "testsAfterPatch": "Ran 47 tests, OK",
+      "expected": {
+        "verdict": "APPROVE",
+        "maxSeverity": "low",
+        "findings": []
+      }
+    }
+  ]
+}

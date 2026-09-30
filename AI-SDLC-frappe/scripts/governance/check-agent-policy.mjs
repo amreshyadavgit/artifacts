@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Policy as code for the roster agents: model, effort, turn budget, tools and permission mode.
 // Reads .claude/agents/*.md front matter and compares it with scripts/governance/agent-policy.json.
+// Bench command scope (no console, migrate only via a human prompt) is enforced at runtime by
+// .claude/hooks/guard-bench.mjs and the permission rules, not here: this checks the static contract.
 //
 // Usage: node scripts/governance/check-agent-policy.mjs [--agents-dir .claude/agents] [--policy <file>] [--strict]
 // Exit 0 = no violations (missing roster files are warnings unless --strict), 1 = violations.

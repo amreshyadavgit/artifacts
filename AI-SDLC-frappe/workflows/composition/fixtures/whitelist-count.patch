@@ -1,0 +1,22 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..f0030e5 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -137,6 +137,17 @@ def create_observation(
+ 	return observation_to_fhir(doc.as_dict())
+ 
+ 
++@frappe.whitelist(methods=["GET"])
++def count_observations(subject: str, code: str | None = None):
++	"""Number of Observations of one patient, optionally for one LOINC code (dashboard badge)."""
++	# EXERCISE-DEFECT(07-parallel): no permission check, and frappe.db.count ignores DocType permissions.
++	filters = {"patient": parse_reference(subject)}
++	if code:
++		filters["code"] = code
++	count = frappe.db.count("SL Observation", filters)
++	return {"resourceType": "Parameters", "parameter": [{"name": "count", "valueInteger": count}]}
++
++
+ @frappe.whitelist(methods=["GET"])
+ def lastn(subjects, code: str | None = None):
+ 	"""Latest Observation per patient (FHIR `$lastn` with max=1), as a Bundle."""

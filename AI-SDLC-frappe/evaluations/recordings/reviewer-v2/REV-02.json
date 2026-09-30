@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 30400,
+  "duration_api_ms": 25232,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-REV-02\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-02.patch, context/security/phi-and-secrets-policy.md, context/domain/spice-lite-glossary.md, sample-app/spice_lite/spice_lite/audit.py]\nnext: security\n---\n## Summary\nVerdict: BLOCK. Adds Error Log diagnostics and a logger line to create_observation; both write PHI. 2 high. Routed to security: PHI in logs.\nFrappe surfaces: whitelisted method `create_observation` in api/fhir.py\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:137 | `message=f\"patient={doc.patient} mrn={mrn} code={code} value={value} {unit}: {e}\",` | frappe.log_error stores the MRN and the measured value in the Error Log: PHI (glossary PHI table; PHI policy). Remove the call; the 422 OperationOutcome already tells the client. |\n| REV-002 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:141 | `frappe.logger(\"spice_lite.api\", with_more_info=True).warning(f\"observation {doc.name} created\")` | with_more_info=True appends frappe.form_dict, the request body with patient, value and unit, to every line (KNOWN_DEFECTS D-4 note). Delete the line: log_access on the next line already records the event by name. |\n\n## Decisions\n- correctness: no findings\n- security: REV-001, REV-002\n- design: no findings\n- testing: no findings\n- performance: no findings\n- standards: no findings\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- None.\n\n## Artifacts\n- none written; returned to main session",
+  "stop_reason": "end_turn",
+  "session_id": "d1bbc161-e0ce-472a-52c7-1669a0f405e7",
+  "total_cost_usd": 0.128,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

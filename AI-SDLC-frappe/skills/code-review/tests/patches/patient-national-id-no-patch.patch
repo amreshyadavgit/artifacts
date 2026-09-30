@@ -1,0 +1,28 @@
+diff --git a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+index 5d0a779..87e69e7 100644
+--- a/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
++++ b/sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+@@ -7,6 +7,7 @@
+  "engine": "InnoDB",
+  "field_order": [
+   "mrn",
++  "national_id",
+   "first_name",
+   "last_name",
+   "column_break_demo",
+@@ -26,6 +27,15 @@
+    "reqd": 1,
+    "unique": 1
+   },
++  {
++   "description": "National ID number, required for all patients.",
++   "fieldname": "national_id",
++   "fieldtype": "Data",
++   "in_list_view": 1,
++   "label": "National ID",
++   "reqd": 1,
++   "unique": 1
++  },
+   {
+    "fieldname": "first_name",
+    "fieldtype": "Data",

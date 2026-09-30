@@ -165,7 +165,7 @@ export function suppress(rows, { key, shape, allowNull }) {
     reportedTotal += row.count;
     return { [key]: v, count: row.count, countText: String(row.count) };
   });
-  groups.sort((a, b) => String(a[key]).localeCompare(String(b[key])));
+  groups.sort((a, b) => (a[key] === null) - (b[key] === null) || String(a[key]).localeCompare(String(b[key]))); // null ("not set") last
   // reportedTotal excludes suppressed groups so a suppressed count cannot be recovered by subtraction.
   return { minCellSize: MIN_CELL_SIZE, groups, reportedTotal, suppressedGroups, truncatedAt: 50 };
 }

@@ -185,7 +185,7 @@ export function decide(input) {
   for (const c of calls) {
     const where = c.site ? ` --site ${c.site}` : " (default site)";
     const label = `bench${where} ${c.sub}`;
-    if (DENY[c.sub]) return { permissionDecision: "deny", permissionDecisionReason: `guard-bench: \`${label}\` ${DENY[c.sub]}. A human runs it outside Claude Code (docs/governance/approval-gates.md, gate G5).` };
+    if (DENY[c.sub]) return { permissionDecision: "deny", permissionDecisionReason: `guard-bench: \`${label}\` ${DENY[c.sub]}. A human runs it outside Claude Code (docs/governance/approval-gates.md, gate G6).` };
     if (c.site === "all" && WRITE_ON_ALL.has(c.sub)) return { permissionDecision: "deny", permissionDecisionReason: `guard-bench: \`${label}\` targets every site on the bench. Agents work on ${TEST_SITE} only; fleet-wide commands are run by a human.` };
     if (c.sub === "execute") {
       const target = c.args.find((a) => !a.startsWith("-")) || "";

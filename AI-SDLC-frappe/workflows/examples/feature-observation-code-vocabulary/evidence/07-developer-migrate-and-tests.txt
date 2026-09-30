@@ -1,0 +1,18 @@
+# Step 07 (developer rework): patches 04 + 05 + 07 applied, then 'bench --site f7.localhost migrate && bench --site f7.localhost run-tests --app spice_lite'. Recorded 2026-09-30.
+Migrating f7.localhost
+
+Updating Dashboard for frappe
+Updating Dashboard for spice_lite
+Executing `after_migrate` hooks...
+
+Queued rebuilding of search index for f7.localhost
+
+..................................
+[D-2 pinning test: frappe prints a stack trace here; omitted]
+[D-2 pinning test: frappe prints a stack trace here; omitted]
+......................
+----------------------------------------------------------------------
+Ran 56 tests in 4.361s
+
+OK
+'Error in query:\ninvalid input syntax for type timestamp: ""\nLINE 3: where "tabSL Observation"."effective_datetime" != \'\'\n                                                          ^\n'

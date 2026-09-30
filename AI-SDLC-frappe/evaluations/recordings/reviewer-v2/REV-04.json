@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 36900,
+  "duration_api_ms": 30627,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-REV-04\nstep: 04\nagent: reviewer\nstatus: needs-human\ninputs: [evaluations/datasets/reviewer-diffs/REV-04.patch, sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py, sample-app/spice_lite/spice_lite/patches.txt, context/standards/review-standards.md, sample-app/spice_lite/spice_lite/tests/utils.py]\nnext: human\n---\n## Summary\nVerdict: BLOCK. Makes SL Patient.country mandatory in the DocType JSON with no patch for existing rows. 1 high, 1 medium, 1 low.\nFrappe surfaces: DocType JSON `sl_patient.json`; no patches.txt change\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | high | standards | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:69 | `\"reqd\": 1,` | Schema change without a patch (review-standards: at least high; frappe-coding-standards rule 6): existing patients with an empty country fail validation on their next save. Add a v0_2 patch that backfills country, or fail the release. |\n| REV-002 | medium | correctness | sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py:17 | `if not code:` | backfill_patient_country returns early unless spice_lite_country_code is set in site config, so the existing patch does not cover these rows on every site. |\n| REV-003 | low | testing | sample-app/spice_lite/spice_lite/tests/utils.py:62 | `\"country\": ensure_country(),` | Tests pass anyway because make_patient always sets a country: add a test that saves a patient created without one. |\n\n## Decisions\n- correctness: REV-002\n- security: no findings\n- design: no findings\n- testing: REV-003\n- performance: no findings\n- standards: REV-001\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- Which sites still have patients without a country?\n\n## Artifacts\n- none written; returned to main session",
+  "stop_reason": "end_turn",
+  "session_id": "51f992cb-e137-072e-10b7-c2585a0aef94",
+  "total_cost_usd": 0.151,
+  "usage": {
+    "input_tokens": 3900,
+    "cache_creation_input_tokens": 15600,
+    "cache_read_input_tokens": 51200,
+    "output_tokens": 890
+  },
+  "permission_denials": []
+}

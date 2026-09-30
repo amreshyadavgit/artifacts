@@ -1,0 +1,8 @@
+# SYNTHETIC Frappe log excerpt for scan-phi.mjs tests. The spice_lite.search entry shows what frappe.logger(..., with_more_info=True) appends
+# (SiteContextFilter in frappe/utils/logger.py writes "Site: ..." and "Form Dict: ..."). No real person is described.
+2026-09-30 08:52:36,203 INFO spice_lite.audit {'action': 'search', 'doctype': 'SL Patient', 'names': ['SLP-00017'], 'user': 'clinician@spice-lite.test', 'result_count': 1}
+2026-09-30 08:52:36,209 INFO spice_lite.audit {'action': 'read', 'doctype': 'SL Patient', 'names': ['SLP-00017'], 'user': 'clinician@spice-lite.test'}
+2026-09-30 08:52:37,711 INFO spice_lite.search {'action': 'search', 'doctype': 'SL Patient', 'names': ['SLP-00001'], 'user': 'nurse.a@clinic.example.net', 'result_count': 1}
+Site: ke.localhost
+Form Dict: {'family': 'Kamau', 'identifier': 'urn:spice-lite:mrn|MRN-20417733'}
+2026-09-30 08:52:38,020 INFO spice_lite.audit {'action': 'lastn', 'doctype': 'SL Observation', 'names': ['SLO-00003'], 'user': 'clinician@spice-lite.test', 'result_count': 1}

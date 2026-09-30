@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 64800,
+  "duration_api_ms": 53784,
+  "num_turns": 10,
+  "result": "---\nrun_id: eval-ARCH-08\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/spice_lite/spice_lite/patches.txt, sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py, sample-app/spice_lite/spice_lite/api/mappers.py, sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: human\n---\n## Summary\nAdd `given_names` (Small Text), copy data with a post-model-sync patch, keep `first_name` until clients move, and switch the mapper. Rehearse the migration on a copy of each country site before production.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | standards | sample-app/spice_lite/spice_lite/patches.txt:5 | `[post_model_sync]` | New patch `spice_lite.patches.v0_2.copy_first_name_to_given_names` in [post_model_sync] (the column must exist), idempotent: only rows where given_names is empty. |\n| ARC-002 | medium | performance | sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py:31 | `frappe.qb.update(patient)` | One set-based `frappe.qb.update` copies first_name to given_names; no per-document loop. |\n| ARC-003 | high | design | sample-app/spice_lite/spice_lite/api/mappers.py:46 | `given = [row[\"first_name\"]] if row.get(\"first_name\") else []` | patient_to_fhir builds `given` from first_name; switch it to split given_names and keep first_name populated until the CHW tablet app stops reading it. |\n| ARC-004 | medium | standards | sample-app/spice_lite/spice_lite/patches.txt:7 | `spice_lite.patches.v0_1.backfill_patient_country` | Never edit or re-comment an applied patch line: Patch Log stores the exact line text. Add a new line. |\n| ARC-005 | low | standards | context/standards/testing-standards.md:11 | `run the patch function in a test against seeded rows` | Test the patch: seed patients, run execute() twice, assert given_names and idempotency. |\n\n## Decisions\n- Chosen: additive field + post-model-sync patch + mapper switch; drop first_name in a later release.\n- Rejected: renaming first_name in place (breaks the API contract and every report at once).\n- Rehearsal: run `bench --site ke.localhost migrate --dry-run` on a restored copy of each site, then the real migrate.\n\n## Open questions\n- Which clients read first_name directly through /api/resource?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "c6f28c1b-76f7-c004-aa30-96480ec8ea3c",
+  "total_cost_usd": 0.293,
+  "usage": {
+    "input_tokens": 5300,
+    "cache_creation_input_tokens": 20000,
+    "cache_read_input_tokens": 72000,
+    "output_tokens": 1250
+  },
+  "permission_denials": []
+}

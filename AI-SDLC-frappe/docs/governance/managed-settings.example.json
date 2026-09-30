@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/site_config.json)",
+      "Read(**/common_site_config.json)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/*.phi.*)",
+      "Read(~/.ssh/**)",
+      "Bash(cat *site_config.json*)",
+      "Bash(bench --site * show-config)",
+      "Bash(bench --site * show-config *)",
+      "Bash(bench --site * mariadb)",
+      "Bash(bench --site * postgres)",
+      "Bash(bench --site * db-console)",
+      "Bash(bench drop-site *)",
+      "Bash(bench --site * reinstall *)",
+      "Bash(bench --site * restore *)",
+      "Bash(bench --site all *)",
+      "Bash(git push --force *)",
+      "Bash(gh pr merge *)",
+      "mcp__github__merge_pull_request"
+    ],
+    "ask": [
+      "Bash(bench --site * migrate)",
+      "Bash(bench --site * migrate *)",
+      "Bash(bench --site * console)",
+      "Bash(bench --site * execute *)",
+      "Bash(git push *)"
+    ],
+    "disableBypassPermissionsMode": "disable"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node /etc/claude-code/hooks/guard-bench.mjs", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "node /etc/claude-code/hooks/guard-outbound.mjs", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

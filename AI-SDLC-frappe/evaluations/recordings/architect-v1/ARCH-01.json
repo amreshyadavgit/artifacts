@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 30400,
+  "duration_api_ms": 25232,
+  "num_turns": 5,
+  "result": "---\nrun_id: eval-ARCH-01\nstep: 03\nagent: architect\nstatus: complete\ninputs: [sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json, sample-app/spice_lite/spice_lite/hooks.py]\nnext: developer\n---\n## Summary\nPut the national ID in a Kenya country app as a Custom Field.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:65 | core DocType used by every country | Adding the field to sl_patient.json would affect every country deployment; use a Custom Field in a country app (spice_ke) instead. |\n| 2 | medium | security | sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json:4 | national_id is sensitive | Treat national_id as PHI; do not use it for naming. |\n| 3 | low | design | spice_ke/spice_ke/hooks.py | required_apps = [\"spice_lite\"] | Declare required_apps in the country app. |\n| 4 | low | standards | spice_ke/spice_ke/fixtures/custom_field.json | Custom Field fixture | Export the Custom Field with fixtures so it deploys with the app. |\n\n## Decisions\n- Country app spice_ke.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "73806c88-9a8d-ccf3-ea13-df232555b174",
+  "total_cost_usd": 0.132,
+  "usage": {
+    "input_tokens": 3550,
+    "cache_creation_input_tokens": 14500,
+    "cache_read_input_tokens": 46000,
+    "output_tokens": 800
+  },
+  "permission_denials": []
+}

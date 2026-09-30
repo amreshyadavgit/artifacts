@@ -1,0 +1,8 @@
+{
+  "name": "company-ai",
+  "version": "0.1.0",
+  "description": "Example Health's shared Claude Code skills and agents for Frappe clinical apps: Frappe-aware code, security and performance review, test strategy on bench, production RCA, and skill-library governance.",
+  "author": { "name": "AI governance group", "email": "ai-governance@example.org" },
+  "license": "UNLICENSED",
+  "keywords": ["frappe", "bench", "code-review", "security-review", "governance", "sdlc"]
+}

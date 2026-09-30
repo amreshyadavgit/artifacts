@@ -1,0 +1,23 @@
+10.40.2.31 - - [22/Sep/2026:07:58:12 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-04711 HTTP/1.1" 200 412 "-" "ehr-bridge/2.4.0" 0.041 0.041
+10.40.2.31 - - [22/Sep/2026:07:59:40 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[6 ids elided]&code=8480-6 HTTP/1.1" 200 2210 "-" "ehr-bridge/2.4.0" 0.088 0.088
+10.40.17.101 - - [22/Sep/2026:08:00:31 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 200 31877 "-" "c017-ward-board/1.0.0 (Android 13)" 13.912 13.912
+10.40.17.117 - - [22/Sep/2026:08:00:33 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 200 31877 "-" "c017-ward-board/1.0.0 (Android 13)" 14.388 14.388
+10.40.17.109 - - [22/Sep/2026:08:01:02 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 200 31877 "-" "c017-ward-board/1.0.0 (Android 13)" 19.571 19.570
+10.40.2.14 - - [22/Sep/2026:08:01:47 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-03902 HTTP/1.1" 200 409 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 2.114 2.114
+10.40.17.122 - - [22/Sep/2026:08:02:30 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 200 31877 "-" "c017-ward-board/1.0.0 (Android 13)" 38.204 38.204
+10.40.2.14 - - [22/Sep/2026:08:03:15 +0000] "GET /api/method/spice_lite.api.fhir.search_patients?family=[elided] HTTP/1.1" 200 1804 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 21.772 21.772
+10.40.17.101 - - [22/Sep/2026:08:04:05 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 504 160 "-" "c017-ward-board/1.0.0 (Android 13)" 120.001 120.001
+10.40.2.14 - - [22/Sep/2026:08:04:40 +0000] "GET /app/sl-patient/SLP-03902 HTTP/1.1" 504 160 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 120.000 120.000
+10.40.2.20 - - [22/Sep/2026:08:05:12 +0000] "POST /api/method/login HTTP/1.1" 502 150 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 31.207 31.206
+10.40.17.117 - - [22/Sep/2026:08:06:02 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 502 150 "-" "c017-ward-board/1.0.0 (Android 13)" 88.410 88.410
+10.40.2.31 - - [22/Sep/2026:08:07:30 +0000] "POST /api/method/spice_lite.api.fhir.create_observation HTTP/1.1" 504 160 "-" "ehr-bridge/2.4.0" 120.000 120.000
+10.40.2.14 - - [22/Sep/2026:08:10:10 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-03902 HTTP/1.1" 504 160 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 120.001 120.001
+10.40.2.14 - - [22/Sep/2026:08:12:40 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-03902 HTTP/1.1" 200 409 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 0.052 0.052
+10.40.17.109 - - [22/Sep/2026:08:13:20 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 200 31877 "-" "c017-ward-board/1.0.0 (Android 13)" 16.803 16.803
+10.40.17.122 - - [22/Sep/2026:08:15:30 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 504 160 "-" "c017-ward-board/1.0.0 (Android 13)" 120.000 120.000
+10.40.2.31 - - [22/Sep/2026:08:21:10 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-04711 HTTP/1.1" 504 160 "-" "ehr-bridge/2.4.0" 120.001 120.001
+10.40.17.101 - - [22/Sep/2026:08:29:50 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 504 160 "-" "c017-ward-board/1.0.0 (Android 13)" 120.000 120.000
+10.40.17.117 - - [22/Sep/2026:08:31:40 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[100 ids elided]&code=8867-4 HTTP/1.1" 200 31877 "-" "c017-ward-board/1.0.0 (Android 13)" 58.906 58.906
+10.40.2.14 - - [22/Sep/2026:08:33:05 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-03902 HTTP/1.1" 200 409 "-" "Mozilla/5.0 (X11; Linux x86_64) Firefox/131.0" 0.911 0.911
+10.40.2.31 - - [22/Sep/2026:08:34:20 +0000] "GET /api/method/spice_lite.api.fhir.lastn?subjects=[7 ids elided]&code=8480-6 HTTP/1.1" 200 2587 "-" "ehr-bridge/2.4.0" 0.091 0.091
+10.40.2.31 - - [22/Sep/2026:08:40:00 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-04711 HTTP/1.1" 200 412 "-" "ehr-bridge/2.4.0" 0.038 0.038

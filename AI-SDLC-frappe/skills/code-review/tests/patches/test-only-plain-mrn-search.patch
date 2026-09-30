@@ -1,0 +1,16 @@
+diff --git a/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py b/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
+index 9be8a81..d75d69d 100644
+--- a/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
++++ b/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py
+@@ -63,6 +63,11 @@ class TestFhirApi(FrappeTestCase):
+ 		self.assertEqual(status, 200)
+ 		self.assertEqual([e["resource"]["id"] for e in body["entry"]], [self.p2.name])
+ 
++	def test_search_by_plain_mrn_without_system(self):
++		status, body = call(fhir.search_patients, identifier=self.p1.mrn)
++		self.assertEqual(status, 200)
++		self.assertEqual([e["resource"]["id"] for e in body["entry"]], [self.p1.name])
++
+ 	def test_search_without_params_is_400_operation_outcome(self):
+ 		status, body = call(fhir.search_patients)
+ 		self.assertEqual(status, 400)

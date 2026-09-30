@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 70300,
+  "duration_api_ms": 58349,
+  "num_turns": 10,
+  "result": "---\nrun_id: eval-ARCH-03\nstep: 03\nagent: architect\nstatus: needs-human\ninputs: [sample-app/spice_lite/spice_lite/hooks.py, sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json, context/architecture/overview.md, context/security/phi-and-secrets-policy.md, context/standards/api-standards.md]\nnext: human\n---\n## Summary\nERPNext is an external system on the Ministry's own server. Build a connector integration app that pushes finished encounters as draft Sales Invoices through the ERPNext REST API from a background job, idempotently, sending an opaque patient reference only.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | design | sample-app/spice_lite/spice_lite/hooks.py:11 | `required_apps = []` | Do not install ERPNext on the clinical site; it runs on its own server. A connector app `spice_erpnext` (`required_apps = [\"spice_lite\"]`) talks to it. |\n| ARC-002 | medium | security | context/security/phi-and-secrets-policy.md:14 | `Integration users authenticate with an API key and secret` | Call ERPNext's REST API (`POST /api/resource/Sales Invoice`) as a dedicated ERPNext integration user; store its API key and secret in a Password field of a `Spice ERPNext Settings` single DocType, never in the repo. |\n| ARC-003 | high | correctness | sample-app/spice_lite/spice_lite/clinical/doctype/sl_encounter/sl_encounter.json:40 | `\"fieldname\": \"status\"` | Exactly once needs idempotency: an `SL ERPNext Sync` record per encounter holding the ERPNext invoice name, a job `job_id=f\"erpnext::{encounter}\"` with `deduplicate=True`, and a lookup by external id before any POST. |\n| ARC-004 | high | security | context/domain/spice-lite-glossary.md:29 | `mrn` is PHI (PHI classification table) | PHI minimisation: the invoice's customer is an opaque reference (the `SLP-` document name mapped to an ERPNext Customer), never the MRN or name; billing items are service codes. |\n| ARC-005 | medium | performance | spice_erpnext/spice_erpnext/hooks.py | `scheduler_events = {\"hourly_long\": [\"spice_erpnext.sync.push_finished\"]}` | Push from an hourly_long job on the long queue with an explicit timeout; `on_update` only marks the encounter as pending. |\n\n## Decisions\n- Chosen: connector app, pending flag on finish, hourly_long push, sync record for idempotency.\n- Rejected: ERPNext and spice_lite on one site (couples clinical and finance upgrades, puts PHI next to finance users); synchronous POST in `on_update` (ERPNext outage blocks clinicians).\n- Where it lives: integration app.\n\n## Open questions\n- Which ERPNext Item codes map to encounter types?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "f5df8d56-5e6c-fad3-d595-1b446ce5e451",
+  "total_cost_usd": 0.312,
+  "usage": {
+    "input_tokens": 5300,
+    "cache_creation_input_tokens": 20000,
+    "cache_read_input_tokens": 72000,
+    "output_tokens": 1250
+  },
+  "permission_denials": []
+}

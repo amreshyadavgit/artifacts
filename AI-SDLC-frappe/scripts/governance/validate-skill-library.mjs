@@ -3,7 +3,7 @@
 // engineering assets (skills/<name>/README.md, CHANGELOG.md, tests/cases.json).
 // Policy: skills/README.md.
 //
-// Usage: node scripts/governance/validate-skill-library.mjs [--root <AI-SDLC dir>] [--strict] [--json]
+// Usage: node scripts/governance/validate-skill-library.mjs [--root <AI-SDLC-frappe dir>] [--strict] [--json]
 // Exit 0 = no errors (warnings allowed unless --strict), 1 = errors.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -93,7 +93,7 @@ for (const name of library) {
     const readme = readFileSync(readmeFile, "utf8");
     const owner = /\bowner\b[*_]*\s*[:|]\s*[*_]*\s*([^|*\n(]+)/i.exec(readme);
     const version = /\bversion\b[*_]*\s*[:|]\s*[*_`]*\s*v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/i.exec(readme);
-    if (owner && owner[1].trim()) r.owner = owner[1].trim().replace(/,.*$/, "").slice(0, 28); else add("warn", name, "README.md does not declare an Owner (e.g. `Owner: @example-org/fhir-platform`)");
+    if (owner && owner[1].trim()) r.owner = owner[1].trim().replace(/,.*$/, "").slice(0, 28); else add("warn", name, "README.md does not declare an Owner (e.g. `Owner: @example-org/spice-core`)");
     if (version) readmeVersion = version[1]; else add("warn", name, "README.md does not declare a Version (e.g. `Version: 1.0.0`)");
   }
   if (!existsSync(changelogFile)) add("error", name, `skills/${name}/CHANGELOG.md is missing`);

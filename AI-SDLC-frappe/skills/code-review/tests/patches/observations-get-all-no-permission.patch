@@ -1,0 +1,21 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..00afcc0 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -185,3 +185,16 @@ def lastn(subjects, code: str | None = None):
+ 
+ 	log_access("lastn", "SL Observation", [r["id"] for r in results], result_count=len(results))
+ 	return bundle(results)
++
++
++@frappe.whitelist(methods=["GET"])
++def observations_for_patient(patient: str):
++	"""All Observations of one patient, newest first (encounter screen)."""
++	rows = frappe.get_all(
++		"SL Observation",
++		filters={"patient": parse_reference(patient)},
++		fields=["name", "patient", "code", "code_display", "status", "effective_datetime", "value", "unit"],
++		order_by="effective_datetime desc",
++	)
++	log_access("read", "SL Observation", [r.name for r in rows], result_count=len(rows))
++	return bundle([observation_to_fhir(r) for r in rows])

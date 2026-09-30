@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 25700,
+  "duration_api_ms": 21331,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-13\nstep: 03\nagent: architect\nstatus: complete\ninputs: [context/architecture/overview.md, sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: developer\n---\n## Summary\nMore workers are fine if the database connections are checked.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| 1 | medium | performance | context/architecture/overview.md:10 | PostgreSQL 16: one DB per site | Each gunicorn and RQ worker opens a Postgres connection; check max_connections before going to 16 workers. |\n| 2 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:156 | TEACHING-DEFECT(perf-n+1) | lastn's N+1 grows with traffic. |\n| 3 | low | performance | sample-app/docker/docker-compose.yml:112 | bench worker --queue short,default | Watch the queue backlog per queue. |\n\n## Decisions\n- Scale with a connection check.\n\n## Open questions\n- None.\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "f712eca7-7dea-39b8-c15d-c1fc3ce4d8af",
+  "total_cost_usd": 0.108,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": []
+}

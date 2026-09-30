@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 18800,
+  "duration_api_ms": 15604,
+  "num_turns": 3,
+  "result": "---\nrun_id: eval-REV-05\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-05.patch, sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: developer\n---\n## Summary\nKiosk lookup without login.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | critical | security | sample-app/spice_lite/spice_lite/api/fhir.py:63 | allow_guest=True | Guest access to patient PHI by MRN; remove allow_guest. |\n| R2 | high | security | sample-app/spice_lite/spice_lite/api/fhir.py:68 | No patient with MRN {0} | The error message echoes the MRN. |\n| R3 | medium | security | sample-app/spice_lite/spice_lite/api/fhir.py:69 | get_doc | No has_permission or log_access; ask security to review. |",
+  "stop_reason": "end_turn",
+  "session_id": "949af071-5941-fa98-5ca4-d41433342f45",
+  "total_cost_usd": 0.079,
+  "usage": {
+    "input_tokens": 2850,
+    "cache_creation_input_tokens": 12300,
+    "cache_read_input_tokens": 35600,
+    "output_tokens": 620
+  },
+  "permission_denials": []
+}

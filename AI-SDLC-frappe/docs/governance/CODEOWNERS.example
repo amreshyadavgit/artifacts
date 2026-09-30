@@ -1,0 +1,54 @@
+# CODEOWNERS for the AI-SDLC Frappe repository (example).
+# Copy to .github/CODEOWNERS (or CODEOWNERS / docs/CODEOWNERS at the repo root) and replace the
+# team handles with real GitHub teams that have write access. Then enable, on the default branch:
+#   Settings > Branches (or Rulesets) > Require a pull request before merging
+#     [x] Require approvals (1+)
+#     [x] Require review from Code Owners
+#     [x] Dismiss stale pull request approvals when new commits are pushed
+#     [x] Require status checks to pass: "ai-change-gate / require-human-approval"
+#
+# Order matters: the LAST matching pattern wins, so broad rules go first.
+# Paths assume AI-SDLC-frappe/ is the repository root. If it is a folder in a larger repo, prefix the
+# anchored patterns with /AI-SDLC-frappe (the **/ patterns match at any depth already).
+
+# Default: the clinical core team owns everything else.
+*                                   @example-org/spice-core
+
+# Application code.
+/sample-app/                        @example-org/spice-core
+/sample-app/spice_lite/spice_lite/api/      @example-org/spice-core @example-org/appsec
+/sample-app/spice_lite/spice_lite/audit.py  @example-org/spice-core @example-org/appsec
+
+# Frappe schema and site-wide behaviour: a reviewer who knows what `bench migrate` will do.
+# DocType JSON (fields, permissions array, autoname) and controllers.
+**/doctype/**                       @example-org/spice-core @example-org/schema-owners
+# Patches run once per site, keyed by the exact line text in patches.txt.
+**/patches.txt                      @example-org/schema-owners
+**/patches/**                       @example-org/schema-owners
+# hooks.py: doc_events, scheduler_events, permission_query_conditions, has_permission,
+# override_whitelisted_methods, fixtures. One line here changes behaviour on every site.
+**/hooks.py                         @example-org/schema-owners @example-org/appsec
+# Fixtures (Custom Field, Property Setter, Role, Workflow) are overwritten on every migrate.
+**/fixtures/**                      @example-org/schema-owners
+**/modules.txt                      @example-org/schema-owners
+
+# AI configuration: every change needs a human from the AI governance group.
+# An agent editing its own permissions, Claude Code hooks or prompts is the highest-risk change here.
+/.claude/                           @example-org/ai-governance
+/.claude/settings.json              @example-org/ai-governance @example-org/appsec
+/.claude/hooks/                     @example-org/ai-governance @example-org/appsec
+/.mcp.json                          @example-org/ai-governance @example-org/appsec
+/mcp/                               @example-org/ai-governance @example-org/appsec
+/CLAUDE.md                          @example-org/ai-governance
+/agents/                            @example-org/ai-governance
+/workflows/                         @example-org/ai-governance
+/skills/                            @example-org/ai-governance
+/company-ai/                        @example-org/ai-governance
+/evaluations/                       @example-org/ai-governance
+/context/security/                  @example-org/ai-governance @example-org/appsec
+/docs/governance/                   @example-org/ai-governance @example-org/appsec
+
+# The gate protects itself.
+/.github/CODEOWNERS                 @example-org/ai-governance @example-org/appsec
+/.github/workflows/ai-change-gate.yml   @example-org/ai-governance @example-org/appsec
+/scripts/governance/                @example-org/ai-governance @example-org/appsec

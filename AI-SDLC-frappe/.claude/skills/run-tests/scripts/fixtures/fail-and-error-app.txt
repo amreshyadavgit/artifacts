@@ -1,0 +1,118 @@
+.........F...........E..  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/user/frappe-bench/apps/frappe/frappe/utils/bench_helper.py", line 114, in <module>
+    main()
+  File "/home/user/frappe-bench/apps/frappe/frappe/utils/bench_helper.py", line 20, in main
+    click.Group(commands=commands)(prog_name="bench")
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1569, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1490, in main
+    rv = self.invoke(ctx)
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1970, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1970, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 1353, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/core.py", line 907, in invoke
+    return callback(*args, **kwargs)
+  File "/home/user/frappe-bench/env/lib/python3.11/site-packages/click/decorators.py", line 34, in new_func
+    return f(get_current_context(), *args, **kwargs)
+  File "/home/user/frappe-bench/apps/frappe/frappe/commands/__init__.py", line 29, in _func
+    ret = f(frappe._dict(ctx.obj), *args, **kwargs)
+  File "/home/user/frappe-bench/apps/frappe/frappe/commands/utils.py", line 789, in run_tests
+    ret = frappe.test_runner.main(
+  File "/home/user/frappe-bench/apps/frappe/frappe/test_runner.py", line 111, in main
+    ret = run_all_tests(app, verbose, profile, failfast=failfast, junit_xml_output=junit_xml_output)
+  File "/home/user/frappe-bench/apps/frappe/frappe/test_runner.py", line 178, in run_all_tests
+    out = runner.run(test_suite)
+  File "/usr/lib/python3.11/unittest/runner.py", line 217, in run
+    test(result)
+  File "/usr/lib/python3.11/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/usr/lib/python3.11/unittest/suite.py", line 122, in run
+    test(result)
+  File "/usr/lib/python3.11/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/usr/lib/python3.11/unittest/suite.py", line 122, in run
+    test(result)
+  File "/usr/lib/python3.11/unittest/suite.py", line 84, in __call__
+    return self.run(*args, **kwds)
+  File "/usr/lib/python3.11/unittest/suite.py", line 122, in run
+    test(result)
+  File "/usr/lib/python3.11/unittest/case.py", line 678, in __call__
+    return self.run(*args, **kwds)
+  File "/usr/lib/python3.11/unittest/case.py", line 623, in run
+    self._callTestMethod(testMethod)
+  File "/usr/lib/python3.11/unittest/case.py", line 579, in _callTestMethod
+    if method() is not None:
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py", line 197, in test_framework_defect_is_set_filter_on_datetime
+    frappe.get_all("SL Observation", filters={"effective_datetime": ("is", "set")}, limit=1)
+  File "/home/user/frappe-bench/apps/frappe/frappe/__init__.py", line 2065, in get_all
+    return get_list(doctype, *args, **kwargs)
+  File "/home/user/frappe-bench/apps/frappe/frappe/__init__.py", line 2040, in get_list
+    return frappe.model.db_query.DatabaseQuery(doctype).execute(*args, **kwargs)
+  File "/home/user/frappe-bench/apps/frappe/frappe/model/db_query.py", line 428, in execute
+    result = self.build_and_run()
+  File "/home/user/frappe-bench/apps/frappe/frappe/model/db_query.py", line 477, in build_and_run
+    return frappe.db.sql(
+  File "/home/user/frappe-bench/apps/frappe/frappe/database/postgres/database.py", line 220, in sql
+    return super().sql(modify_query(query), modify_values(values), *args, **kwargs)
+  File "/home/user/frappe-bench/apps/frappe/frappe/database/database.py", line 252, in sql
+    traceback.print_stack()
+..E...................
+======================================================================
+ERROR: test_clinician_can_search_and_read (spice_lite.tests.test_fhir_api.TestFhirApi.test_clinician_can_search_and_read)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py", line 102, in test_clinician_can_search_and_read
+    status, body = call(fhir.get_patient, name=self.p1.name)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/tests/utils.py", line 98, in call
+    body = fn(**kwargs)
+           ^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/utils/typing_validations.py", line 32, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py", line 60, in get_patient
+    return patient_to_fhir(doc.as_json())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/mappers.py", line 46, in patient_to_fhir
+    given = [row["first_name"]] if row.get("first_name") else []
+                                   ^^^^^^^
+AttributeError: 'str' object has no attribute 'get'
+
+======================================================================
+ERROR: test_get_patient_shape (spice_lite.tests.test_fhir_api.TestFhirApi.test_get_patient_shape)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/tests/test_fhir_api.py", line 35, in test_get_patient_shape
+    status, body = call(fhir.get_patient, name=self.p1.name)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/tests/utils.py", line 98, in call
+    body = fn(**kwargs)
+           ^^^^^^^^^^^^
+  File "/home/user/frappe-bench/apps/frappe/frappe/utils/typing_validations.py", line 32, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/fhir.py", line 60, in get_patient
+    return patient_to_fhir(doc.as_json())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/api/mappers.py", line 46, in patient_to_fhir
+    given = [row["first_name"]] if row.get("first_name") else []
+                                   ^^^^^^^
+AttributeError: 'str' object has no attribute 'get'
+
+======================================================================
+FAIL: test_final_requires_value_and_unit (spice_lite.clinical.doctype.sl_observation.test_sl_observation.TestSLObservation.test_final_requires_value_and_unit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/user/artifacts/AI-SDLC-frappe/sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/test_sl_observation.py", line 25, in test_final_requires_value_and_unit
+    self.assertRaises(frappe.ValidationError, make_observation, self.patient.name, value=None)
+AssertionError: ValidationError not raised by make_observation
+
+----------------------------------------------------------------------
+Ran 46 tests in 2.803s
+
+FAILED (failures=1, errors=2)
+'Error in query:\ninvalid input syntax for type timestamp: ""\nLINE 3: where "tabSL Observation"."effective_datetime" != \'\'\n                                                          ^\n'

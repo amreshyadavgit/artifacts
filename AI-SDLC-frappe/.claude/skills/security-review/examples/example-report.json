@@ -1,0 +1,24 @@
+{
+  "report": "security-review",
+  "schemaVersion": "1.0",
+  "scope": { "target": "git diff (1 file)", "mode": "diff" },
+  "summary": { "critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0, "verdict": "block" },
+  "findings": [
+    {
+      "id": "SEC-001",
+      "severity": "high",
+      "category": "phi",
+      "title": "Search terms written to logs/frappe.log through a Form Dict logger",
+      "location": "sample-app/spice_lite/spice_lite/api/fhir.py:91",
+      "evidence": "+\tfrappe.logger(with_more_info=True).warning(\"search_patients returned %s rows\", len(rows))\nwith_more_info=True adds a SiteContextFilter that appends \"Form Dict: {'family': '[REDACTED]', 'identifier': '[REDACTED]'}\" to the line (frappe/utils/logger.py). Search terms are PHI (context/domain/spice-lite-glossary.md).",
+      "recommendation": "Delete the line. search_patients already calls log_access(\"search\", \"SL Patient\", [r.name for r in rows], result_count=len(rows)), which logs document names and a count only. Add a test that asserts audit.py and api/ never call frappe.logger with with_more_info=True.",
+      "cwe": "CWE-532",
+      "confidence": "high",
+      "phi": true
+    }
+  ],
+  "checkedClean": [
+    { "category": "injection", "evidence": "The diff adds no frappe.db.sql, frappe.qb or string-built filter; search_patients still uses frappe.get_list with a filters list." }
+  ],
+  "limitations": ["Diff-only review: files outside the diff were read only where the changed code calls them."]
+}

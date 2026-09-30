@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 26800,
+  "duration_api_ms": 22244,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-18\nstep: 03\nagent: architect\nstatus: blocked\ninputs: [context/architecture/overview.md, sample-app/docs/KNOWN_DEFECTS.md]\nnext: human\n---\n## Summary\nBlocked: the requirement names no endpoint, load or target, and there are no measurements in the repository. The only known hotspot is the lastn N+1 (T-1).\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | medium | performance | sample-app/spice_lite/spice_lite/api/fhir.py:156 | `# TEACHING-DEFECT(perf-n+1): one get_doc + one get_all PER SUBJECT -> 2N queries` | The only measured hotspot: lastn's N+1 (T-1 in KNOWN_DEFECTS). Fix it if lastn is the slow path. |\n| ARC-002 | info | docs | context/architecture/overview.md:38 | `lastn contains the intentional N+1` | No baseline metrics exist; collect slow-query logs and per-endpoint timings first. |\n\n## Decisions\n- No design without a target.\n\n## Open questions\n- Which endpoint is slow, under what load, and what is the target?\n- Is there a slow-query log from production?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "bfa5f448-c439-83d7-f327-0b52e7f6f5cf",
+  "total_cost_usd": 0.118,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": []
+}

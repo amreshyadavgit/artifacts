@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 12600,
+  "duration_api_ms": 10458,
+  "num_turns": 2,
+  "result": "---\nrun_id: eval-REV-06\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-06.patch, sample-app/spice_lite/spice_lite/api/fhir.py]\nnext: developer\n---\n## Summary\nRefactor of search_patients filters.\n\n## Findings\nNo findings. The helper returns the same filters as before and the wildcard check still runs first.",
+  "stop_reason": "end_turn",
+  "session_id": "b7e1ee06-3e8d-3bfd-f554-1d3e98ace5fe",
+  "total_cost_usd": 0.051,
+  "usage": {
+    "input_tokens": 2500,
+    "cache_creation_input_tokens": 11200,
+    "cache_read_input_tokens": 30400,
+    "output_tokens": 530
+  },
+  "permission_denials": []
+}

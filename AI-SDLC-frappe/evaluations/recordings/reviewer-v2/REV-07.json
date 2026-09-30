@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 35100,
+  "duration_api_ms": 29133,
+  "num_turns": 6,
+  "result": "---\nrun_id: eval-REV-07\nstep: 04\nagent: reviewer\nstatus: needs-human\ninputs: [evaluations/datasets/reviewer-diffs/REV-07.patch, sample-app/spice_lite/spice_lite/patches.txt, sample-app/README.md, context/standards/frappe-coding-standards.md]\nnext: human\n---\n## Summary\nVerdict: BLOCK. Edits the applied v0_1 patch to overwrite every patient's country and forces it to re-run. 2 high, 1 low.\nFrappe surfaces: patches.txt (edited existing line), patch module v0_1/backfill_patient_country.py\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| REV-001 | high | correctness | sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py:31 | `(frappe.qb.update(patient).set(patient.country, code)).run()` | Without the WHERE every patient's country is overwritten with the site's code: on a site that serves a second country it destroys correct data. Select the wrong rows explicitly. |\n| REV-002 | high | standards | sample-app/spice_lite/spice_lite/patches.txt:7 | `spice_lite.patches.v0_1.backfill_patient_country #2026-10-02` | Changing the line text (the #2026-10-02 suffix) makes Patch Log treat it as new, so the patch re-runs on every country site at the next migrate (rule 6: never edit an applied patch). |\n| REV-003 | low | standards | sample-app/spice_lite/spice_lite/patches/v0_1/__init__.py:1 | `v0_1` | Write a new patch `spice_lite.patches.v0_2.fix_uganda_country` with a reviewed selection and its own test. |\n\n## Decisions\n- correctness: REV-001\n- security: no findings\n- design: no findings\n- testing: no findings\n- performance: no findings\n- standards: REV-002, REV-003\n- readability: no findings\n- docs: no findings\n\n## Open questions\n- Which patients were registered with the wrong country, and how are they identified?\n\n## Artifacts\n- none written; returned to main session",
+  "stop_reason": "end_turn",
+  "session_id": "b547dfc1-5a02-04c6-8474-92b0a0fab43e",
+  "total_cost_usd": 0.146,
+  "usage": {
+    "input_tokens": 3900,
+    "cache_creation_input_tokens": 15600,
+    "cache_read_input_tokens": 51200,
+    "output_tokens": 890
+  },
+  "permission_denials": []
+}

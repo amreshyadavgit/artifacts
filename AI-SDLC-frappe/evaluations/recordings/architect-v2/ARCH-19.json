@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 25100,
+  "duration_api_ms": 20833,
+  "num_turns": 4,
+  "result": "---\nrun_id: eval-ARCH-19\nstep: 03\nagent: architect\nstatus: blocked\ninputs: [docs/adr/0001-fhir-lite-over-whitelisted-methods.md, context/architecture/overview.md]\nnext: human\n---\n## Summary\nBlocked: the requirement cites ADR-0007, which does not exist in docs/adr/ (only 0000-template and 0001). I will not assume its content.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| ARC-001 | high | docs | docs/adr/0001-fhir-lite-over-whitelisted-methods.md:1 | `# ADR-0001: Expose FHIR-lite resources through whitelisted methods` | ADR-0007 is not in docs/adr/; ask for it or for the decision it was meant to record. |\n| ARC-002 | medium | design | sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.py:59 | `def validate_immutable(self):` | Any event log must respect the existing rule that final and amended observations are immutable. |\n\n## Decisions\n- No design until the ADR exists.\n\n## Open questions\n- Where is ADR-0007, or who owns the event-sourcing decision?\n\n## Artifacts\n- None written (evaluation run: plan mode, no file edits).",
+  "stop_reason": "end_turn",
+  "session_id": "400c0008-3bfa-7b23-ca66-b73631f48de2",
+  "total_cost_usd": 0.112,
+  "usage": {
+    "input_tokens": 3200,
+    "cache_creation_input_tokens": 13400,
+    "cache_read_input_tokens": 40800,
+    "output_tokens": 710
+  },
+  "permission_denials": []
+}

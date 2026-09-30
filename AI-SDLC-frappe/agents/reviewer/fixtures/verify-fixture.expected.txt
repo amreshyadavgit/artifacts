@@ -1,0 +1,30 @@
+checking file sample-app/spice_lite/spice_lite/api/fhir.py
+checking file sample-app/spice_lite/spice_lite/clinical/doctype/sl_patient/sl_patient.json
+applied country-roster.patch
+== existing suite on test.localhost (the seeded defects are invisible to it)
+Ran 46 tests in 3.469s
+OK
+== defect proofs on test.localhost
+test_rev_audit_log_receives_mrns_not_names ... ok
+test_rev_clinician_delete_permission_after_migrate ... skipped 'sl_patient.json change not migrated on this site (expected on test.localhost)'
+test_rev_count_query_per_patient ... ok
+test_rev_no_permission_check_user_without_role_reads_phi ... ok
+test_rev_response_is_not_a_fhir_bundle ... ok
+test_rev_sql_injection_reads_other_countries ... ok
+test_rev_whitelist_accepts_every_http_method ... ok
+Ran 7 tests in 2.223s
+OK (skipped=1)
+== DocType JSON change on throw-away site scratch-reviewer.localhost
+test_clinician_can_create_but_not_delete ... FAIL
+test_create_read_update ... ok
+test_duplicate_mrn_rejected ... ok
+test_future_birth_date_rejected ... ok
+test_user_without_role_cannot_read ... ok
+AssertionError: True is not false
+Ran 5 tests in 1.855s
+FAILED (failures=1)
+test_rev_clinician_delete_permission_after_migrate ... ok
+Ran 1 test in 2.126s
+OK
+dropped scratch-reviewer.localhost
+reverted country-roster.patch

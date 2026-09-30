@@ -1,0 +1,23 @@
+diff --git a/sample-app/spice_lite/spice_lite/api/fhir.py b/sample-app/spice_lite/spice_lite/api/fhir.py
+index aaf5812..5d00e09 100644
+--- a/sample-app/spice_lite/spice_lite/api/fhir.py
++++ b/sample-app/spice_lite/spice_lite/api/fhir.py
+@@ -185,3 +185,18 @@ def lastn(subjects, code: str | None = None):
+ 
+ 	log_access("lastn", "SL Observation", [r["id"] for r in results], result_count=len(results))
+ 	return bundle(results)
++
++
++@frappe.whitelist(allow_guest=True)
++def find_patients(name: str):
++	"""Front-desk lookup: patients whose last name contains `name`."""
++	rows = frappe.db.sql(
++		f"""select name, mrn, first_name, last_name, birth_date
++		from `tabSL Patient`
++		where last_name like '%{name}%'
++		order by last_name""",
++		as_dict=True,
++	)
++	if not rows:
++		frappe.log_error(title="find_patients: no match", message=f"No patient matched '{name}'")
++	return rows

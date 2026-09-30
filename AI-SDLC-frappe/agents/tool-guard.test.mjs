@@ -12,6 +12,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const guard = path.join(here, 'tool-guard.mjs');
 const B = DEFAULT_BENCH;
+delete process.env.SPICE_BENCH_DIR; // tests use the default bench path
 
 function runHook(args, input, env = {}) {
   return spawnSync('node', [guard, ...args], {

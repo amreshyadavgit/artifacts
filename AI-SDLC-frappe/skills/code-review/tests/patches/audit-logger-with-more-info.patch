@@ -1,0 +1,16 @@
+diff --git a/sample-app/spice_lite/spice_lite/audit.py b/sample-app/spice_lite/spice_lite/audit.py
+index 333dabb..d9de150 100644
+--- a/sample-app/spice_lite/spice_lite/audit.py
++++ b/sample-app/spice_lite/spice_lite/audit.py
+@@ -20,7 +20,10 @@ AUDIT_LOGGER = "spice_lite.audit"
+ 
+ 
+ def _logger() -> logging.Logger:
+-	logger = frappe.logger(AUDIT_LOGGER, allow_site=True, max_size=1_000_000, file_count=10)
++	# include request context so support can reproduce what the caller asked for
++	logger = frappe.logger(
++		AUDIT_LOGGER, allow_site=True, with_more_info=True, max_size=1_000_000, file_count=10
++	)
+ 	# frappe.logger() sets the level to frappe.log_level or ERROR (WARNING under `bench serve`),
+ 	# see frappe/utils/logger.py `default_log_level`. Without this, .info() audit lines are
+ 	# silently dropped. Loggers are cached in frappe.loggers, so this sticks per process.

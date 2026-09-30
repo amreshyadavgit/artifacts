@@ -46,7 +46,9 @@ for (const name of skills) {
   if (/(^|[\s`"'(])\.claude\/skills\//.test(text)) {
     warnings.push(`skill ${name}: SKILL.md uses project-relative paths (.claude/skills/...). In a plugin use \${CLAUDE_SKILL_DIR} or \${CLAUDE_PLUGIN_ROOT} instead.`);
   }
-  if (/scripts\/(automation|governance)\//.test(text)) warnings.push(`skill ${name}: depends on repository scripts (scripts/...) that are not shipped in the plugin.`);
+  if (/scripts\/(automation|governance|capstone)\//.test(text)) warnings.push(`skill ${name}: depends on repository scripts (scripts/...) that are not shipped in the plugin.`);
+  if (/(^|[\s`"'(])sample-app\//.test(text)) warnings.push(`skill ${name}: names this repository's app layout (sample-app/...). A consumer bench such as spice_next_core has a different layout; describe paths by role (the app's hooks.py, its doctype/ folder) or read them from the consumer's CLAUDE.md.`);
+  if (/\btest\.localhost\b|\/home\/user\/frappe-bench\b/.test(text)) warnings.push(`skill ${name}: hard-codes this course's bench (test.localhost or /home/user/frappe-bench). In a plugin, read the bench path and test site from the consumer's CLAUDE.md.`);
   const dest = join(OUT, "skills", name);
   cpSync(src, dest, { recursive: true });
   for (const f of ["README.md", "CHANGELOG.md"]) {

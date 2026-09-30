@@ -1,0 +1,21 @@
+{
+  "_synthetic": true,
+  "_note": "SYNTHETIC recording, hand-authored for offline smoke tests of evaluations/harness/run-evals.mjs. It imitates the shape of `claude -p --output-format json`; it is NOT output from a real model run.",
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 17900,
+  "duration_api_ms": 14857,
+  "num_turns": 3,
+  "result": "---\nrun_id: eval-REV-07\nstep: 04\nagent: reviewer\nstatus: complete\ninputs: [evaluations/datasets/reviewer-diffs/REV-07.patch, sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py]\nnext: developer\n---\n## Summary\nChanges the country backfill.\n\n## Findings\n| id | severity | category | location | evidence | recommendation |\n|---|---|---|---|---|---|\n| R1 | high | correctness | sample-app/spice_lite/spice_lite/patches/v0_1/backfill_patient_country.py:31 | update without where | The update now overwrites every patient's country. |\n| R2 | high | standards | sample-app/spice_lite/spice_lite/patches.txt:7 | #2026-10-02 | The changed line makes Patch Log run the patch again on every site. |\n| R3 | low | standards | sample-app/spice_lite/spice_lite/patches.txt:7 | edited patch | Add a new patch instead of editing v0_1. |",
+  "stop_reason": "end_turn",
+  "session_id": "7d4f0f99-e192-12d1-4c22-235475b5a19f",
+  "total_cost_usd": 0.074,
+  "usage": {
+    "input_tokens": 2850,
+    "cache_creation_input_tokens": 12300,
+    "cache_read_input_tokens": 35600,
+    "output_tokens": 620
+  },
+  "permission_denials": []
+}

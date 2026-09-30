@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "validate-skill-library.mjs");
 const SKILL = "---\nname: code-review\ndescription: Review a git diff against context/standards and return findings in the canonical format.\nallowed-tools: Read Grep Glob Bash(git diff *)\n---\n\nReview $ARGUMENTS.\n";
-const README = "# code-review\n\n| Field | Value |\n|---|---|\n| Owner | @example-org/fhir-platform |\n| Version | 1.1.0 |\n";
-const CHANGELOG = "# Changelog\n\n## [1.1.0] - 2026-09-30\n### Added\n- 401/403 test check.\n\n## [1.0.0] - 2026-09-01\n### Added\n- Initial release.\n";
+const README = "# code-review\n\n| Field | Value |\n|---|---|\n| Owner | @example-org/spice-core |\n| Version | 1.1.0 |\n";
+const CHANGELOG = "# Changelog\n\n## [1.1.0] - 2026-09-30\n### Added\n- ignore_permissions check.\n\n## [1.0.0] - 2026-09-01\n### Added\n- Initial release.\n";
 const CASES = JSON.stringify({ cases: [{ id: "cr-1" }, { id: "cr-2" }, { id: "cr-3" }] });
-const INDEX = "# Skill library\n\n| Skill | Owner |\n|---|---|\n| `code-review` | @example-org/fhir-platform |\n";
+const INDEX = "# Skill library\n\n| Skill | Owner |\n|---|---|\n| `code-review` | @example-org/spice-core |\n";
 
 function repo(files) {
   const root = mkdtempSync(join(tmpdir(), "skill-lib-"));
