@@ -52,3 +52,13 @@ Canonical skills, agent→skill preloads, roster, handoff format: identical to t
 
 ## When done
 Do NOT git commit. Report in under 250 words: files created, exercise ids, tests run and results, behaviour claims you couldn't verify, and anything you needed from another writer.
+
+## Running bench commands in this container (mandatory form)
+bench refuses to run as root; the bench user is `frappe`. Several writers share ONE site, so every bench command must hold the shared lock:
+```bash
+flock /tmp/spice-bench.lock su - frappe -c "source ~/.spice-lite-bench-env && cd /home/user/frappe-bench && bench --site test.localhost run-tests --app spice_lite"
+```
+- Keep lock-holding commands short (run a module, not the whole suite, when iterating: `--module spice_lite.tests.test_fhir_api`).
+- Never leave test data, patched code, or schema changes on `test.localhost`. For experiments that change the app or schema, copy the app to `/tmp/<you>-spice_lite`, create your own site (`bench new-site <you>.localhost --db-type postgres --db-host 127.0.0.1 --db-root-username postgres --db-root-password postgres --admin-password admin --install-app ...` is NOT possible for a different copy of the same app name — instead apply your patch with `git apply` to the repo copy while holding the lock, run the tests, then `git checkout -- <files>` before releasing the lock). The whole apply → test → revert must run inside ONE `flock` invocation (e.g. `flock /tmp/spice-bench.lock bash -c '...'`).
+- Unit tests need no lock: `cd AI-SDLC-frappe/sample-app/spice_lite && python3 -m unittest discover -s spice_lite/tests/unit -t .`
+- Test output ends `Ran 46 tests ... OK`; one printed Postgres error line from the D-2 pinning test is expected.
