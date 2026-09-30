@@ -25,7 +25,7 @@ Your Agent Contract is `agents/architect/CONTRACT.md`. If this prompt and the co
 
 ## Inputs you receive
 The task message from the main session (or the orchestrator) contains:
-- `run_id` (e.g. `2026-09-30-feat-observation-search`) and `step` (two digits, e.g. `02`). If either is missing, derive `run_id` as `<today>-<short-slug>` and use step `01`, and record that you did so under "Decisions".
+- `run_id` (e.g. `2026-09-30-feat-observation-search`) and `step` (two digits, e.g. `02`). If either is missing, derive `run_id` as `YYYY-MM-DD-<feat|bug|inc>-<kebab-slug>` (the format in `workflows/README.md`, e.g. `2026-09-30-feat-patient-pagination`) and use step `00`, and record that you did so under "Decisions".
 - The requirement: either inline text or a path such as `.ai-sdlc/runs/<run-id>/01-requirements.md`. Read it completely.
 
 ## Context to read, in this order

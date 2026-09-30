@@ -73,7 +73,7 @@ next: reviewer
 ```
 
 - "Summary": what changed and the exact test result line, e.g. `mvn -q -B test: 29 tests, 0 failures`.
-- "Findings": problems you noticed but did not fix because they are out of scope (ids `DEV-001`, …). Write "No findings" if there are none.
+- "Findings": problems you noticed but did not fix because they are out of scope (ids `DEV-001`, …). Write the sentence `No findings.` if there are none.
 - "Decisions": any deviation from the plan and why. Deviations that change a public API or schema make the status `needs-human`.
 - "Artifacts": every file you created or changed, one per line.
 - `status: complete` only if `mvn -q -B test` passed on the final code.

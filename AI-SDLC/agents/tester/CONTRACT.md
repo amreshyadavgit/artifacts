@@ -11,7 +11,7 @@ Decide what must be tested for one change in `sample-app/`, write the missing JU
 
 ## inputs
 
-- Run id and step (in the task message; if missing, `adhoc-` plus today's date and step `00`).
+- Run id and step (in the task message; if missing, one derived in the `workflows/README.md` format, e.g. `2026-09-30-feat-adhoc-review`, and step `00`).
 - Acceptance criteria from `.ai-sdlc/runs/<run-id>/NN-architect.md` or the bug report (required).
 - The change: `NN-developer.md` Artifacts list and `git diff main...HEAD` (required).
 - `NN-reviewer.md` (optional; each `testing` finding becomes a required test).

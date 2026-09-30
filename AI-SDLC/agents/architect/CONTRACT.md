@@ -11,7 +11,7 @@ Turn one requirement or change request into an architecture decision for the FHI
 
 ## inputs
 
-- Run id and two-digit step number (required, in the task message; if missing the agent derives `<today>-<slug>` and step `01` and records that).
+- Run id and two-digit step number (required, in the task message; if missing the agent derives one in the `workflows/README.md` format, e.g. `2026-09-30-feat-patient-pagination`, uses step `00` and records that).
 - The requirement: inline text or a handoff path such as `.ai-sdlc/runs/2026-09-30-feat-observation-search/01-requirements.md` (required).
 - `context/architecture/overview.md`, `context/standards/coding-standards.md`, `context/standards/api-standards.md` (always read).
 - `context/security/threat-model.md` (read when the change touches authentication, authorization, PHI fields, logging or search parameters).
@@ -67,4 +67,4 @@ Markdown file `.ai-sdlc/runs/<run-id>/NN-architect.md` with YAML front matter `r
 
 ## humanGate
 
-A human approves the design before implementation. When the architect writes an ADR or changes an API contract it sets `status: needs-human`, and the orchestrator stops until a person approves; in the `/feature` workflow that approval happens in plan mode (the main session presents the plan and waits for the human to accept it). The ADR itself moves from `proposed` to `accepted` only through human pull-request approval.
+A human approves the design before implementation. When the architect writes an ADR or changes an API contract it sets `status: needs-human`, and the orchestrator stops until a person approves. The mechanism behind that stop is `workflows/gates.settings.json`, which adds a permission `ask` rule on `Agent(developer)`: the developer cannot be launched until a human answers the prompt. The ADR itself moves from `proposed` to `accepted` only through human pull-request approval.

@@ -65,8 +65,8 @@ Frontmatter: `tools: Read, Grep, Glob, Edit, Write, Bash` and `disallowedTools: 
 
 ## handoffFormat
 
-Markdown file `.ai-sdlc/runs/<run-id>/NN-developer.md` with YAML front matter `run_id`, `step`, `agent: developer`, `status` (`complete | blocked | needs-human`), `inputs` (plan and earlier handoffs read), `next` (normally `reviewer`), as defined in `workflows/README.md`. Sections: `## Summary` (what changed plus the Maven result line), `## Findings` (out-of-scope problems noticed, ids `DEV-001`..., or "No findings"), `## Decisions` (deviations from the plan), `## Open questions`, `## Artifacts` (every created or changed file).
+Markdown file `.ai-sdlc/runs/<run-id>/NN-developer.md` with YAML front matter `run_id`, `step`, `agent: developer`, `status` (`complete | blocked | needs-human`), `inputs` (plan and earlier handoffs read), `next` (normally `reviewer`), as defined in `workflows/README.md`. Sections: `## Summary` (what changed plus the Maven result line), `## Findings` (out-of-scope problems noticed, ids `DEV-001`..., or the sentence `No findings.`), `## Decisions` (deviations from the plan), `## Open questions`, `## Artifacts` (every created or changed file).
 
 ## humanGate
 
-The developer only starts after a human approved the plan (the architect handoff is `needs-human` until then and the orchestrator will not dispatch the developer). Its output reaches the main branch only through human pull-request approval: `git push *` is an `ask` rule in `.claude/settings.json`, force-push is denied, and the agent-scoped hook exits 2 on any push or commit attempt.
+The developer only starts after a human approved the plan: the architect handoff is `needs-human` until then, and in gated workflow runs `workflows/gates.settings.json` adds an `ask` rule on `Agent(developer)`, so every launch of this agent (first implementation and every rework) waits for a human. Its output reaches the main branch only through human pull-request approval: `git push *` is an `ask` rule in `.claude/settings.json`, force-push is denied, and the agent-scoped hook exits 2 on any push or commit attempt.

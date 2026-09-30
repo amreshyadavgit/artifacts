@@ -18,7 +18,7 @@ Review one diff of `sample-app/` against the team standards and return structure
 ## inputs
 
 - Base ref or range to review, e.g. `main` or `main...HEAD` (required in the task message; default `main...HEAD`, falling back to the working tree).
-- Run id and step, e.g. `2026-09-30-feat-observation-search` and `04` (required; if missing the agent uses `adhoc-` plus today's date and step `00`).
+- Run id and step, e.g. `2026-09-30-feat-observation-search` and `04` (required; if missing the agent derives one in the `workflows/README.md` format, e.g. `2026-09-30-feat-adhoc-review`, and uses step `00`).
 - Upstream handoffs `.ai-sdlc/runs/<run-id>/NN-developer.md` and `NN-architect.md` for intent (optional; the code is reviewed on its own merits either way).
 - `context/standards/review-standards.md`, `context/standards/coding-standards.md` (always), `context/standards/testing-standards.md` and `api-standards.md` when tests or controllers change, `context/domain/fhir-lite-glossary.md` for logging, error, DTO or validation changes.
 

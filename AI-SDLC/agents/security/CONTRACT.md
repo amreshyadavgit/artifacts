@@ -11,7 +11,7 @@ Review a change or an area of the FHIR-lite API for vulnerabilities and PHI expo
 
 ## inputs
 
-- Run id and step (in the task message; if missing, `adhoc-` plus today's date and step `00`).
+- Run id and step (in the task message; if missing, one derived in the `workflows/README.md` format, e.g. `2026-09-30-feat-adhoc-review`, and step `00`).
 - Scope: the list of changed files (from `NN-developer.md` Artifacts or `git diff --stat` output pasted into the task message) or a named area such as "the Patient search path" (required; the agent has no Bash to compute a diff).
 - `context/security/threat-model.md`, `context/security/phi-and-secrets-policy.md`, the PHI table in `context/domain/fhir-lite-glossary.md` (always read).
 - `SecurityConfig.java`, `AuditLogger.java`, `GlobalExceptionHandler.java` and every file in scope (read in full).

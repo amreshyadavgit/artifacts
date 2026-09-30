@@ -11,7 +11,7 @@ Explain why the FHIR-lite API is slow, failing or unsafe to deploy, from evidenc
 
 ## inputs
 
-- Run id and step (in the task message; if missing, `adhoc-` plus today's date and step `00`).
+- Run id and step (in the task message; if missing, one derived in the `workflows/README.md` format, e.g. `2026-09-30-inc-adhoc-lastn-latency`, and step `00`).
 - One of: an incident description (symptom, start time, endpoint, alert text), a performance question, or a release-readiness request for a diff (required).
 - `context/architecture/overview.md`, `sample-app/k8s/deployment.yaml`, `sample-app/k8s/service.yaml`, `sample-app/src/main/resources/application.yml`, `sample-app/docs/KNOWN_DEFECTS.md` (always read).
 - The service and repository code on the affected path (read in full).
