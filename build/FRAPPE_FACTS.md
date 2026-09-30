@@ -153,7 +153,7 @@ It creates the `Clinician` Role idempotently in code; there is no fixture.
   **`IntegrationTestCase` and `UnitTestCase` do not exist in v15** (grep finds nothing; they arrive in v16).
   `setUpClass` commits first, then registers a class-level rollback (`_rollback_db`). Data created in tests is rolled back
   at class end, so use unique values (MRNs) across tests in the same class. If you override `setUpClass`, call `super().setUpClass()`.
-- Helpers: `assertQueryCount(n)` (asserts `<= n` SQL calls), `assertRedisCallCounts`, `assertRowsRead`, `assertDocumentEqual`,
+- Helpers: `assertQueryCount(n)` (asserts `<= n` SQL calls; **raises TypeError on Postgres in v15.121.2**, verified on this bench, see KNOWN_DEFECTS D-10), `assertRedisCallCounts`, `assertRowsRead`, `assertDocumentEqual`,
   `primary_connection()` / `secondary_connection()`. Module-level `test_dependencies`, `test_ignore`, `test_records` and
   `_make_test_records` are used by `frappe/test_runner.py` `make_test_records`. It auto-creates records for Link targets
   (e.g. frappe's `User` test records) and **commits** them.

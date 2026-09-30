@@ -13,6 +13,10 @@ Each discovered defect has a status, and a test pins its current behaviour.
 | D-4 | Audit lines were silently dropped (logger level) | `spice_lite/audit.py` | **Fixed**. Has a regression test |
 | D-5 | `family="%"` listed every patient (LIKE wildcard) | `search_patients()` | **Fixed**. Has a test |
 | D-6 | Framework (v15 + Postgres): some `search_index` indexes are never created | `SL Patient.country`, `SL Encounter.patient` | Open. Found by the course agents |
+| D-7 | `lastn` code filter: a `system|code` token (e.g. `http://loinc.org|8867-4`) matches nothing | `lastn()` | Open. Found by the course agents |
+| D-8 | `lastn` ordering: an undated `amended` Observation loses to the `final` it replaces | `lastn()` | Open. Found by the course agents |
+| D-9 | `parse_token` drops the system part of an identifier token | `api/mappers.py` | Open. Found by the course agents |
+| D-10 | Framework (v15 + Postgres): `FrappeTestCase.assertQueryCount` raises `TypeError` (LazyDecode) even under the limit | `frappe/tests/utils.py` | Open upstream. Count queries manually on Postgres |
 
 ---
 
@@ -45,8 +49,9 @@ counts SQL calls for 1 and for 5 subjects. It asserts that each extra subject ad
   with explicit `fields` and `order_by="effective_datetime desc, creation desc"`. Then keep the first
   row per patient in Python. At scale, use a window function (`ROW_NUMBER() OVER (PARTITION BY patient ...)`),
   but note that `frappe.qb` and raw SQL do **not** apply permissions.
-- Replace the pinning test with `with self.assertQueryCount(K):` for a small constant K.
-  `FrappeTestCase.assertQueryCount` asserts `<= K` (see `apps/frappe/frappe/tests/utils.py`).
+- Replace the pinning test with an assertion that the query count is a small constant K for 1 and for 5 subjects,
+  using the same counting approach as the existing test. Do **not** use `FrappeTestCase.assertQueryCount` on
+  Postgres: in v15.121.2 it raises `TypeError` (see D-10). On MariaDB it works and asserts `<= K`.
 - Keep `test_lastn_returns_latest_per_patient` green. It covers "latest wins", filtering by
   code, undated rows, and missing subjects.
 
@@ -121,3 +126,12 @@ returns 400 `OperationOutcome` (`invalid`). **Test:** `test_search_rejects_like_
 **Impact:** filters on `SL Patient.country` and `SL Encounter.patient` do sequential scans. Harmless at test-site size, visible at country scale.
 
 **Expected fix (for the learner):** a patch that creates explicitly named indexes (`frappe.db.add_index("SL Patient", ["country"], index_name="sl_patient_country_idx")`), plus a check in `scripts/automation/` that every `search_index` field has an index in `pg_indexes`.
+
+---
+
+## D-7 to D-10 (found by the course agents while writing skills)
+
+- **D-7:** `lastn(subjects, code="http://loinc.org|8867-4")` returns no rows because the code filter compares the whole token with `SL Observation.code`. FHIR search tokens are `system|code`.
+- **D-8:** when a `final` Observation is corrected by an `amended` one that has no `effective_datetime`, `lastn` orders by `effective_datetime desc` and returns the superseded `final`.
+- **D-9:** `mappers.parse_token("urn:example:mrn|MRN-000123")` returns only the value, so a caller cannot tell which identifier system was asked for.
+- **D-10:** on Postgres, `with self.assertQueryCount(k):` raises `TypeError` from Frappe's query-recording wrapper (LazyDecode) in v15.121.2. Tests that need a query budget count `frappe.db.sql` calls themselves, as `test_lastn_query_count_grows_with_subjects` does. D-1 (missing Float stored as 0.0) also affects `lastn`, which returns such values as `0.0`.
