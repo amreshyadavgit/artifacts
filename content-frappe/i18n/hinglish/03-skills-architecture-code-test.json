@@ -1,0 +1,191 @@
+{
+  "id": "03-skills-architecture-code-test",
+  "title": "Frappe par production skills: architecture review, code review, test strategy",
+  "summary": "Teen production-grade skills banao jinhe architect, reviewer aur tester agents preload karte hain: architecture-review (requirement se ADR, core DocType change vs country app vs integration app, controller vs doc_events, synchronous vs frappe.enqueue decide karna), code-review (canonical findings format mein house standards ke against Frappe diff, is project mein bundled /code-review ko replace karti hai), aur test-strategy (FrappeTestCase, unittest, frappe.set_user, query counter aur bench run-tests flags par mapped aath-category plan). Har ek templates, zero-dependency validator aur real spice_lite bench par measure kiye behaviour se bane golden cases ke saath ship hoti hai.",
+  "prerequisites": [
+    "02-first-agent-skill-tools",
+    "00-example",
+    "Ek working bench jisme spice_lite test.localhost par ho (`AI-SDLC-frappe/sample-app/scripts/setup-bench.sh`)",
+    "Node 22",
+    "Whitelisted methods, DocType JSON aur FrappeTestCase tests padhne mein comfort"
+  ],
+  "concepts": [
+    {
+      "heading": "Skill ek procedure hai plus woh files jo use chahiye",
+      "body_md": "**Skill** ek directory hai, prompt nahi. `.claude/skills/<name>/SKILL.md` mein YAML frontmatter aur ek Markdown procedure hota hai; directory ki baaki files tabhi padhi ya chalayi jaati hain jab procedure unki taraf point kare. `build/CLAUDE_CODE_FACTS.md` §2 se:\n\n- **description** (plus `when_to_use`) hamesha context mein rehta hai, taaki Claude skill load karne ka decide kar sake. Listing mein yeh jodi 1,536 characters par truncate hoti hai, isliye trigger situations jaldi naam lo: \"DocType schema, `hooks.py`, permissions, background jobs\".\n- **body** tab load hota hai jab skill invoke hoti hai (`/code-review`, ya description se automatically) aur session ke liye context mein rehta hai.\n- **Supporting files** (`frappe-options.md`, `review-checklist.md`, `tooling-map.md`) on demand padhi jaati hain. **Scripts** execute hote hain, load nahi, isliye 200-line validator koi context nahi khata.\n- `SKILL.md` ko 500 lines se kam rakho aur baaki link karo.\n\nIs module ki har skill ka shape ek jaisa hai:\n\n```text\n.claude/skills/architecture-review/\n├── SKILL.md            # when, inputs, procedure, rules\n├── frappe-options.md   # the Frappe decision axes with verified v15 behaviour\n├── ADR_TEMPLATE.md     # output structure\n├── checklist.md        # self-check before writing\n├── examples/           # a real input and the expected output\n└── scripts/            # zero-dependency Node validator + node:test tests\n```\n\nProcedure encode karta hai ki ek senior Frappe engineer **is repository mein** kaam kaise karta hai: `api/fhir.py` se pehle `context/architecture/overview.md` padho, ek whitelisted method ko mapper, controller, DocType JSON aur `hooks.py` ke through trace karo, framework behaviour memory se nahi balki bench ke `apps/frappe` source mein check karo. Supporting files woh hisse rakhti hain jo apne schedule par badalte hain; naya Frappe trap procedure chhue bina `frappe-options.md` mein jaata hai.\n\nYahan use hua frontmatter, sab documented list se: `name`, `description`, `when_to_use`, `argument-hint`, `allowed-tools`, `disallowed-tools`. Teeno mein se koi `disable-model-invocation: true` set nahi karti: us flag wali skill preload nahi ho sakti, aur architect, reviewer aur tester agents (module 05-agent-roster) in skills ko apne `skills:` field se preload karte hain."
+    },
+    {
+      "heading": "Skill ko real input dena: $ARGUMENTS aur !`cmd` injection",
+      "body_md": "Review skill utni hi achhi hai jitna achha diff use dikhta hai. Do documented mechanisms model ke reasoning shuru karne se pehle input uske saamne rakhte hain:\n\n- **`$ARGUMENTS`** command ke baad ki har cheez se replace hota hai (`/code-review main` se `main` milta hai). `$0` *pehla* argument hai. Placeholder na ho toh Claude Code `ARGUMENTS: <value>` append karta hai.\n- Line ki shuruaat mein **`` !`command` ``** content bheje jaane se *pehle* chalta hai, aur uska output placeholder ko replace karta hai. Yeh permission rules ke against check hota hai; auto mode ke bahar jo allowed nahi woh invocation abort kar deta hai, jaise non-zero exit karta hai. `allowed-tools` ise skill ke liye pre-approve karta hai.\n\n`code-review/SKILL.md` yeh inject karti hai:\n\n```markdown\n!`git diff --stat HEAD -- sample-app`\n!`git status --short -- sample-app`\n!`git diff HEAD -- sample-app`\n```\n\nTeeno skill ke `allowed-tools` mein `Bash(git diff *)` / `Bash(git status *)` se match karte hain, isliye skill `AI-SDLC-frappe/` ke andar se bina prompt ke load hoti hai (pathspec working directory ke relative hai, aur git repository root ek level upar ho sakta hai).\n\nFrappe app par kaatne wali details:\n\n1. **Untracked files `git diff` ko dikhti nahi.** Jo patch nayi DocType folder jodta hai woh `git add -N sample-app` tak kuch nahi dikhata. Skill `git status` ki har `??` entry bhi padhti hai.\n2. **Diff ko set ki tarah padhna chahiye.** Matching `patches.txt` hunk ke bina DocType JSON hunk ek finding hai, isliye procedure kisi ko bhi review karne se pehle files ko Python, DocType JSON, `patches.txt`, `hooks.py`, fixtures aur tests mein sort karta hai.\n3. **Arguments untrusted hain.** `git diff <base>...HEAD` banne se pehle base ref ko `^[A-Za-z0-9._/~^-]+$` ke against validate kiya jaata hai.\n4. **`allowed-tools` pre-approve karta hai; restrict nahi karta.** `code-review` `disallowed-tools: Edit Write NotebookEdit` set karti hai taaki skill active rehte hue reviewer edit na kar sake.\n\nIsliye practically: jo model ko guess nahi karna chahiye woh inject karo, jo user type kare use validate karo, aur hard limit ke liye `disallowed-tools` use karo."
+    },
+    {
+      "heading": "Frappe platform par architecture decisions: change kahan rehta hai?",
+      "body_md": "Spice-style platform par zyadatar architecture sawaal placement ke sawaal hote hain, aur generic \"design review\" prompts unhe kabhi nahi poochte. `architecture-review` model se `frappe-options.md` ka har axis explicitly decide karwati hai:\n\n1. **Core, country app, integration app, ya core extension point.** Jo field har country ko chahiye woh core DocType change hai (plus patch jab data badalna ho). Jo field ek country ko chahiye woh us country ke app mein Custom Field / Property Setter fixture hai. Jo bhi external system se baat kare (telephony, national ID registry, REST par ERPNext) woh `required_apps = [\"spice_lite\"]` wala integration app hai, jise `install_app` pehle install karta hai.\n2. **Controller method ya `doc_events`.** DocType ke apne app ke rules controller mein rehte hain; kisi doosre app ka behaviour us app ke `hooks.py` mein `doc_events` se register hota hai. `override_doctype_class` avoid kiya jaata hai: sirf ek app jeet sakta hai.\n3. **Synchronous ya `frappe.enqueue`.** External calls explicit `queue`, `timeout`, `job_id`, `deduplicate=True` ke saath queue mein jaati hain, aur `enqueue_after_commit=True` jab job triggering document padhta ho.\n\nWorked example (ADR-0002, Kenya deployment ke liye national health ID) ke liye real code padhne se do facts mile jo sirf-placement wala jawab miss karta:\n\n- `api/fhir.py:33` mein `PATIENT_FIELDS` ek fixed list hai aur `patient_to_fhir` ek identifier emit karta hai (`mappers.py:52`), isliye country Custom Field kabhi API tak nahi pahunchta. Decision ek chhota core **extension point** jodta hai, ek app-defined `hooks.py` key jo `frappe.get_hooks` se padhi jaati hai.\n- `parse_token` token ka system phenk deta hai (`mappers.py:113`): `parse_token('urn:spice:nhid|12345678')` `'12345678'` return karta hai, jise `search_patients` phir MRN ki tarah dhoondhta hai. Yeh risk AR-001 hai, aur yeh aaj exist karta hai.\n\nFrappe source bhi evidence hai: ADR `apps/frappe/frappe/core/doctype/rq_job/rq_job.py:170` (`arguments=frappe.as_json(job.kwargs)`) cite karta hai yeh justify karne ke liye ki verification job ko sirf document name pass kiya jaaye, kyonki job arguments desk mein dikhte hain. Validator ka `--bench` flag un citations ko bench ke against check karta hai, `--repo` repository wale."
+    },
+    {
+      "heading": "Frappe diffs review karna: jo CI nahi dekhta",
+      "body_md": "Claude Code ek bundled `/code-review` ship karta hai. Docs ke hisaab se (`build/CLAUDE_CODE_FACTS.md` mein addendum), usi naam ki project skill project ke andar bundled command ko **replace** karti hai, lekin uske alias ko nahi: `/review` ab bhi bundled wala chalata hai. `AI-SDLC-frappe/` ke andar `/code-review` house review chalata hai: `context/standards/*` rule numbers, canonical findings table, har category ka `no findings`, aur `review-standards.md` se nikala verdict. Personal `~/.claude/skills/code-review/` project wale se jeet-ta hai (personal > project), aur jab machines ke beech reviews alag hon toh sabse pehle yahi check karna hai.\n\nFrappe-specific review ki wajah measured hai, assumed nahi. Is module ka har golden patch app par apply kiya gaya aur bench lock ke under suite chalaya gaya:\n\n| Patch | `bench run-tests --app spice_lite` | Probe ne kya dikhaya |\n|---|---|---|\n| f-string `frappe.db.sql` ke saath guest lookup | 46, OK | Guest ke roop mein, injected `name` ne 3 mein se 3 patients return kiye; `O'Brien` ne `psycopg2.errors.SyntaxError` raise kiya |\n| naye whitelisted read mein `frappe.get_all` | 46, OK | `norole@spice-lite.test` ko values ke saath 200 mila; `lastn` ne usi user ko 403 diya |\n| `sl_patient.json` mein `reqd` field joda, koi patch nahi | 46, OK | scratch site par `bench migrate` ke baad: `Ran 27 tests`, `FAILED (errors=14)`, sab `MandatoryError ... national_id` |\n| `frappe.log_error` mein values | 46, OK | har rejected observation ke liye `value=72.0` wali ek Error Log row |\n| audit logger par `with_more_info=True` | 46, OK | audit log line mein `Form Dict: {'family': ..., 'identifier': ...}` append hua |\n\nHar baar CI green hai. DocType wala case sabse zyada sikhata hai: `bench run-tests` migrate nahi karta, isliye schema change suite ko tab tak nahi dikhta jab tak koi `bench migrate` nahi chalata, aur phir existing patient ka har save fail hota hai.\n\nIsliye checklist har Frappe rule ko ek standard se jodti hai (`get_all` nahi `frappe.get_list`, koi `allow_guest` nahi, parameters `values` mein, `reqd`/rename/retype ke liye patches, `log_error` ya `with_more_info` mein koi PHI nahi), aur skill woh facts batati hai jo reviewers galat samajhte hain: `get_all` koi permissions check nahi karta, `permission_query_conditions` sirf `get_list` ko affect karta hai, DocType JSON migrate par content hash se re-import hota hai, isliye missing `modified` bump finding nahi hai."
+    },
+    {
+      "heading": "FrappeTestCase aur bench run-tests par mapped test strategy",
+      "body_md": "`test-strategy` aath categories plan karti hai aur har ek ko us tooling se map karti hai jo Frappe v15 bench mein exist karti hai (`tooling-map.md`):\n\n- **unit**: `api/mappers.py` par stdlib `unittest`, koi site nahi (`python -m unittest discover -s spice_lite/tests/unit -t .`). Koi pytest nahi: `run-tests --app` har `test_*.py` import karta hai, aur bench venv mein pytest hai hi nahi.\n- **integration, api, negative, edge**: `FrappeTestCase` plus `tests/utils.py::call`, jo whitelisted function ko in-process call karta hai aur `(http_status, body)` return karta hai.\n- **security**: do test users ke saath `frappe.set_user`, `frappe.guest_methods`, `frappe.allowed_http_methods_for_whitelisted_func`, aur User Permissions (`finally` mein delete, kyonki redis roll back nahi hota).\n- **performance**: ek query counter.\n- **regression**: existing tests plus defect id ke naam wale tests.\n\nCommands `bench run-tests` ke sahi level par jaate hain: iteration ke liye `--module`, ek method ke liye `--test`, ek class ke liye `--case`, handoff se pehle `--app`, aur names ke liye `bench --verbose` (`run-tests --verbose` nahi).\n\nPlan ke tests chalane se aise facts mile jo test design badalte hain:\n\n- **Frappe v15.121.2 mein Postgres par `assertQueryCount` unusable hai.** Yeh apne message mein `last_query` values join karta hai, aur Postgres par woh `LazyDecode` objects hote hain: `TypeError: sequence item 0: expected str instance, LazyDecode found`, 1000 ki limit ke saath bhi. `mariadb.localhost` par wahi test pass hota hai. `testing-standards.md` performance smoke test ke liye `assertQueryCount` ka naam leta hai, isliye plan counter use karta hai aur framework defect ko regression test se pin karta hai.\n- **Planted N+1 ke alawa teen `lastn` defects.** `system|code` token kuch match nahi karta; bina `effective_datetime` ke save hua `amended` Observation us final se haar jaata hai jise woh replace karta hai; bina value ka naya `preliminary` Observation `0.0` report hota hai (D-1). Har ek `@unittest.skip(\"SL-13x: ...\")` test ke roop mein ship hota hai jo skip hatane par batayi wajah se fail hota hai.\n- **Ek Java-edition defect yahan exist nahi karta.** Duplicate subjects `parse_subjects` collapse kar deta hai, isliye plan use report karne ki jagah passing test se pin karta hai.\n\nIsliye practically: plan ka har `path:line` aur har \"fails today\" claim bench par chala kar check hota hai, padh kar nahi."
+    },
+    {
+      "heading": "Output contracts, golden cases, aur versioned assets ke roop mein skills",
+      "body_md": "Jis skill ka output shape har run mein badalta hai woh kisi doosre agent, CI, ya eval ko feed nahi kar sakti. Yahan har skill ka ek **output contract** aur ek **deterministic validator** hai (course pattern, built-in feature nahi):\n\n| Skill | Contract | Validator kya check karta hai |\n|---|---|---|\n| `architecture-review` | `docs/adr/0000-template.md` ke H2 sections wala ADR, plus Requirement, Current architecture (evidence), Risks | section order, `Status: proposed`, 2+ options, `AR-NNN` risks, Verification mein `test_` names, har `path:line` resolve hota hai (`--repo`, `--bench`) |\n| `code-review` | Summary, Findings, Details, Categories checked, Verdict | columns, severity aur category enums, sort order, (patched) file ke andar locations, quoted evidence, cited rule, severities se consistent verdict, `frappe.get_all` par switch karne ki koi advice nahi |\n| `test-strategy` | Evidence ke saath scope, findings, cases, 8 categories par coverage | `TestClass#test_method` names, tool names, `existing` tests app mein exist karte hain aur `new` wale nahi, har category covered ya `N/A: reason`, ek `run-tests` exit criterion |\n\nValidators `node:test` suites (10, 9 aur 10 tests) wale zero-dependency Node 22 scripts hain. Har ek `skills/<skill>/tests/cases.json` se ek **golden case** bhi grade karta hai: category ke hisaab se required findings, minimum severity, location aur evidence substrings; forbidden findings; expected verdict ya required citations.\n\nAsset wala hissa `skills/<name>/` mein rehta hai (course convention): `README.md` (owner, consumers, invocation, files likhti hai ya nahi, test kaise karein), 1.0.0 par `CHANGELOG.md` (output-format change = major), aur `read:` ya `run:` marked `facts` wale golden cases. Isse nikalne wale release rules:\n\n1. Naye checklist item ko ek golden case chahiye jo use trigger kare.\n2. False-positive control (`cr-06-clean-test-only-change`) utna hi matter karta hai jitne bug cases.\n3. Line numbers current app aur Frappe 15.121.2 se bandhe hain; `--repo` aur `--bench` drift ko failing check mein badal dete hain.\n4. Live golden runs ko model chahiye (`claude -p \"/code-review\" --output-format json`); validators, patches aur example tests CI mein bina model ke chalte hain.\n\nModule 09-agent-evaluation in cases ko agents ke liye chalata hai; module 10-governance skills ko package karta hai."
+    }
+  ],
+  "diagrams": [
+    {"title": "architecture-review: requirement se gated ADR tak"},
+    {"title": "AI-SDLC-frappe ke andar /code-review type karne par kya hota hai"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Teeno skills side by side",
+      "columns": ["", "architecture-review", "code-review", "test-strategy"],
+      "rows": [
+        ["Trigger", "DocType schema, `hooks.py`, permissions, whitelisted-method contract, background jobs, ek se zyada app ya country", "PR se pehle `sample-app/` ke under koi bhi diff", "Implement karne se pehle, ya ADR ke baad"],
+        ["Input", "`$ARGUMENTS` requirement ya handoff path", "Injected `git diff HEAD -- sample-app`; `$ARGUMENTS` mein optional base ref", "`$ARGUMENTS` method, DocType ya ADR; khaali ho toh injected `git diff --stat`"],
+        ["Pehle kya padhti hai", "`overview.md`, `docs/adr/*`, `frappe-coding-standards.md`, `.claude/rules/doctype-json.md`, Frappe source", "`review-standards.md`, `frappe-coding-standards.md`, `testing-standards.md`, PHI policy", "`testing-standards.md`, `api-standards.md`, glossary rules, `KNOWN_DEFECTS.md`"],
+        ["Output", "ADR (`docs/adr/NNNN-*.md`, status proposed)", "Findings `CR-NNN` + verdict", "Test plan: 8 categories, `TS-NNN` findings, `TC-NN` cases"],
+        ["Files likhti hai", "Sirf ADR (normal permission prompt)", "Kabhi nahi (`disallowed-tools: Edit Write NotebookEdit`)", "Kabhi nahi (tester agent tests likhta hai)"],
+        ["Validator", "`scripts/validate-adr.mjs` (`--repo`, `--bench`)", "`scripts/validate-findings.mjs`", "`scripts/validate-test-plan.mjs`"],
+        ["Kaun preload karta hai", "`architect`", "`reviewer`", "`tester` (`run-tests` ke saath)"],
+        ["Human gate", "PR review `accepted` set karta hai", "review-standards ke hisaab se critical/high par `BLOCK`", "Tech lead `new-failing` tickets approve karta hai"]
+      ]
+    },
+    {
+      "title": "Spice-style Frappe platform par change kahan rehta hai",
+      "columns": ["Option", "Kab use karo", "Mechanism", "Is repo mein mila trap"],
+      "rows": [
+        ["`spice_lite` mein core change", "Har country ko chahiye", "DocType JSON + `patches.txt` mein patch, controller, `api/fhir.py`", "Bina backfill patch ka `reqd` field: migrate se pehle 46 tests pass, baad mein 14 errors"],
+        ["Country app", "Ek country ko field ya rule chahiye", "Custom Field / Property Setter fixtures, `doc_events`", "`PATIENT_FIELDS` fixed hai, isliye API ko Custom Field kabhi nahi dikhta; fixtures migrate par desk edits overwrite karte hain"],
+        ["Integration app (`required_apps = [\"spice_lite\"]`)", "External system involved hai", "Apne Custom Fields ya DocTypes, `doc_events`, `frappe.enqueue` jobs", "Job kwargs desk mein dikhte hain (`RQ Job` `arguments`): sirf document names pass karo"],
+        ["Core extension point", "Kai apps ek core behaviour mein plug karte hain", "`frappe.get_hooks` se padhi app-defined `hooks.py` key", "Nayi key ek public contract hai aur use ADR chahiye"],
+        ["`frappe.enqueue`", "External ya slow kaam", "`queue`, `timeout`, `job_id`, `deduplicate=True`, `enqueue_after_commit=True`", "Registry outage `short` queue bhar deta hai jab tak retries scheduler par na jaayein"]
+      ]
+    }
+  ],
+  "exercises": {
+    "03-architecture-review-adr": {
+      "title": "architecture-review banao aur national health ID ke liye ADR-0002 draft karo",
+      "objective": "`architecture-review` skill banao (procedure, Frappe decision guide, ADR template, checklist, validator) aur ise requirement \"Kenya deployment mein national health ID store, search, return aur verify karo\" par chalao. Skill ko `context/architecture/overview.md`, ADR-0001, `search_patients` se `api/mappers.py` hote hue `hooks.py` tak ka path, aur woh Frappe source inspect karna chahiye jis par woh depend karti hai; core change vs country app vs integration app, controller vs `doc_events`, aur synchronous vs `frappe.enqueue` decide karna chahiye; codebase-specific risks list karne chahiye; aur status `proposed` ke saath `docs/adr/0002-national-health-id-integration-app.md` likhna chahiye jo `validate-adr.mjs --repo . --bench <bench> --status proposed` pass kare.",
+      "testCases": [
+        {"name": "Validator unit tests pass hote hain"},
+        {"name": "Reference ADR valid hai aur har repo aur Frappe citation resolve hota hai"},
+        {"name": "Insaan ka likha ADR-0001 ab bhi template se conform karta hai"},
+        {"name": "Risk AR-001 aaj real hai", "expected": "12345678 (system drop ho jaata hai, isliye search_patients ise MRN ki tarah dhoondhega)"},
+        {"name": "Generated ADR kabhi agent se accept nahi hota"},
+        {"name": "Generated ADR golden case pass karta hai", "expected": "Exit code 0. Agar yeh `FAIL case ar-01-national-health-id: does not mention parse_token or system` print kare, toh skill ne mapper skip kiya: SKILL.md ka step 2.4 check karo aur yeh ki model ne api/mappers.py padha."},
+        {"name": "Unrelated requirement pass grade nahi hoti", "expected": "Exit code 1, pehli line `FAIL case ar-05-lastn-set-based: does not cite KNOWN_DEFECTS.md`"}
+      ],
+      "evaluationCriteria": [
+        "Current behaviour ke baare mein har statement ek resolve hone wala `path:line` rakhta hai: repository paths `--repo` se, Frappe-source paths (`apps/frappe/...`) `--bench` se.",
+        "Placement axis explicitly decide hua hai (core, country app, integration app, extension point) aur har rejected placement batata hai ki woh is codebase mein kyon haarta hai.",
+        "Controller vs `doc_events` aur synchronous vs `frappe.enqueue` decide hue hain, concrete `queue`, `timeout`, `job_id` aur `deduplicate` values ke saath.",
+        "Risks spice_lite aur Frappe v15 ke liye specific hain (token parsing, fixed `PATIENT_FIELDS`, RQ job arguments, unique blank values, fixtures overwrite, `run-tests` ka migrate na karna), generic nahi.",
+        "Status `proposed` rehta hai; acceptance sirf PR review mein hoti hai.",
+        "`SKILL.md` sirf documented frontmatter keys use karta hai aur 500 lines se kam rehta hai, decision guide, template aur checklist supporting files ke roop mein."
+      ],
+      "improvements": [
+        "Inspection phase `context: fork` aur `agent: Explore` ke saath chalao, phir ADR main session mein likho.",
+        "Un requirements ke liye golden cases jodo jinhe ADR nahi chahiye (ek controller method ke andar bug fix).",
+        "Skill ko sikhao ki ek chhoti table mein list kare ki kaunsi sites ko kaunsa app milta hai, aur module 06 ka automation ise `sites/apps.txt` ke against check kare (site config nahi).",
+        "Orchestrator (module 08-workflow-orchestration) ADR path ko automatically test-strategy ko pass kare (golden case `ts-05-national-health-id-adr`)."
+      ]
+    },
+    "03-code-review-diff": {
+      "title": "code-review banao aur f-string SQL wale guest-accessible lookup ko review karo",
+      "objective": "Project `code-review` skill banao jo `AI-SDLC-frappe/` ke andar bundled `/code-review` ko replace kare, `!` commands se working-tree diff inject kare, Python, DocType JSON, `patches.txt`, `hooks.py` aur fixtures ko saath mein `context/standards/*` ke against review kare, aur verdict ke saath canonical format mein findings emit kare. Diya gaya patch apply karo (`allow_guest=True` wala front-desk `find_patients` method, `frappe.db.sql` ko pass kiya f-string, `frappe.log_error` mein search term, raw rows return, koi tests nahi), confirm karo ki suite green rehta hai, skill chalao, aur report validate karo.",
+      "testCases": [
+        {"name": "Patch unmodified app par apply hota hai"},
+        {"name": "CI bug nahi pakadta", "expected": "Ran 46 tests ... OK. Is change ko build nahi, review block karta hai."},
+        {"name": "Validator unit tests pass hote hain"},
+        {"name": "Reference review apna golden case pass karta hai"},
+        {"name": "Project skill /code-review ka jawab deti hai", "expected": "Ek number >= 1, headings `## Findings` aur `## Verdict` ke saath; bundled review koi `CR-` ids produce nahi karta."},
+        {"name": "Reviewer review karte waqt edit nahi kar sakta"},
+        {"name": "Galat advice reject hoti hai", "expected": "`FAIL row 1 (CR-001): recommendation suggests frappe.get_all, which ignores permissions; use frappe.get_list` aur exit code 1."},
+        {"name": "False-positive control", "expected": "Verdict APPROVE, low se upar koi finding nahi, exit code 0 (suite Ran 47 tests, OK report karta hai)."}
+      ],
+      "evaluationCriteria": [
+        "f-string SQL aur `allow_guest=True` ko do alag critical security findings ke roop mein dhoondhta hai, har ek apna rule cite karta hai (`frappe-coding-standards.md#4`, `#3`).",
+        "`frappe.db.sql` ke permission bypass, `frappe.log_error` mein PHI, D-5 wildcard regression aur raw-row return ko alag root causes ke roop mein flag karta hai.",
+        "Evidence diff se verbatim hai ya quoted probe output; locations post-patch line numbers use karti hain jo patched file mein exist karte hain (`--repo` pass hota hai).",
+        "Aath mein se har category ids ya `no findings` ke roop mein listed hai.",
+        "`lastn` mein `TEACHING-DEFECT(perf-n+1)` report nahi karta, jise diff chhoota nahi.",
+        "Verdict review-standards.md follow karta hai (koi bhi critical ya high matlab BLOCK) aur use merge approval nahi bataya gaya."
+      ],
+      "improvements": [
+        "Custom `agent: reviewer` ke saath `context: fork` jodo taaki lamba diff main session ka context na bhare.",
+        "GitHub MCP server ke through findings ko inline PR comments ke roop mein post karo (module 06-mcp-and-tooling-architecture).",
+        "`test_whitelisted_methods_are_not_guest_accessible` ko (bug-fix workflow ke through) extend karo taaki woh `spice_lite.api.fhir` ke har function par iterate kare, aur naya guest method CI fail kare.",
+        "Desk edits overwrite karne wale fixture aur bina `queue`/`timeout` ke `frappe.enqueue` ke liye golden cases jodo."
+      ]
+    },
+    "03-test-strategy-lastn": {
+      "title": "test-strategy banao aur spice_lite.api.fhir.lastn ke tests plan karo",
+      "objective": "`test-strategy` skill banao (procedure, test-plan template, tooling map, validator) aur ise `lastn` ke liye saari aath categories mein tests plan karne ke liye use karo, stdlib `unittest`, `FrappeTestCase`, `tests/utils.py::call`, `frappe.set_user`, User Permissions, ek query counter aur `bench run-tests` flags par mapped. Plan ke naye cases implement karo, bench par prove karo ki `new` wale pass hote hain aur `new-failing` wale documented wajahon se fail hote hain, aur baad mein test files app se hata do.",
+      "testCases": [
+        {"name": "Validator unit tests pass hote hain"},
+        {"name": "Reference plan real app tests ke against valid hai"},
+        {"name": "Plan existing tests invent nahi karta", "expected": "Koi `FAIL test case TC-..: marked existing but ... is not in sample-app/spice_lite/spice_lite` lines nahi. Real lastn tests: `TestFhirApi#test_lastn_returns_latest_per_patient`, `#test_lastn_requires_subjects`, `#test_lastn_query_count_grows_with_subjects`."},
+        {"name": "Example integration tests Postgres aur MariaDB par pass hote hain", "expected": "Dono: Ran 14 tests, OK (skipped=4)."},
+        {"name": "Skipped tests sach mein defects detect karte hain"},
+        {"name": "Unit example bina site ke chalta hai"},
+        {"name": "Postgres par assertQueryCount broken hai", "expected": "Dono par pass: TypeError sirf tab raise hota hai jab frappe.db.db_type == \"postgres\"."},
+        {"name": "Sample app unchanged chhoda jaata hai", "expected": "Copies hatane ke baad koi output nahi."}
+      ],
+      "evaluationCriteria": [
+        "Saari aath categories cover karta hai, har ek ek concrete `TestClass#test_method` aur Frappe v15 bench mein exist karne wale tool ke saath.",
+        "Real harness use karta hai: `tests/utils.py` helpers, do test users, per-class rollback, redis-cached User Permissions ka explicit cleanup.",
+        "Token, undated-amendment aur zero-value behaviour dhoondhta hai, sirf planted N+1 nahi, aur duplicate-subject behaviour ko dobara report nahi karta jo `parse_subjects` pehle se handle karta hai.",
+        "Existing tests ko `existing` mark karta hai aur unhe dobara plan nahi karta.",
+        "Performance ek query count hai, counter se measure kiya kyonki `assertQueryCount` Postgres par fail hota hai, wall-clock timing nahi.",
+        "`new-failing` cases finding aur ticket ka naam lete hain aur `@unittest.skip(\"SL-13x: ...\")` ke saath ship hote hain."
+      ],
+      "improvements": [
+        "Tester agent ko plan ke cases run-tests skill (module 02) ke through chalane do aur parsed summary handoff se attach karo.",
+        "Un cases ke liye plan mein `bench --site mariadb.localhost` column jodo jinka behaviour databases ke beech alag hai (NULL ordering, D-2).",
+        "ADR-0002 ke liye plan generate karo (golden case `ts-05-national-health-id-adr`) aur uske test names ADR ke Verification section mein daalo."
+      ]
+    },
+    "03-skill-assets-golden-cases": {
+      "title": "Teeno skills ko golden cases ke saath versioned assets ke roop mein ship karo",
+      "objective": "Har skill ko `AI-SDLC-frappe/skills/<name>/` ke under ek asset folder do, owner, version, changelog aur real spice_lite code aur bench par measure kiye behaviour se bane kam se kam chhe golden cases ke saath; deterministic hisson (validators, patches) ko bina model ke pass karwao; aur prove karo ki golden case ek aisi skill regression pakadta hai jo sirf verdict miss kar deta.",
+      "testCases": [
+        {"name": "Har skill ke kam se kam chhe golden cases"},
+        {"name": "Har case mein input aur expected hai", "expected": "Koi output nahi."},
+        {"name": "Patch outcomes real runs se record hue hain", "expected": "Ran 46 tests, OK, cr-02 ke `testsAfterPatch` se match karta hai; recorded probe kehta hai ki bina roles wale user ko naye method se values ke saath 200 mila."},
+        {"name": "Schema patch ka outcome migrate par depend karta hai", "expected": "Unmigrated test site par green (46, OK); scratch site par `bench migrate` ke baad: Ran 27 tests, FAILED (errors=14), sab national_id par MandatoryError."},
+        {"name": "Versions agree karte hain"},
+        {"name": "Verdict unchanged hone par bhi regression pakdi jaati hai", "expected": "`FAIL case cr-01-front-desk-lookup: no finding matches {...\"allow_guest\"}` ke saath exit code 1, jabki report ab bhi verdict=BLOCK kehti hai."}
+      ],
+      "evaluationCriteria": [
+        "Har README owner, consumers (kaunsa agent skill preload karta hai), invocation, files likhti hai ya nahi, aur test kaise karein, ka naam leta hai.",
+        "Golden cases real files aur line-level facts cite karte hain, `read:` ya `run:` marked; `run:` facts bench par measure kiye gaye (Postgres, aur jahan alag ho wahan MariaDB).",
+        "Har patch `git apply --check --directory=$(git rev-parse --show-prefix)` se apply hota hai, aur `testsAfterPatch` real suite result record karta hai, DocType changes ke liye migrate caveat samet.",
+        "Kam se kam ek false-positive control case exist karta hai (ek clean change jo approve hona chahiye).",
+        "Validators aur unke tests Node 22 ke saath bina dependencies ke chalte hain, isliye CI unhe bina model ya API key ke chala sakta hai.",
+        "CHANGELOG semantic versioning use karta hai aur output-format change rule likha hai."
+      ],
+      "improvements": [
+        "Ek CI job jodo jo `sample-app/` ya `.claude/skills/` ko chhoone wale har pull request par teeno validator suites aur har golden patch ke liye `git apply --check --directory=...` chalaye.",
+        "Apply, run-tests, revert loop ko ek script ke roop mein automate karo jo bench lock le, taaki har app change ke baad `testsAfterPatch` dobara measure ho sake.",
+        "Live golden runs ko module 09-agent-evaluation ke eval harness se jodo aur har skill version ka pass rate track karo."
+      ]
+    }
+  },
+  "checklist": [
+    "`.claude/skills/{architecture-review,code-review,test-strategy}/SKILL.md` exist karti hain aur sirf documented frontmatter keys use karti hain (koi `disable-model-invocation` nahi, taaki agents unhe preload kar sakein).",
+    "Teeno validator test files par `node --test` 29 passing tests report karta hai.",
+    "`--repo . --bench <bench> --status proposed` ke saath `examples/0002-national-health-id-integration-app.md` par `validate-adr.mjs` `OK  ADR-0002` print karta hai.",
+    "ADR placement (core, country app, integration app, extension point), controller vs `doc_events`, aur synchronous vs `frappe.enqueue` concrete values ke saath decide karta hai.",
+    "`AI-SDLC-frappe/` ke andar `/code-review` `CR-` ids ke saath findings table produce karta hai (project skill ne bundled wali ko replace kiya).",
+    "Front-desk patch apply hone par bhi `bench --site test.localhost run-tests --app spice_lite` pass hota hai, aur review verdict f-string SQL aur `allow_guest=True` ke critical findings ke saath `BLOCK` hai.",
+    "`lastn` plan saari aath categories cover karta hai aur `--repo .` ke saath validate hota hai; iska performance case Postgres par `assertQueryCount` nahi, query counter use karta hai.",
+    "Example tests Postgres aur MariaDB par `Ran 14 tests`, `OK (skipped=4)` dete hain, aur chaar skipped tests enable karne par documented wajahon se fail hote hain.",
+    "Har skill ka `skills/<name>/README.md`, 1.0.0 par `CHANGELOG.md` aur kam se kam chhe cases wala `tests/cases.json` hai.",
+    "Har golden patch `AI-SDLC-frappe/` se `git apply --check --directory=$(git rev-parse --show-prefix)` pass karta hai.",
+    "Exercises ke baad `git status --short sample-app` kuch print nahi karta: patches reverted, example tests hataye gaye, koi scratch site peeche nahi chhodi."
+  ]
+}
