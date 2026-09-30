@@ -1,0 +1,189 @@
+{
+  "id": "02-first-agent-skill-tools",
+  "title": "Tumhara Pehla Agent, Skill aur Tools",
+  "summary": "AI-SDLC system ke pehle working pieces banao aur test karo: ek reviewer subagent (v1 snapshot ki tarah rakha jaata hai jise aage ke modules improve aur evaluate karte hain), ek explain-endpoint skill jo FHIR-lite route ko security rule se SQL tak trace karti hai, aur ek run-tests skill jo pre-approved commands aur ek tested summary script ke saath Maven run karti hai. Phir ek agent ke tools restrict karo, ek PreToolUse hook ko usi tak scope karo, aur sab kuch claude -p ke saath headless test karo.",
+  "prerequisites": [
+    "00-example",
+    "01-foundations",
+    "Claude Code CLI installed aur authenticated (`claude --version`)",
+    "PATH par Java 21, Maven 3.9 aur Node 22; `cd AI-SDLC/sample-app && mvn -q -B test` pass hota hai",
+    "`jq` installed (`--output-format json` results padhne ke liye use hota hai)"
+  ],
+  "concepts": [
+    {
+      "heading": "Subagent file ki anatomy",
+      "body_md": "Subagent **YAML frontmatter wali ek Markdown file** hai. Sirf do keys required hain:\n\n- `name`: identity (`reviewer`). Filename ka match hona zaroori nahi, aur subfolders identity nahi badalte. Hooks ise `agent_type` ki tarah dekhte hain.\n- `description`: Claude ko kab ise delegate karna chahiye. Main session routing decide karne ke liye har description padhta hai, isliye ise trigger ki tarah likho: yeh *kya* karta hai aur *kab* use karna hai (\"Reviews code changes in the sample app. Use after code changes.\").\n\nIs module mein jo optional keys tum use karoge: `tools`, `disallowedTools`, `model` (`sonnet`, `opus`, `haiku`, `fable`, full id, ya `inherit`), `permissionMode`, `maxTurns`, `skills`, `hooks`. Subagent files mein multi-word keys **camelCase** hoti hain. Unknown keys **chupchaap ignore** hoti hain, toh agent file mein `allowed-tools:` (skill wali spelling) ya `max_turns:` kuch nahi karta aur koi error bhi nahi deta. Spelling docs table se check karo, memory se nahi.\n\n### File kahan rehti hai, isse decide hota hai ki kise milti hai\n\nEk hi `name` ke liye upar wali entry jeetti hai: managed settings `.claude/agents/` > `--agents` JSON flag > project `.claude/agents/` (working directory ke sabse paas) > `~/.claude/agents/` > plugin `agents/`. Toh practically:\n\n- Team agents `AI-SDLC/.claude/agents/` mein jaate hain aur code ki tarah review hote hain.\n- `--agents '{...}'` **test harness** hai: yeh file ko chhooye bina ek session ke liye project agent ko override karta hai.\n- Personal `~/.claude/agents/reviewer.md` project ke reviewer se shadow ho jaata hai; aam taur par tum yahi chahte ho.\n\nNayi files hot-reload hoti hain, ek exception ke saath: naye bane `agents` directory ke pehle agent ke liye restart chahiye. Yeh pehle hi din logon ko pakad leta hai."
+    },
+    {
+      "heading": "Body hi poora system prompt hai",
+      "body_md": "Markdown body subagent ka system prompt ban jaati hai. Yeh Claude Code system prompt mein jodti nahi, use **replace** karti hai. Start-up par subagent ko sirf yeh milta hai:\n\n1. uski body,\n2. woh task message jo main session ne delegate karte waqt likha,\n3. CLAUDE.md hierarchy aur git status,\n4. basic environment details (working directory),\n5. `skills:` mein listed koi bhi skills (poora content preloaded).\n\nUse tumhari conversation, main session ka output style ya auto memory **nahi** milti. Reviewer ko *is* repository ke baare mein jo bhi jaanna hai, woh CLAUDE.md, preloaded skill, ya un files se aana chahiye jo woh padhta hai.\n\n### Ise likhna\n\n- **Pehli line mein role aur scope**: \"senior Java and Spring Boot reviewer for the FHIR-lite API in `sample-app/`\". Specialization hi subagent ko general-purpose wale se better banata hai.\n- **Ek procedure**: numbered steps jinhe agent bina guess kiye follow kar sake (`git diff HEAD -- sample-app` run karo, changed files aur unke callers padho, named standards check karo).\n- **Path se repository awareness**: `context/standards/review-standards.md` aur `context/security/phi-and-secrets-policy.md` ko paste karne ki jagah unka naam lo. Agent zaroorat par unhe padhta hai; CLAUDE.md pehle se PHI policy import karti hai.\n- **Ek output format** jise koi parse kar sake. Is module ka v1 kehta hai \"report the problems you find\" aur bas. Yeh vagueness jaan-boojhkar hai: isse module `09-agent-evaluation` ko ek baseline milti hai jiske against v2 measure hota hai.\n\nBody ka har sentence us agent ke har turn par tokens khata hai. Jo project facts sab agents ko chahiye unhe CLAUDE.md mein rakho, aur body ko role, procedure aur output ke liye rakho."
+    },
+    {
+      "heading": "Tool selection: allowlist, denylist, inheritance",
+      "body_md": "`tools` ek **allowlist** hai. Agar tum ise **omit** karo, subagent subagents ke liye available har tool inherit karta hai, main session ke MCP tools samet. Reviewer v1 yahi karta hai, aur iska matlab hai ki ek \"reviewer\" Edit, Write kar sakta hai aur koi bhi Bash command run kar sakta hai jo permission rules allow karein.\n\n`disallowedTools` ek **denylist** hai jo inherited ya listed set se hata di jaati hai. Do nateeje:\n\n- Waise inherit karne wale agent par `disallowedTools: Edit, Write, NotebookEdit` naye MCP tools ko automatically aane deta hai. Convenient hai, par ab file padhkar tum agent ka poora tool set nahi jaan sakte.\n- Specifier tool ko narrow nahi karta: `disallowedTools: Bash(git push *)` **poora** Bash hata deta hai. Tool list se tum Bash ko kuch commands tak scope nahi kar sakte.\n\nIs course ke rules of thumb:\n\n| Agent kind | Use karo |\n|---|---|\n| Read-only (reviewer, security, architect) | explicit `tools: Read, Grep, Glob` plus `Bash` sirf tab jab koi hook ya permission rules use narrow karein |\n| Code likhta hai (developer, tester) | explicit `tools` jisme `Edit, Write, Bash` hon |\n| Delegate nahi karna chahiye | `tools` se `Agent` bahar rakho (roster agents depth 1 par rehte hain) |\n\nBash narrow karne ke liye `tools: ..., Bash` ko agent ke apne frontmatter mein ek `PreToolUse` hook (exit code 2 block karta hai) aur `.claude/settings.json` ke `permissions.allow` rules (`Bash(git diff *)`) ke saath combine karo. Tool list batati hai *kaunse* tools; hooks aur permission rules batate hain *kaunsi calls*."
+    },
+    {
+      "heading": "Permissions: permissionMode aur parent ka mode",
+      "body_md": "Subagent `permissionMode` declare kar sakta hai: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` ya `bypassPermissions`. Read-only reviewer ke liye `dontAsk` attractive hai: jo bhi prompt karta, woh automatically deny hota hai, aur `permissions.allow` se allowed commands (jaise `AI-SDLC/.claude/settings.json` mein `Bash(git diff *)`) phir bhi chalte hain. Background review ke liye kisi ko terminal par baithkar prompts ka jawab nahi dena padta.\n\nPar docs saaf kehte hain ki **teen cases mein parent ka mode jeetta hai**: subagent ka `permissionMode` ignore hota hai jab parent session `bypassPermissions`, `acceptEdits` ya `auto` mein chal raha ho, aur subagent `bypassPermissions` tak escalate nahi kar sakta jab tak parent pehle se usme na ho. Recent versions naye terminal sessions ko `auto` mein start karte hain, toh practically tumhari `dontAsk` line aksar effect mein hoti hi nahi.\n\nIsiliye yeh module controls ki layers banata hai:\n\n1. `tools` woh hata deta hai jo agent kabhi use nahi kar sakta (na Edit, na Write).\n2. Agent ke frontmatter ka subagent-scoped `PreToolUse` hook parent chahe kisi bhi mode mein ho, chalta hai; `reviewer-bash-guard.mjs` `git diff/log/show/status` ke alawa har cheez ke liye 2 se exit karta hai. Iski ek precondition hai: Claude Code project agent ke frontmatter hooks tabhi run karta hai jab folder ko interactive session mein trust kiya gaya ho (`AI-SDLC/` mein pehli baar `claude` start karte waqt trust dialog accept karo); kabhi trust na hue folder mein `claude -p` run unhe skip kar deta hai.\n3. Settings ka `permissions.deny` (`Read(./.env)`, `Bash(rm -rf *)`) har jagah apply hota hai.\n4. `permissionMode` aakhri, best-effort layer hai.\n\nHeadless tests ke liye `claude -p ... --permission-mode plan` poore run ko read-only bana deta hai. Ise tab use karo jab tum aisa agent test kar rahe ho jo abhi bhi Edit aur Write inherit karta hai, jaise v1."
+    },
+    {
+      "heading": "Context injection: CLAUDE.md, preloaded skills, aur !`cmd`",
+      "body_md": "Agent ya skill ke kaam shuru karne se **pehle** usme repository knowledge daalne ke teen tarike:\n\n- **CLAUDE.md**: har subagent ke liye load hoti hai (built-in Explore aur Plan ko chhodkar). Rules aur commands yahan rakho. `AI-SDLC/CLAUDE.md` pehle se har agent ko test command aur no-PHI rule batati hai.\n- **Agent frontmatter mein `skills:`**: listed skills ka poora content start-up par inject hota hai. Module 05 tester aur developer ko `skills: [run-tests]` deta hai. `disable-model-invocation: true` wali skill preload nahi ho sakti, isiliye run-tests use default par chhodti hai.\n- **SKILL.md body mein `` !`command` ``**: skill invoke hone par command run hoti hai aur Claude ke prompt dekhne se pehle uska output placeholder ki jagah le leta hai. `explain-endpoint` controllers par ek `grep` se current route map inject karti hai; `run-tests` invocation time aur `git status --short -- sample-app` inject karti hai.\n\nInjection ke kuch tez kinare hain:\n\n- **Non-zero exit poori skill abort kar deta hai** (`grep` jaise search ya compare commands ke exit 1 ko chhodkar). `mvn test` kabhi inject mat karo: yeh bilkul tabhi exit 1 karta hai jab koi test fail ho.\n- Command **permission rules ke against check hoti hai**; agar allowed nahi hai, toh auto mode ke bahar invocation abort ho jaata hai. Ise skill ke `allowed-tools` mein pre-approve karo (`Bash(grep *)`, `Bash(date *)`).\n- `allowed-tools` skill active rehte hue **pre-approve** karta hai; restrict nahi karta. Tools hatane ke liye `disallowed-tools` use karo.\n\nArguments: `$ARGUMENTS` poori argument string hai, `$0` pehla argument, `$1` doosra (0-based, shell-style quoting). `argument-hint` autocomplete mein dikhta hai. Supporting files (`reference.md`, `scripts/`) SKILL.md ke bagal mein rehti hain; body unhe link karti hai aur Claude unhe sirf zaroorat par padhta ya run karta hai."
+    },
+    {
+      "heading": "Headless testing aur iteration",
+      "body_md": "Agent aisa code hai jise tum seedhe unit-test nahi kar sakte, isliye tum fixed inputs par uska behaviour test karte ho. Is module ke fixed inputs `docs/tutorials/level-2/patches/` ke under do labelled patches hain (yeh exercise inputs hain, app changes nahi). Runner `claude -p` hai:\n\n| Flag | Kyon |\n|---|---|\n| `--output-format json` | `result`, `subtype`, `is_error`, `num_turns`, `total_cost_usd`, `session_id`, `usage` wala ek JSON object |\n| `--max-turns 10` | loop ko cap karta hai; limit hit hone par `subtype: error_max_turns` milta hai |\n| `--permission-mode plan` | read-only run, un agents ke liye safe jo abhi bhi Edit/Write inherit karte hain |\n| `--agent reviewer` | agent ko main thread ki tarah run karo (uski body system prompt replace karti hai) |\n| `--agents '{\"reviewer\": {...}}'` | files edit kiye bina ek session ke liye agent define ya override karo |\n| `--output-format stream-json --verbose` | har message, taaki tum woh `Agent` tool call dekh sako jisne delegate kiya |\n\n`-p` mode mein user-invoked skill prompt mein `/run-tests SecurityTest` daalne se chalti hai.\n\nIteration loop: **ek** cheez badlo, same patch par same command dobara run karo, `result`, `num_turns` aur `total_cost_usd` compare karo, aur change aur observation ko `docs/tutorials/level-2/README.md` ke iteration log mein likho. Jis cheez ko model ki zaroorat nahi, woh bina model ke test hoti hai: `summarize-surefire.mjs` aur `reviewer-bash-guard.mjs` dono ke saath ek `node --test` suite aata hai, aur hooks ko unme hook JSON pipe karke aur exit code check karke exercise kiya ja sakta hai.\n\nAPI key nahi hai? `claude -p` lines ke alawa sab kuch phir bhi chalta hai: Maven tests, dono script suites, hook simulation, aur neeche ka har `grep`/`git` test case."
+    }
+  ],
+  "diagrams": [
+    {"title": "Kaunsi reviewer definition jeetti hai"},
+    {"title": "/run-tests SecurityTest invoke hone par kya hota hai"},
+    {"title": "Reviewer ki Bash call kin layers se guzarti hai"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Agent kya kar sakta hai, uske controls",
+      "columns": ["Control", "Kahan", "Granularity", "Parent auto/acceptEdits/bypass mein bachta hai?", "Kiske liye use karo"],
+      "rows": [
+        ["`tools` allowlist", "Subagent frontmatter", "Poore tools", "Haan", "Read-only agents: `Read, Grep, Glob`"],
+        ["`disallowedTools`", "Subagent frontmatter", "Poore tools (specifier phir bhi poora tool hata deta hai)", "Haan", "Edit/Write ke alawa sab inherit karo"],
+        ["`permissionMode`", "Subagent frontmatter", "Poore session ka behaviour", "Nahi: `bypassPermissions`, `acceptEdits`, `auto` ke under ignore", "Unattended read-only agents ke liye `dontAsk`"],
+        ["`hooks` (`PreToolUse`)", "Subagent frontmatter", "Individual calls (`tool_input` inspect karo)", "Haan", "Bash ko `git diff/log/show/status` tak narrow karna"],
+        ["`permissions.allow/ask/deny`", "`.claude/settings.json`", "Rule se individual calls (`Bash(git diff *)`)", "Deny rules haan", "Project-wide guardrails"],
+        ["Skill `allowed-tools`", "SKILL.md frontmatter", "Rules, jab tak skill active hai", "Yeh restriction hai hi nahi", "/run-tests ke liye `mvn -q -B test *` pre-approve karna"],
+        ["`memory`", "Subagent frontmatter", "n/a", "n/a", "Read-only agent par kuch nahi: yeh Read, Write aur Edit auto-enable kar deta hai"]
+      ]
+    },
+    {
+      "title": "Subagent ya skill?",
+      "columns": ["Sawaal", "Subagent (`.claude/agents/`)", "Skill (`.claude/skills/`)"],
+      "rows": [
+        ["Context", "Fresh context: body, task message, CLAUDE.md, git status, preloaded skills", "Current conversation mein chalti hai (jab tak `context: fork` na ho)"],
+        ["Invocation", "Description se delegation, `@agent-reviewer`, `--agent`", "`/explain-endpoint ...` ya description se auto-load"],
+        ["Tool control", "`tools`, `disallowedTools`, `permissionMode`, `hooks`", "`allowed-tools` (pre-approve), `disallowed-tools` (remove), `hooks`"],
+        ["Key spelling", "camelCase (`disallowedTools`, `maxTurns`)", "hyphenated (`allowed-tools`, `argument-hint`) plus `when_to_use`"],
+        ["Kiske liye best", "Apne judgement aur tool boundary wala role (reviewer)", "Repeatable procedure (endpoint explain karna, tests run karna)"],
+        ["Is module mein", "`reviewer-v1.md`, `reviewer-v1-restricted.md`", "`explain-endpoint`, `run-tests`"]
+      ]
+    }
+  ],
+  "exercises": {
+    "02-first-agent-reviewer-v1": {
+      "title": "Reviewer v1 banao aur use headless test karo",
+      "objective": "Pehla subagent likho, jaan-boojhkar simple `reviewer` jisme sirf `name`, `description`, `model` aur ek chhoti body ho, use `.claude/agents/reviewer.md` par install karo, aur `claude -p` se prove karo ki main session use delegate karta hai aur woh patch ke dono labelled defects dhoondh leta hai. File ko bina badle `evaluations/agent-versions/reviewer-v1.md` ki tarah rakho: module 05 v2 banata hai aur module 09 dono ko compare karta hai.",
+      "testCases": [
+        {"name": "Frontmatter mein exactly v1 keys hain"},
+        {"name": "v1 jaan-boojhkar broad hai: koi tools line nahi", "expected": "0 (agent har tool inherit karta hai; exercise 02-restrict-tools-and-hook ise narrow karti hai)"},
+        {"name": "Installed copy identical hai"},
+        {"name": "Patch apply hota hai aur exactly ek test todta hai", "expected": "[ERROR] Tests run: 25, Failures: 1, Errors: 0, Skipped: 0 (fail hone wala test PatientApiTest.searchWithoutParametersIs400:76 hai, Status expected:<400> but was:<200>)"},
+        {"name": "Delegation sach mein hua"},
+        {"name": "Run turn budget ke andar khatam hua", "expected": "\"subtype\": \"success\", \"is_error\": false, num_turns zyada se zyada 10"},
+        {"name": "Dono defects report hue", "expected": "Har grep se kam se kam ek matching line."},
+        {"name": "Plan mode ne ise read-only rakha", "expected": "Sirf `sample-app/src/main/java/org/example/fhir/service/PatientService.java | 8 +++++++-` (khud patch); koi aur file nahi badli."}
+      ],
+      "evaluationCriteria": [
+        "`description` batata hai ki agent kya karta hai aur kab use delegate karna hai.",
+        "Body ek system prompt hai: role, numbered procedure, aur kahan dekhna hai (`git diff`, CLAUDE.md), bina conversation-style text ke.",
+        "v1 valid hai par jaan-boojhkar naive: na `tools` line, na structured output format. Snapshot ko improve mat karo; improvements baad ke versions mein jaate hain.",
+        "Headless command sirf documented flags use karta hai (`-p`, `--permission-mode`, `--max-turns`, `--output-format`).",
+        "Learner samjha sakta hai ki output (prose, koi severity nahi, koi `path:line` nahi) ko automatically evaluate karna mushkil kyon hai."
+      ],
+      "improvements": [
+        "Same command teen baar run karo aur `result` fields ko diff karo: note karo ki v1 ki wording aur ordering kitni badalti hai. Yahi baseline noise hai jise module 09 measure karta hai.",
+        "Files edit kiye bina ek run ke liye project agent override karo: `claude -p ... --agents '{\"reviewer\": {\"description\": \"Reviews code changes in the sample app.\", \"prompt\": \"You are a reviewer. Reply with findings only.\", \"tools\": [\"Read\", \"Grep\", \"Glob\"]}}'`.",
+        "`color: blue` jodo taaki interactive session mein reviewer aasani se dikhe."
+      ]
+    },
+    "02-explain-endpoint-skill": {
+      "title": "explain-endpoint skill likho",
+      "objective": "`.claude/skills/explain-endpoint/` banao jisme ek SKILL.md ho jo endpoint ko `$ARGUMENTS` ki tarah le, `argument-hint` dikhaye, pre-approved `!` command se current route map inject kare, aur ek `reference.md` supporting file link kare. Ise `GET /fhir/Observation/$lastn` par invoke karo aur check karo ki jawab controller, service, repository, SQL, security, errors, audit aur tests ko real `path:line` citations ke saath trace karta hai, teaching defect ke har subject ke do SQL statements samet.",
+      "testCases": [
+        {"name": "Skill frontmatter hyphenated skill keys use karta hai", "expected": "Paanch lines: name, description, when_to_use, argument-hint, allowed-tools. allowedTools jaisi koi camelCase keys nahi."},
+        {"name": "Arguments aur injection present hain", "expected": "`**$ARGUMENTS**` wali ek line aur ek line jo !`grep -rnE \"@(Get|Post|Put|Delete|Request)Mapping\" se shuru hoti hai"},
+        {"name": "Injected command kaam karta hai aur pre-approved hai", "expected": "11 (2 class-level prefixes + 9 routes), phir 1"},
+        {"name": "Supporting file linked hai"},
+        {"name": "Reference SQL Hibernate se match karta hai", "expected": "2 (test mein har subject ke liye ek: N+1 pattern jise skill ko report karna hai)"},
+        {"name": "Jawab real locations cite karta hai", "expected": "Kam se kam do matching lines; loop (lines 69-75) aur `/fhir/**` security rule cite hote hain."},
+        {"name": "Skill read-only rehti hai", "expected": "Skill run karne ke baad koi changes nahi."}
+      ],
+      "evaluationCriteria": [
+        "Description batata hai ki skill kya karti hai aur kab use karni hai, taaki \"patient search kaunsa SQL run karta hai?\" jaise sawaalon par auto-invocation kaam kare.",
+        "Har injected command fail hone par safe hai (grep ka exit 1 tolerate hota hai) aur `allowed-tools` mein pre-approved hai.",
+        "Output format `path:line` citations aur statement count ko zaroori banata hai.",
+        "Lamba reference material `reference.md` mein rehta hai, SKILL.md mein nahi.",
+        "Skill kabhi files edit nahi karti aur jab tak kaha na jaye, teaching defect fix karne ka proposal nahi deti."
+      ],
+      "improvements": [
+        "`paths: [\"sample-app/src/main/java/**\"]` jodo taaki skill sirf tab auto-activate ho jab Claude Java sources par kaam kare.",
+        "Ek named argument (`arguments: [method, path]`) jodo aur body mein `$ARGUMENTS` ki jagah `$method` aur `$path` use karo.",
+        "Trace ko main context se bahar rakhne ke liye ise `context: fork` aur `agent: Explore` ke saath run karo, aur jawab ki quality compare karo (Explore CLAUDE.md load nahi karta)."
+      ]
+    },
+    "02-run-tests-skill": {
+      "title": "Agent ko ek tool do: run-tests skill",
+      "objective": "`/run-tests [TestClass | TestClass#method]` banao: `allowed-tools` se exactly woh Maven, Node, `date` aur `git status` commands pre-approve karo jo iske liye zaroori hain, `!` se invocation time aur changed files inject karo, aur ek tested zero-dependency script se Surefire ki XML reports ko compact summary mein badlo. Isse ek labelled regression pakdo jo clinicians ko patients delete karne deta hai.",
+      "testCases": [
+        {"name": "Script unit tests pass hote hain"},
+        {"name": "Real green run par script", "expected": "## Test summary: PASS\n\n25 tests: 25 passed, 0 failed, 0 errors, 0 skipped (3 suites, 13.1 s)  (total time machine ke hisaab se badalta hai)"},
+        {"name": "Reports na hon toh exit 2, fake PASS nahi"},
+        {"name": "Regression patch bina Claude ke pakda jaata hai"},
+        {"name": "Maven kabhi inject nahi hota", "expected": "Exactly do injections: !`date -u +%Y-%m-%dT%H:%M:%SZ` aur !`git status --short -- sample-app`. !`...` ke andar koi `mvn` nahi."},
+        {"name": "Sirf zaroori commands pre-approved hain", "expected": "Paanch list entries: Bash(mvn -q -B test), Bash(mvn -q -B test *), Bash(node .claude/skills/run-tests/scripts/summarize-surefire.mjs *), Bash(date *), Bash(git status *)"},
+        {"name": "Headless skill run failure report karta hai", "expected": "Result mein `NOT READY` aur `SecurityConfig.java:43` hai; `git status --short -- sample-app` sirf patched SecurityConfig.java dikhata hai (skill ne kuch edit nahi kiya)."},
+        {"name": "Unsafe argument reject hota hai", "expected": "Ek reply jo kehta hai ki argument reject hua; koi Maven run nahi (check karo ki `sample-app/target/surefire-reports` ke timestamps nahi badle)."}
+      ],
+      "evaluationCriteria": [
+        "`allowed-tools` exact command prefixes list karta hai, YAML list form mein kyonki rules mein spaces hain.",
+        "Failing tests skill ko abort nahi kar sakte: Maven normal Bash call ki tarah chalta hai, sirf hamesha succeed hone wale commands inject hote hain.",
+        "Summary mein kabhi `<system-out>` nahi hota (tests AUDIT lines aur synthetic patient data log karte hain).",
+        "Pichhle run ki stale reports `--since` se exclude hoti hain.",
+        "Script zero-dependency Node 22 hai, passing `node --test` suite aur documented exit codes (0, `--strict` ke saath 1, 2) ke saath.",
+        "`$ARGUMENTS` shell tak pahunchne se pehle validate hota hai."
+      ],
+      "improvements": [
+        "`.claude/settings.json` (module 10 ka owned) ke `permissions.allow` mein `Bash(node .claude/skills/run-tests/scripts/summarize-surefire.mjs *)` jodo taaki tester aur developer agents mein preloaded use ke liye koi prompt na aaye.",
+        "Script mein `--json` output mode jodo aur CI ke liye `structured_output` paane ko use `claude -p --json-schema` ke saath use karo.",
+        "Dheere-dheere badhte Spring context start-up time ko pakadne ke liye teen sabse slow tests print karo."
+      ]
+    },
+    "02-restrict-tools-and-hook": {
+      "title": "Reviewer ke tools restrict karo aur ek hook usi tak scope karo",
+      "objective": "Reviewer v1 par iterate karo: `tools` allowlist jodo (na Edit na Write), `permissionMode: dontAsk`, `maxTurns: 15`, findings-table output format, aur agent ke apne frontmatter mein ek `PreToolUse` hook jo Bash ko read-only git commands tak limit kare. Hook ko piped JSON se test karo, phir headless prove karo ki reviewer na Maven run kar sakta hai na koi file edit.",
+      "testCases": [
+        {"name": "Hook unit tests pass hote hain"},
+        {"name": "Hook Maven ko exit 2 se block karta hai"},
+        {"name": "Hook git diff ko exit 0 se allow karta hai"},
+        {"name": "Hook chaining block karta hai"},
+        {"name": "Allowlist mein koi write tools aur Agent nahi"},
+        {"name": "Hook agent mein scoped hai, settings mein nahi", "expected": "0, phir:\nhooks:\n  PreToolUse:\n    - matcher: \"Bash\""},
+        {"name": "Headless run: koi edits nahi", "expected": "Patch se sirf PatientService.java (8 lines changed); comment line add nahi hui. Result blocked `mvn -q -B test` ka zikr karta hai."},
+        {"name": "Parent mode permissionMode ko override karta hai, hook phir bhi tikta hai", "expected": "Phir bhi reviewer-bash-guard se blocked: acceptEdits ke under `permissionMode: dontAsk` ignore hota hai, par subagent ka PreToolUse hook nahi."}
+      ],
+      "evaluationCriteria": [
+        "Restricted agent `name: reviewer` rakhta hai, toh doosra reviewer jodne ki jagah v1 ko replace karta hai.",
+        "`tools` ek explicit allowlist hai; learner bata sakta hai ki `disallowedTools: Bash(mvn *)` poora Bash kyon hata deta.",
+        "Hook fail closed hota hai (unparseable input exit 2 karta hai) aur shell chaining, redirection aur substitution block karta hai.",
+        "Learner un teen parent modes ke naam le sakta hai jinke under `permissionMode` ignore hota hai.",
+        "Tutorial ka iteration log change aur v1 se dekha gaya fark record karta hai."
+      ],
+      "improvements": [
+        "Hook se exit 2 ki jagah `permissionDecisionReason` ke saath JSON `permissionDecision: \"deny\"` return karo, aur compare karo ki agent ko kya dikhta hai.",
+        "Agent ke frontmatter mein ek `Stop` hook jodo (yeh `SubagentStop` ban jaata hai) jo final message mein findings table na hone par 2 se exit kare.",
+        "Guard ko `.claude/hooks/` mein le jao aur settings mein `if: \"Bash(*)\"` ke saath register karo, sirf tab jab kisi doosre agent ko iski zaroorat ho (settings module 10 ke owned hain)."
+      ]
+    }
+  },
+  "agentContracts": [],
+  "checklist": [
+    "`AI-SDLC/evaluations/agent-versions/reviewer-v1.md` exist karti hai, uske frontmatter mein sirf `name`, `description`, `model` hain, aur exercises ke baad bhi woh unchanged hai.",
+    "`claude -p \"Use the reviewer subagent ...\" --output-format stream-json --verbose` `subagent_type` `reviewer` ke saath ek `Agent` tool call dikhata hai.",
+    "`02-review-exercise.patch` ka v1 review PHI log line aur `patients.findAll()` dono ka zikr karta hai.",
+    "`/explain-endpoint GET /fhir/Observation/$lastn` `ObservationService.java` ki loop lines cite karta hai aur har subject ke 2 statements report karta hai.",
+    "Dono skills ki har `!` command us skill ke `allowed-tools` mein listed hai aur clean checkout par 0 (ya grep ka 1) se exit karti hai.",
+    "`node --test .claude/skills/run-tests/scripts/summarize-surefire.test.mjs` 6 mein se 6 pass karta hai.",
+    "Regression patch ke saath `/run-tests SecurityTest` `SecurityTest.clinicianCannotDelete` aur `NOT READY` report karta hai.",
+    "`node --test docs/tutorials/level-2/examples/reviewer-bash-guard.test.mjs` 6 mein se 6 pass karta hai.",
+    "`reviewer-v1-restricted.md` install hone par reviewer `mvn` run nahi kar sakta ya files edit nahi kar sakta, `--permission-mode acceptEdits` ke saath bhi.",
+    "Dono patches revert ho gaye hain: `git status --short -- sample-app` kuch print nahi karta, aur `cd sample-app && mvn -q -B test` 25 tests pass karta hai."
+  ]
+}

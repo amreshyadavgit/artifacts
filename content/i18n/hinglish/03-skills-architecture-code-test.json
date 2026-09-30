@@ -1,0 +1,185 @@
+{
+  "id": "03-skills-architecture-code-test",
+  "title": "Production skills: architecture review, code review, test strategy",
+  "summary": "Teen production-grade skills banao jinhe architect, reviewer aur tester agents preload karte hain: architecture-review (requirement se evidence aur risks ke saath ADR tak), code-review (house standards ke against diff, canonical findings format mein, jo is project mein bundled /code-review ko replace karti hai), aur test-strategy (JUnit 5, MockMvc aur H2 par mapped eight-category test plan). Har ek ke saath templates, ek zero-dependency validator, aur real sample app par measure kiye gaye behaviour se bane golden cases aate hain.",
+  "prerequisites": [
+    "02-first-agent-skill-tools",
+    "00-example",
+    "Node 22 aur Java 21 / Maven 3.9 installed",
+    "Spring Data JPA queries aur MockMvc tests padhne mein comfort"
+  ],
+  "concepts": [
+    {
+      "heading": "Skill ek procedure plus uski zaroorat ki files hai",
+      "body_md": "**Skill** ek directory hai, prompt nahi. `.claude/skills/<name>/SKILL.md` mein YAML frontmatter aur ek Markdown procedure hota hai; directory ki baaki har cheez supporting file hai jise Claude tabhi padhta ya run karta hai jab procedure uski taraf point kare. Skills docs ke hisaab se (`build/CLAUDE_CODE_FACTS.md` §2):\n\n- **description** (plus `when_to_use`) hamesha context mein rehta hai, taaki Claude skill load karne ka decide kar sake. Is jodi ko 1,536-character listing limit ke andar rakho aur isme trigger situations ke naam lo.\n- **body** skill invoke hone par load hoti hai (`/code-review`, ya description se automatically) aur baaki session ke liye context mein rehti hai.\n- **Supporting files** (`review-checklist.md`, `ADR_TEMPLATE.md`, `tooling-map.md`) on demand padhi jaati hain. **Scripts** (`scripts/validate-findings.mjs`) execute hoti hain, load nahi, toh 200-line validator ka koi context cost nahi.\n- `SKILL.md` ko 500 lines se kam rakho aur baaki link karo.\n\nToh practically is module ki har skill ka shape same hai:\n\n```text\n.claude/skills/code-review/\n├── SKILL.md              # when, inputs, procedure, rules (about 70 lines)\n├── review-checklist.md   # checks tied to rule numbers in context/standards/\n├── output-format.md      # the exact report structure\n├── examples/             # a real input and the expected output\n└── scripts/              # zero-dependency Node validator + node:test tests\n```\n\nProcedure batata hai ki *is repository mein ek senior engineer yeh kaam kaise karta hai*: kaunsi context files kis order mein padhni hain, kaunsi classes trace karni hain, kya evidence maana jaata hai. Supporting files un hisson ko rakhti hain jo independently badalte hain (checklist badhti hai, template mein naya section aata hai) taaki ek ke badalne par doosre ko dobara likhna na pade.\n\nYahan use hone wale frontmatter fields, sab documented list se: `name`, `description`, `when_to_use`, `argument-hint`, `allowed-tools`, `disallowed-tools`. Hum jaan-boojhkar `disable-model-invocation: true` set **nahi** karte: subagent docs ke hisaab se is flag wali skill subagent mein preload nahi ho sakti, aur architect, reviewer aur tester agents (module 05-agent-roster) in teeno skills ko apne `skills:` field se preload karte hain."
+    },
+    {
+      "heading": "Skill ko real input dena: $ARGUMENTS aur !`cmd` injection",
+      "body_md": "Review skill utni hi achhi hai jitna achha diff use dikhta hai. Do documented mechanisms model ke reasoning shuru karne se pehle input andar pahunchate hain:\n\n- **`$ARGUMENTS`** command name ke baad ki har cheez se replace hota hai (`/code-review main` → `main`). `$0` *pehla* argument hai, `$1` doosra. Agar body mein koi placeholder nahi hai, toh Claude Code uski jagah `ARGUMENTS: <value>` append kar deta hai.\n- **`` !`command` ``** line ke shuru mein (ya whitespace ke baad) content model ko bheje jaane se *pehle* run hota hai, aur uska output placeholder ki jagah le leta hai. Command permission rules ke against check hoti hai; auto mode ke bahar jo bhi allowed nahi hai woh poora invocation abort kar deta hai, non-zero exit bhi yahi karta hai. `allowed-tools` ise is skill ke liye pre-approve karta hai.\n\n`code-review/SKILL.md` teen commands inject karti hai:\n\n```markdown\n!`git diff --stat HEAD`\n!`git status --short`\n!`git diff HEAD -- sample-app`\n```\n\nTeeno skill ke `allowed-tools` mein `Bash(git diff *)` / `Bash(git status *)` se match karti hain (aur `git diff` pehle se `.claude/settings.json` ke `permissions.allow` mein hai), toh skill bina prompt ke load hoti hai.\n\nTeen details jo practice mein pakadti hain:\n\n1. **Untracked files `git diff` ko dikhti hi nahi.** `PatientNameSearch.java` jodne wala patch sirf controller change dikhata hai jab tak tum `git apply` ke baad `git add -N sample-app` run na karo. Skill `git status --short` bhi inject karti hai aur Claude ko har `??` file Read karne ko kehti hai.\n2. **Arguments untrusted input hain.** Skill `git diff <base>...HEAD` banane se pehle base ref ko `^[A-Za-z0-9._/~^-]+$` ke against validate karti hai. Baaki kuch bhi reject hota hai, kabhi shell tak nahi jaata.\n3. **`allowed-tools` tools ko restrict nahi karta; unhe pre-approve karta hai.** Skill active rehte reviewer ko files edit karne se rokne ke liye `code-review` `disallowed-tools: Edit Write NotebookEdit` set karti hai, jo agle user message tak un tools ko hata deta hai.\n\nToh practically: jo model ko guess nahi karna chahiye woh inject karo (diff, date, git status), jo user type karta hai use validate karo, aur har hard limit ke liye `disallowed-tools` use karo."
+    },
+    {
+      "heading": "Is project ke andar bundled /code-review ko replace karna",
+      "body_md": "Claude Code bundled skills ke saath aata hai, `/code-review` samet. Skills docs kehte hain (verified, `build/CLAUDE_CODE_FACTS.md` ka addendum dekho): *same naam wali project skill bundled command ko replace karti hai, par uske aliases ko nahi*. Bundled alias `/review` kabhi tumhari skill run nahi karta.\n\n`AI-SDLC/` ke liye nateeje:\n\n- Project ke andar `/code-review` `.claude/skills/code-review/SKILL.md` run karta hai: `context/standards/` ke standards, canonical `id | severity | category | location | evidence | recommendation` format mein findings, aur `context/standards/review-standards.md` se nikla `BLOCK` / `NEEDS-DECISION` / `APPROVE` verdict.\n- Project ke bahar (kisi bhi doosri repository mein) bundled wala pehle ki tarah chalta hai.\n- `/review` ab bhi bundled review run karta hai. Team ko `/code-review` type karna sikhao, ya batao ki `/review` generic wala hai.\n- Same naam ke liye skill precedence enterprise > personal > project hai. Jis developer ke paas personal `~/.claude/skills/code-review/` hai, use is repository mein team ki nahi, *apni* skill milti hai. Agar reviewer agent ke evals (module 09-agent-evaluation) machines ke beech inconsistent dikhein, toh sabse pehle yahi check karo.\n- Org-wide control ke liye `disableBundledSkills` aur `skillOverrides` settings exist karti hain; unki governance module 10-governance mein hai.\n\n`/standards-review` jodne ki jagah replace kyon? Kyonki muscle memory jeetti hai. Engineers pehle se `/code-review` type karte hain; project ke version ko jawab dene wala banane ka matlab hai ki house rules bina kisi ki aadat badle apply hote hain. Cost yeh hai ki skill correctness bugs par kam se kam bundled wali jitni achhi honi chahiye, aur `skills/code-review/tests/cases.json` ke golden cases bilkul yahi measure karte hain: chhe patches, ek authorization regression aur ek false-positive control samet jise approve hona hi chahiye."
+    },
+    {
+      "heading": "Output contracts skill ko testable banate hain",
+      "body_md": "Jis skill ka output shape har run mein badalta hai, use koi doosra agent, CI job ya eval consume nahi kar sakta. Isliye yahan ki har skill ke paas ek **output contract** aur ek **deterministic validator** hai (pattern hai, built-in feature nahi):\n\n| Skill | Contract | Validator kya check karta hai |\n|---|---|---|\n| `architecture-review` | `docs/adr/0000-template.md` ke exact H2 sections wala ADR, plus `### Requirement`, `### Current architecture (evidence)`, `### Risks` | section order, `Status: proposed`, 4 bhare cells wali 2+ option rows, risk ids `AR-NNN`, har backticked `path:line` resolve hota hai (`--repo`) |\n| `code-review` | Summary, Findings table, Details, Categories checked, Verdict | column names, severity aur category enums, severity se sorted, file ke andar ki `path:line` locations, quoted evidence, cited rule, severities se consistent verdict, har category ids ya `no findings` ke roop mein listed |\n| `test-strategy` | Evidence ke saath scope, findings, test cases, 8 categories par coverage matrix | `TestClass#method` names, tool names, `existing` tests sach mein exist karte hain aur `new` wale nahi (`--repo`), har category covered ya `N/A: reason` |\n\nValidators zero-dependency Node 22 scripts hain, `node:test` suites (8, 8 aur 9 tests) ke saath, aur sab is build mein chalte hain. Har ek ek **golden case** bhi grade karta hai (`--case skills/<skill>/tests/cases.json#<id>`): category ke hisaab se required findings, minimum severity, location substring aur evidence substring; forbidden findings; expected verdict.\n\nValidator yeh check nahi kar sakta ki evidence *sach* hai ya nahi. Do mitigations: `--repo` un lines ke citations reject karta hai jo exist nahi karti, aur golden cases app ki scratch copy par **measure** kiye gaye behaviour se bane hain, sirf padhkar nahi. Jaise `code-review` case `cr-02` record karta hai ki patched app `SecurityTest.clinicianCannotDelete:33 Status expected:<403> but was:<204>` par fail hota hai.\n\nToh practically: pehle contract likho, doosre validator likho, aur tabhi procedure ko tune karo jab tak golden cases pass na hon."
+    },
+    {
+      "heading": "Grounding: har claim real sample app ki taraf point karta hai",
+      "body_md": "Bina skill wale review ka failure mode plausible text hai: \"consider adding pagination\", \"validate inputs\". Is module ke procedures iski jagah **evidence** ko zaroori banate hain: current behaviour ke baare mein har claim ke saath ek `path:line` aur verbatim quote hota hai, aur jo bhi bina run kiye infer kiya gaya use \"reasoned from code\" label kiya jaata hai.\n\nSkills ke reasoning ko real code par chalane se aise facts nikle jo generic review miss kar deta:\n\n- **Critical bug par CI green hai.** Code-review exercise patch user input ko JPQL mein concatenate karta hai. Ise apply karne par bhi saare 25 existing tests pass hote hain. Scratch copy par `name=zzz%' or p.id > 0 or '1' like '1` har patient return karta hai, aur `name=O'Brien` HTTP 500 return karta hai jabki `GlobalExceptionHandler` JPQL ko naam samet log karta hai.\n- **Obvious index fix port nahi hota.** Hibernate `findByFamilyNameIgnoreCaseOrderByIdAsc` ke liye `where upper(p1_0.family_name)=upper(?)` generate karta hai, toh PostgreSQL par `ix_patient_family_name` use serve nahi kar sakta. Aur H2 2.3.232 `CREATE INDEX ... (lower(family_name))` reject karta hai, jo matter karta hai kyonki `V1__init.sql` ko dono par chalna hai. ADR-0002 ise risk AR-001 aur ek spike ticket ki tarah record karta hai.\n- **Planted wale ke alawa `$lastn` mein do real defects.** `effectiveDateTime` ke bina wali Observation `DESC` order mein sabse pehle sort hoti hai (H2 `DEFAULT_NULL_ORDERING=HIGH` ke saath chalta hai; PostgreSQL `DESC` ke liye default `NULLS FIRST` rakhta hai) aur `$lastn` jeet jaati hai; `subjects=1,1` same Observation do baar return karta hai. Test-strategy example dono ko `@Disabled` tests ki tarah deta hai jo enable karne par `expected:<80> but was:<99>` aur `expected:<1> but was:<2>` ke saath fail hote hain.\n\n`sample-app/docs/KNOWN_DEFECTS.md` kehta hai ki planted N+1 ke alawa koi bhi defect real bug hai; yeh dono wahan D-02 aur D-03 ki tarah listed hain. Inhe findings ki tarah report kiya jaata hai, yahan fix nahi, kyonki doosre modules app ke current roop par depend karte hain.\n\nToh practically: jo skill `path:line` evidence maangti hai woh aisi findings deti hai jinhe insaan ek minute mein verify kar sake, aur in bugs ko model se zyada evidence requirement hi dhoondhti hai."
+    },
+    {
+      "heading": "Skills engineering assets hain: owner, version, changelog, tests",
+      "body_md": "Jo skill reviewer agent preload karta hai woh tumhare SDLC ka production code hai: jab woh badalti hai, har review badalta hai. Use waise hi treat karo. Runtime files `.claude/skills/<name>/` mein rehti hain; asset metadata unke bagal mein `skills/<name>/` mein rehta hai (course convention, Claude Code feature nahi):\n\n- `README.md`: owner, consumers (kaunse agents ise preload karte hain), invocation, kya yeh files likhti hai, kaise test karna hai, change policy.\n- `CHANGELOG.md`: semantic versions. In skills ke liye output structure mein change **major** hai (downstream agents aur CI ise parse karte hain), naya check ya golden case **minor** hai, wording **patch** hai.\n- `tests/cases.json`: fixed inputs aur expected findings wale golden tasks. `code-review` ke paas `skills/code-review/tests/patches/` mein chhe patches hain, har ek `git apply --check` se cleanly apply hone ke liye verified aur har ek par annotate kiya gaya ki apply hone ke baad `mvn -q -B test` kya karta hai.\n\nIsse nikalne wala release discipline:\n\n1. Naye checklist item ko ek golden case chahiye jo use trigger kare, warna tum bata nahi sakte ki woh kaam karta hai ya nahi.\n2. False-positive control (case `cr-06-clean-test-only-change`) bug cases jitna hi important hai. Jo reviewer sab kuch block karta hai use ek hafte mein ignore kar diya jaata hai.\n3. `facts` aur example outputs ke line numbers current sample app se jude hain; `--repo` flag staleness ko silent drift ki jagah failing check bana deta hai.\n4. Live golden runs ko model chahiye (`claude -p \"/code-review\" --output-format json`). Deterministic parts (validators, example outputs, patches) CI mein bina model ke chalte hain.\n\nModule 09-agent-evaluation woh harness banata hai jo agents ke liye yeh golden cases run karta hai; module 10-governance skills ko doosri teams ke liye package karta hai."
+    }
+  ],
+  "diagrams": [
+    {"title": "architecture-review: requirement se gated ADR tak"},
+    {"title": "/code-review main type karne par kya hota hai"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Teeno skills side by side",
+      "columns": ["", "architecture-review", "code-review", "test-strategy"],
+      "rows": [
+        ["Trigger", "Naya endpoint contract, data model, dependency ya cross-cutting change", "PR se pehle `sample-app/` ke under koi bhi diff", "Implement karne se pehle, ya ADR ke baad"],
+        ["Input", "`$ARGUMENTS` requirement ya handoff path", "Injected `git diff HEAD`; `$ARGUMENTS` mein optional base ref", "`$ARGUMENTS` endpoint/ADR; empty ho toh injected `git diff --stat`"],
+        ["Pehle kya padhti hai", "`context/architecture/overview.md`, `docs/adr/*`, api/coding standards", "`review-standards.md`, `coding-standards.md`, `testing-standards.md`", "`testing-standards.md`, `api-standards.md`, glossary business rules"],
+        ["Output", "ADR (`docs/adr/NNNN-*.md`, status proposed)", "Findings `CR-NNN` + verdict", "Test plan: 8 categories, `TS-NNN` findings, `TC-NN` cases"],
+        ["Files likhti hai", "Sirf ADR (normal permission prompt)", "Kabhi nahi (`disallowed-tools: Edit Write NotebookEdit`)", "Kabhi nahi (tests tester agent likhta hai)"],
+        ["Validator", "`scripts/validate-adr.mjs`", "`scripts/validate-findings.mjs`", "`scripts/validate-test-plan.mjs`"],
+        ["Kaun preload karta hai", "`architect`", "`reviewer`", "`tester` (`run-tests` ke saath)"],
+        ["Human gate", "PR review `accepted` set karta hai", "review-standards ke hisaab se critical/high par `BLOCK`", "Tech lead `new-failing` tickets approve karta hai"]
+      ]
+    },
+    {
+      "title": "Bundled /code-review versus is project ki code-review skill",
+      "columns": ["Aspect", "Bundled `/code-review`", "Project `.claude/skills/code-review`"],
+      "rows": [
+        ["Kahan apply hoti hai", "Har repository", "Sirf `AI-SDLC/` ke andar (wahan bundled wali ko replace karti hai)"],
+        ["Alias `/review`", "Bundled review run karta hai", "Affect nahi hota; ab bhi bundled review run karta hai"],
+        ["Standards", "General correctness aur cleanup", "`context/standards/*` rule numbers, PHI policy, threat model"],
+        ["Output", "Free-form findings", "Canonical table, har category ke liye `no findings`, verdict"],
+        ["Testable", "Koi project golden cases nahi", "6 golden cases + CI mein validator"],
+        ["Kisse override hoti hai", "Same naam ki project skill", "Personal `~/.claude/skills/code-review` (personal > project)"]
+      ]
+    }
+  ],
+  "exercises": {
+    "03-architecture-review-adr": {
+      "title": "architecture-review banao aur Patient search pagination ke liye ADR-0002 draft karo",
+      "objective": "`architecture-review` skill banao (procedure, ADR template, checklist, validator) aur ise requirement \"Patient search mein pagination (`_count`, max 100) jodo\" par run karo. Skill ko `context/architecture/overview.md`, existing ADRs aur real code path inspect karna hai, kam se kam do options compare karne hain, codebase-specific risks list karne hain, aur status `proposed` ke saath `docs/adr/0002-paginate-patient-search.md` likhna hai jo `validate-adr.mjs --repo . --status proposed` pass kare.",
+      "testCases": [
+        {"name": "Validator unit tests pass hote hain"},
+        {"name": "Reference ADR valid hai aur har citation resolve hota hai"},
+        {"name": "Insaan ka likha ADR-0001 ab bhi template se conform karta hai"},
+        {"name": "Generated ADR agent kabhi accept nahi karta"},
+        {"name": "Generated ADR golden case pass karta hai", "expected": "Exit code 0. Agar yeh `FAIL case ar-01-patient-search-pagination: does not mention H2` print kare, toh skill ne portability risk skip kiya: check karo ki SKILL.md ka step 4 H2 ka naam leta hai aur model ne V1__init.sql padha."},
+        {"name": "Unrelated requirement pass grade nahi hoti", "expected": "`FAIL case ar-03-oauth2-bearer-tokens: does not cite SecurityConfig.java` ke saath exit code 1"}
+      ],
+      "evaluationCriteria": [
+        "ADR mein current behaviour ke baare mein har statement ke saath ek `path:line` hai jo resolve hota hai (`--repo` pass hota hai).",
+        "Kam se kam do genuine options, har ek un classes ka naam leta hai jinhe woh badalta hai; rejected options batate hain ki woh kyon haare.",
+        "Risks is codebase ke specific hain (H2/PostgreSQL portability, shared test database, `Bundle.total`), generic nahi.",
+        "Decision concrete values deta hai (default 20, max 100, invalid ke liye 400) aur follow-ups ke liye ticket ids.",
+        "Status `proposed` hi rehta hai; acceptance sirf PR review mein hoti hai.",
+        "`SKILL.md` sirf documented frontmatter keys use karta hai aur 500 lines se kam rehta hai, template aur checklist supporting files ki tarah."
+      ],
+      "improvements": [
+        "Read-only inspection phase ke liye skill ko `context: fork` aur `agent: Explore` ke saath run karo, phir ADR main session mein likho.",
+        "Request flow badalne wale decisions ke liye `ADR_TEMPLATE.md` mein ek Mermaid sequence diagram section jodo.",
+        "Un requirements ke liye golden cases jodo jinhe \"no ADR needed\" dena chahiye (jaise ek class ke andar pure refactor).",
+        "Orchestrator (module 08-workflow-orchestration) se ADR path automatically test-strategy skill ko pass karwao."
+      ]
+    },
+    "03-code-review-diff": {
+      "title": "code-review banao aur aisa patch review karo jo JPQL concatenate karta hai aur entity return karta hai",
+      "objective": "Project ki `code-review` skill banao jo `AI-SDLC/` ke andar bundled `/code-review` ko replace kare, `!` commands se working-tree diff inject kare, use `context/standards/*` ke against review kare, aur verdict ke saath canonical format mein findings de. Diya gaya patch apply karo (front-desk name search jo string concatenation se JPQL banata hai aur controller se `List<Patient>` return karta hai), skill run karo, aur report validate karo.",
+      "testCases": [
+        {"name": "Patch unmodified sample app par apply hota hai"},
+        {"name": "CI bug nahi pakadta", "expected": "Exit code 0; 25 tests, 0 failures. Is change ko build nahi, review block karta hai."},
+        {"name": "Validator unit tests pass hote hain"},
+        {"name": "Reference review apna golden case pass karta hai"},
+        {"name": "Project skill /code-review ka jawab deti hai", "expected": ">= 1 number aur headings `## Findings` / `## Verdict`; bundled review ke free-form output mein koi `CR-` ids nahi hote."},
+        {"name": "Review karte waqt reviewer edit nahi kar sakta"},
+        {"name": "False-positive control", "expected": "Verdict APPROVE aur low se upar koi finding nahi; exit code 0."}
+      ],
+      "evaluationCriteria": [
+        "JPQL concatenation ko critical security ki tarah pakadta hai aur `coding-standards.md#6` cite karta hai.",
+        "Entity return (`List<Patient>`) aur PHI log line ko alag root causes ki tarah flag karta hai.",
+        "Evidence diff se verbatim quote kiya gaya hai; locations post-change line numbers use karti hain jo patched files mein exist karte hain (`--repo` pass hota hai).",
+        "Aathon categories mein se har ek ids ya `no findings` ke roop mein listed hai.",
+        "Planted `TEACHING-DEFECT(perf-n+1)` report nahi karta, jise diff chhoota hi nahi.",
+        "Verdict review-standards.md follow karta hai (koi bhi critical ya high matlab BLOCK)."
+      ],
+      "improvements": [
+        "Custom `agent: reviewer` ke saath `context: fork` jodo taaki lamba diff main session ka context na bhar de.",
+        "GitHub MCP server ke through findings ko inline PR comments ki tarah post karo (module 06-mcp-and-tooling-architecture).",
+        "Flyway migration edits (`coding-standards.md#10`) aur exceptions nigalne wale controller ke liye golden cases jodo.",
+        "`claude -p --json-schema` se findings table ko JSON ki tarah emit karo taaki CI seedhe `structured_output` par gate kar sake."
+      ]
+    },
+    "03-test-strategy-lastn": {
+      "title": "test-strategy banao aur GET /fhir/Observation/$lastn ke tests plan karo",
+      "objective": "`test-strategy` skill banao (procedure, test-plan template, tooling map, validator) aur isse `$lastn` ke tests aathon categories mein plan karo, JUnit 5, Mockito, MockMvc, H2 aur Hibernate statistics par mapped. Plan ke cases do test classes mein implement karo, aur app ki scratch copy par prove karo ki passing wale pass hote hain aur `new-failing` wale documented wajahon se fail hote hain.",
+      "testCases": [
+        {"name": "Validator unit tests pass hote hain"},
+        {"name": "Reference plan real test sources ke against valid hai"},
+        {"name": "Plan existing tests invent nahi karta", "expected": "Koi `FAIL test case TC-..: marked existing but ... is not in sample-app/src/test/java` lines nahi. Akela existing $lastn test `ObservationApiTest#lastnReturnsMostRecentObservationPerSubject` hai."},
+        {"name": "Example tests defects disabled rakhkar compile aur pass hote hain", "expected": "Exit code 0; 41 tests run, 3 skipped, 0 failures."},
+        {"name": "Disabled tests sach mein defects detect karte hain", "expected": "3 failures: expected:<80> but was:<99>; Status expected:<400> but was:<200>; expected:<1> but was:<2>."},
+        {"name": "Aathon categories covered hain"}
+      ],
+      "evaluationCriteria": [
+        "Unit, integration, api, negative, edge, performance, security aur regression cover karta hai, har ek concrete `TestClass#method` ke saath.",
+        "Real harness use karta hai: `ApiTestSupport` helpers, `CLINICIAN`/`ADMIN` post-processors, unique family names kyonki H2 database shared hai.",
+        "Sirf planted N+1 nahi, undated-observation aur duplicate-subject behaviour bhi dhoondhta hai.",
+        "Akele existing `$lastn` test ko `existing` mark karta hai aur use dobara plan nahi karta.",
+        "`new-failing` cases us finding aur ticket ka naam lete hain jise woh prove karte hain aur us ticket id ke saath `@Disabled` ship hote hain.",
+        "Performance Hibernate statistics ke saath statement-count assertion hai, wall-clock timing nahi."
+      ],
+      "improvements": [
+        "Tester agent ko plan ke `new` cases run-tests skill (module 02) ke through run karne do aur Surefire summary handoff mein attach karne do.",
+        "Mutation testing (PIT) ko optional naveen column ki tarah jodo taaki check ho ki naye tests `ObservationService.lastN` mein mutants maarte hain.",
+        "ADR-0002 ke liye plan generate karo (golden case `ts-05-patient-search-pagination`) aur uske test names ADR ke Verification section mein daalo."
+      ]
+    },
+    "03-skill-assets-golden-cases": {
+      "title": "Teeno skills ko golden cases ke saath versioned assets ki tarah ship karo",
+      "objective": "Har skill ko `AI-SDLC/skills/<name>/` ke under ek asset folder do jisme owner, version, changelog aur golden cases hon (har skill ke kam se kam paanch, real sample app ke against inputs aur expected findings ke saath), deterministic parts ko CI mein bina model ke pass karwao, aur prove karo ki golden cases skill ke output mein regression pakadte hain.",
+      "testCases": [
+        {"name": "Har skill ke kam se kam paanch golden cases"},
+        {"name": "Har case mein input aur expected hai", "expected": "Koi output nahi."},
+        {"name": "Patch outcomes real runs se record kiye gaye hain", "expected": "Tests run: 25, Failures: 1; `SecurityTest.clinicianCannotDelete:33 Status expected:<403> but was:<204>`, case cr-02 ke `testsAfterPatch` se match karta hai."},
+        {"name": "Versions agree karte hain"},
+        {"name": "Regression pakda jaata hai", "expected": "Exit code 1 aur `FAIL missing section \"## Categories checked\"`."}
+      ],
+      "evaluationCriteria": [
+        "Har README owner, consumers (kaunsa agent skill preload karta hai), invocation, kya yeh files likhti hai, aur kaise test karna hai, iska naam leta hai.",
+        "Golden cases real files aur line-level facts cite karte hain; patches current sample app par `git apply --check` se apply hote hain.",
+        "Kam se kam ek false-positive control case exist karta hai (ek clean change jise approve hona hi chahiye).",
+        "Validators aur unke tests Node 22 ke saath bina dependencies ke chalte hain, taaki CI unhe bina model ya API key ke run kar sake.",
+        "CHANGELOG semantic versioning use karta hai aur output-format change rule saaf likha hai."
+      ],
+      "improvements": [
+        "Ek CI job jodo jo har pull request par teeno validator test files `node --test` se aur har golden patch ke liye `git apply --check` run kare.",
+        "Live golden runs ko module 09-agent-evaluation ke eval harness mein jodo aur har skill version ka pass rate track karo.",
+        "Teeno skills ko doosri teams ke liye plugin ki tarah package karo (module 10-governance), versions ke liye `skills/<name>/` ko source of truth rakhte hue."
+      ]
+    }
+  },
+  "agentContracts": [],
+  "checklist": [
+    "`.claude/skills/{architecture-review,code-review,test-strategy}/SKILL.md` exist karti hain aur sirf documented frontmatter keys use karti hain (koi `disable-model-invocation` nahi, taaki agents unhe preload kar sakein).",
+    "Teeno validator test files (`validate-adr.test.mjs`, `validate-findings.test.mjs`, `validate-test-plan.test.mjs`) par `node --test` 25 passing tests report karta hai.",
+    "`examples/0002-paginate-patient-search.md` par `--repo . --status proposed` ke saath `validate-adr.mjs` `OK  ADR-0002` print karta hai.",
+    "`AI-SDLC/` ke andar `/code-review` `CR-` ids wali findings table deta hai (project skill ne bundled wali ko replace kar diya).",
+    "Code-review patch cleanly apply hota hai, uske saath bhi `mvn -q -B test` pass hota hai, aur review verdict critical JPQL-injection finding ke saath `BLOCK` hai.",
+    "`$lastn` test plan aathon categories cover karta hai aur `--repo .` ke saath validate hota hai.",
+    "Dono example test classes scratch copy par pass hoti hain (41 tests, 3 skipped) aur teeno disabled tests enable karne par documented wajahon se fail hote hain.",
+    "Har skill ke paas `skills/<name>/README.md`, 1.0.0 par `CHANGELOG.md` aur kam se kam paanch cases wali `tests/cases.json` hai.",
+    "Har golden patch `git apply --check` pass karta hai.",
+    "`sample-app/` unchanged hai: exercises ke baad `git status --short sample-app` kuch print nahi karta."
+  ]
+}

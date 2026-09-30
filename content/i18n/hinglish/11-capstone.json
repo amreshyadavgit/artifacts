@@ -1,0 +1,204 @@
+{
+ "id": "11-capstone",
+ "title": "Capstone: Apna Personal AI-SDLC Engineering System banao",
+ "summary": "Modules 00 se 10 tak sab kuch ek aise system mein jodo jise tum run kar sako aur jis par bharosa kar sako: dekho ki AI-SDLC/ ka har folder kaise fit hota hai aur kaunse parts verified Claude Code formats hain, ek single zero-dependency check se wiring prove karo jo ek agent ke Bash guard aur uski preloaded skill ke beech ek real seam bhi dhoondhta hai, ek feature (PAT-142 paging) aur ek production incident (probe restarts ke saath $lastn latency) ko orchestrator, har agent aur har human gate se trace karo, aur end mein ek measured checklist ke saath system ko apne stack aur domain par le jao.",
+ "prerequisites": [
+  "08-workflow-orchestration",
+  "09-agent-evaluation",
+  "10-governance",
+  "05-agent-roster",
+  "04-skills-security-performance-rca",
+  "Node 22, Java 21, Maven 3.9, ek authenticated Claude Code CLI"
+ ],
+ "concepts": [
+  {
+   "heading": "Ek system, saat layers",
+   "body_md": "Pichhle har module ne ek layer banayi. Capstone unke beech ke seams ke baare mein hai, kyonki wahi jagah hai jahan parts ka kaam karta set ek kaam karta system nahi rehta.\n\n| Layer | Files | Kaunsa sawaal answer karti hai |\n|---|---|---|\n| Knowledge | `CLAUDE.md`, `.claude/rules/`, `context/**` | Har agent bina pooche kya jaanta hai? |\n| Capability | `.claude/skills/**`, `.mcp.json`, `mcp/` | Kaunse procedures aur tools exist karte hain? |\n| Actors | `.claude/agents/*.md`, `agents/*/CONTRACT.md` | Kaun kya kar sakta hai, kis model aur tools ke saath? |\n| Sequencing | `orchestrator.md`, entry-point skills, `workflows/*.md` | Kis order mein, kin conditions aur retries ke saath? |\n| Enforcement | `.claude/settings.json`, `.claude/hooks/`, `agents/tool-guard.mjs`, `workflows/gates.settings.json` | Har call par kya block, ask ya check hota hai? |\n| Measurement | `evaluations/`, `skills/*/tests/` | Kya kisi change ne agent ya skill ko behtar ya badtar banaya? |\n| Governance | `docs/governance/`, `scripts/governance/`, `company-ai/` | Upar ki sab cheezon ke changes kaun approve karta hai? |\n\nLayers ek doosre ko **naam aur path** se refer karti hain, aur Claude Code mein kuch bhi tumhare liye in references ko check nahi karta. Agent ki `skills:` entry jo missing skill ka naam le, hook command jo moved script ki taraf point kare, ya workflow step jo aise agent ka naam le jise orchestrator spawn nahi kar sakta, sab chupchaap ya sabse bure waqt par fail hote hain: unknown frontmatter fields ignore hote hain, aur jo hook script exist nahi karti woh non-blocking error hai, blocked call nahi. Toh practically system ko apne seams ka ek khud ka check chahiye, jo CI mein aur har workflow run se pehle chale. Woh hai `scripts/capstone/verify-system.mjs` (exercise `11-verify-system`)."
+  },
+  {
+   "heading": "Orchestrator aur uske human gates, reconciled",
+   "body_md": "Module 08 ne orchestrator aur uska contract banaya (dekho `08-workflow-orchestration` aur `agents/orchestrator/CONTRACT.md`; yeh module koi naya contract nahi jodta). Yeh **main thread** ki tarah run hota hai: `claude --agent orchestrator --settings workflows/gates.settings.json`. Docs ke do facts design ko sambhalte hain: iske `tools` mein `Agent(architect, developer, reviewer, tester, security, sre)` list sirf isliye enforce hoti hai kyonki yeh main-thread agent hai, aur roster agents `Agent` omit karte hain taaki tree ek level deep rahe.\n\nModule 08 workflow gates ko G1 se G3 number karta hai (plus incidents ke liye G-M); module 10 governance layers ko G1 se G8 number karta hai. Yeh do taraf se dekhe gaye same controls hain:\n\n- **G1 plan approval** = `workflows/gates.settings.json` mein `Agent(developer)` par `ask` rule. Har developer launch, har rework samet, ek permission prompt hai.\n- **G2 findings** = orchestrator ka `status: needs-human` ke saath rukna. Yeh **prompt instruction hai, built-in feature nahi**. Iska mechanical backstop agla `Agent(developer)` prompt aur PR review hai.\n- **G-M mitigation** = insaan ke alawa koi production nahi badalta: orchestrator ke paas Bash nahi hai, sre ka `tool-guard.mjs` mutating `kubectl` ko hamesha deny karta hai, `kubectl apply` `ask` hai, `kubectl delete` `deny` hai.\n- **G3 merge** = branch protection aur CODEOWNERS ke under PR review (module 10 G6/G7); `git push` `ask` hai, `gh pr merge` `deny` hai.\n\nGated workflows ko `default` permission mode mein run karo. `dontAsk` mein har `ask` denial ban jaata hai, isliye headless run design se hi G1 par rukta hai. Explicit `ask` rules docs ki us list mein hain jin actions ko **koi mode auto-approve nahi karta**, isliye `Agent(developer)` prompt `acceptEdits`, `auto` aur `bypassPermissions` mein bhi aata hai; `bypassPermissions` jo hatata hai woh har aisa prompt hai jo explicit rule nahi hai, isiliye module 10 ki managed settings ise disable karti hain (`docs/governance/approval-gates.md` mein mode table dekho). Kaunsa gate mechanism hai aur kaunsa convention, yeh bata paana tumhare apne system ke baare mein sabse zaroori baat hai."
+  },
+  {
+   "heading": "Ek feature trace karna: PAT-142 har layer se",
+   "body_md": "Committed run `workflows/examples/feature-patient-pagination/` (module 08) handoffs dikhata hai. Capstone view (`docs/capstone/walkthrough-feature.md`) jodta hai ki har moment par kya act karta hai:\n\n1. **Pehle**: clean tree, `verify-system.mjs` WIRED, is run mein use hone wale do evaluated agents (step 02 par architect, step 08 par reviewer) ke liye eval replay green.\n2. **`/feature PAT-142 ...`**: skill `disable-model-invocation: true` hai (sirf tum ise start karte ho), `SubagentStop` handoff hook register karti hai, `git status --short` inject karti hai.\n3. **01 se 03**: orchestrator skills aur architect requirements, ADR-0002 draft aur plan likhte hain. `block-secrets.mjs` har Write scan karta hai; hook har specialist ka handoff validate karta hai.\n4. **G1**: `subagent_type: developer` ke saath `Agent` ke liye ek permission prompt. Tum pehle 01 se 03 padhte ho.\n5. **04 se 06**: developer ko `tool-guard.mjs` `sample-app/src/` aur `.ai-sdlc/runs/` tak scope karta hai; tester aur security same turn mein run hote hain; TST-1 (high) block karta hai.\n6. **G2**: tum decide karte ho \"fix TST-1 and SEC-1\"; rework ek aur G1 prompt hai.\n7. **08 se 09**: reviewer findings inline return karta hai (koi Write nahi), run report `next: human` par khatam hoti hai.\n8. **G3**: tum push karte ho aur PR kholte ho. Sirf `sample-app/` badla, isliye AI-config gate pass hota hai aur normal code-owner review apply hota hai.\n\nEvals aur governance alag tarah apply hote hain: governance (hooks, rules) **har run ke har tool call** par act karti hai; evaluation **system ke changes** par act karta hai (naye reviewer prompt ko uska PR merge hone se pehle replay aur ek live comparison pass karna hoga)."
+  },
+  {
+   "heading": "Ek incident trace karna: koi agent production nahi badalta",
+   "body_md": "Incident run (`docs/capstone/example-runs/incident-lastn-latency/`) production-rca evidence pack se INC-2026-0922-01 ko replay karta hai. Clinic C-017 ka naya ward dashboard har 30 s mein 512 subjects ke liye `$lastn` bhejta tha; `ObservationService.lastN` (`TEACHING-DEFECT(perf-n+1)`, lines 69 se 74) har subject ke liye do statements chalata hai aur poori histories load karta hai, isliye ek request lagbhag 1,024 statements aur 209,000 rows thi; pods saturate hue, 1 s probes fail hue, Kubernetes ne pods ko usi load mein restart kar diya.\n\nSystem step by step kya karta hai:\n\n- **01 brief**: orchestrator on-call report mein naam liye gaye ek patient ko hata deta hai aur decide karta hai ki **security run hoga**: logs mein `GlobalExceptionHandler` ERROR lines hain, aur `KNOWN_DEFECTS.md` ka D-04 kehta hai ki woh handler submitted values log kar sakta hai. Possible data exposure spec ki condition hai.\n- **02 sre + 03 security parallel mein**: sre `build-timeline.mjs` PHI guard chalata hai (exit 0), paanch hypotheses rank karta hai, M1 (dashboard off), M2 (ingress limit), M3 (scale out, low confidence) offer karta hai. Security ko pool-timeout exceptions mein koi PHI nahi milta aur woh shared `clinician` account flag karta hai.\n- **G-M round 1**: insaan apne terminal se 4 tak scale karta hai. **04** verify karta hai: resolve nahi hua.\n- **G-M round 2** (spec ka allow kiya aakhri round): dashboard refresh disable hota hai. **05** recovery verify karta hai aur `pg_stat_statements` se H1 confirm karta hai (431,616 calls = 843 requests x 512 subjects).\n- **06** code fix `/bug-fix FHIR-311` ko handover karta hai, jo apne G1 se G3 ke saath ek alag run hai. **07** postmortem sign off hone tak `needs-human` hai.\n\nRetry `workflows/README.md` ka numbering rule dikhata hai: repeat hua step agla free number leta hai, isliye spec ke 05/06 ban gaye 06/07."
+  },
+  {
+   "heading": "Wiring verify karna: seams par checks",
+   "body_md": "Har module ne apni layer ke liye ek checker ship kiya: `check-agents.mjs` (contracts), `check-roster-flat.mjs` (topology), `check-mcp-config.mjs`, `check-agent-policy.mjs`, `validate-skill-library.mjs`, `check-handoff.mjs`, eval harness. `verify-system.mjs` in sabko run karta hai aur woh cross-layer checks jodta hai jo inme se kisi ke nahi hain:\n\n- har agent ki har `skills:` entry ek aisi `.claude/skills/<name>/SKILL.md` par resolve hoti hai jo preload ho sake (`disable-model-invocation: true` nahi);\n- `settings.json` **aur** agent aur skill frontmatter mein har hook script path exist karta hai; har hook event ek documented event hai;\n- `workflows/gates.settings.json` sach mein `Agent(developer)` se pehle poochta hai, aur har `Agent(...)` rule ek real agent ka naam leta hai;\n- workflow step tables sirf roster agents aur existing skills ka naam leti hain;\n- CLAUDE.md `@imports` resolve hote hain (code spans ke bahar, 4 hops tak);\n- **guard reach**: preloaded skill jo bhi script agent ko run karne ko kehti hai, woh us agent ki `tool-guard.mjs bash-allow` list ke andar hai.\n\nAakhri check ne yeh module likhte waqt ek real defect dhoondha. `production-rca` step 1 sre ko `build-timeline.mjs` (PHI guard) chalane ko kehta hai, lekin `.claude/agents/sre.md` mein sre ka Bash guard node scripts mein sirf `count-queries.mjs` allow karta hai. Har part apna checker pass karta hai; saath mein sre exit 2 se block hue bina RCA start hi nahi kar sakta. Ek doosra, halka seam WARN ki tarah report hua: skills scripts ko `${CLAUDE_SKILL_DIR}/scripts/...` ki tarah invoke karti hain, jise Claude Code skill ki directory mein expand karta hai, jabki guard ek relative prefix ko literally match karta tha. Shipped fix `sre.md` mein missing prefix jodta hai aur `tool-guard.mjs` ko matching se pehle project ke andar ke absolute paths ko relative form mein rewrite karne deta hai, isliye dono forms pass hote hain aur verify-system bina warnings ke WIRED report karta hai.\n\nToh practically: CI mein `mvn -q -B test` ke bagal mein `verify-system.mjs` chalao, aur FAIL row ko broken build treat karo."
+  },
+  {
+   "heading": "Personalize karna: kya carry over hota hai aur kya nahi",
+   "body_md": "System ko kisi doosri service par le jaana zyadatar knowledge aur command swap hai, redesign nahi.\n\n**Bina badle carry over hota hai**: saat roles aur unka separation of duties, handoff format aur `check-handoff.mjs`, orchestrator aur uske gate rules, `tool-guard.mjs` (sirf uske arguments badalte hain), governance hooks, eval harness aur scoring, `verify-system.mjs`.\n\n**Badalna padega**, is order mein (`docs/capstone/personalize-checklist.md`):\n\n1. `CLAUDE.md` commands aur layout, aur path-scoped rule ka `paths` glob.\n2. `context/**`: glossary, PHI table, naye framework ke standards.\n3. Agent Bash guards aur write scopes (`mvn -q -B test` ki jagah `pytest -q`), bodies jo classes ka naam leti hain, contracts jinhe same tools list karne hain.\n4. Skill procedures aur unke tooling maps; har skill ke golden cases.\n5. Workflow ke security-scoped path lists, settings allow rules, MCP servers.\n6. Eval datasets: naye code ke against naye golden tasks, synthetic recordings delete, har suite ki ek live recording.\n\n`scripts/capstone/stack-inventory.mjs` ise measurable banata hai: yeh app ke bahar ki har woh file list karta hai jo purane stack, domain ya platform terms mention karti hai, per component, aur `--max N` \"kya hum done hain?\" ko ek exit code mein badal deta hai. Evaluation aakhri step kisi reason se hai: context pack aur agents update hone se pehle likhe golden tasks purane system ko measure karenge."
+  }
+ ],
+ "diagrams": [
+  {"title": "Component map: layers ek doosre ko kaise refer karti hain"},
+  {"title": "System ke through Incident INC-2026-0922-01"},
+  {"title": "Gate kahan mechanism hai aur kahan convention"}
+ ],
+ "comparisonTables": [
+  {
+   "title": "Component map: folder group, purpose, module, format tag (poori table docs/capstone/README.md mein)",
+   "columns": ["Path", "Purpose", "Kis module mein bana", "Tag"],
+   "rows": [
+    ["`CLAUDE.md`, `.claude/rules/`", "project memory aur path-scoped Java rules", "00-example", "verified-format"],
+    ["`context/**`", "architecture, standards, security, domain aur PHI context pack", "00-example", "illustrative"],
+    ["`agents/CONTRACT_TEMPLATE.md`, `docs/foundations/`", "Agent Contract template, anatomy aur primitive exercises", "01-foundations", "illustrative"],
+    ["`evaluations/agent-versions/reviewer-v1.md`", "pehla agent, v1 snapshot ki tarah frozen", "02-first-agent-skill-tools", "verified-format"],
+    ["`.claude/skills/explain-endpoint/`, `run-tests/`", "pehli skills aur Surefire summary script", "02-first-agent-skill-tools", "verified-format (SKILL.md), illustrative (scripts)"],
+    ["`.claude/skills/architecture-review/`, `code-review/`, `test-strategy/` + `skills/<name>/`", "architect, reviewer, tester ki preloaded review skills, golden cases ke saath", "03-skills-architecture-code-test", "verified-format (SKILL.md), illustrative (assets)"],
+    ["`.claude/skills/security-review/`, `performance-review/`, `production-rca/` + `skills/<name>/`", "security, performance aur RCA skills, INC-2026-0922-01 evidence pack", "04-skills-security-performance-rca", "verified-format (SKILL.md), illustrative (assets)"],
+    ["`.claude/agents/{architect,developer,reviewer,tester,security,sre}.md`", "chhe specialists", "05-agent-roster", "verified-format"],
+    ["`agents/<name>/CONTRACT.md`, `agents/tool-guard.mjs`, `agents/check-agents.mjs`", "contracts, per-agent write/Bash guard, conformance checker", "05-agent-roster", "illustrative"],
+    ["`.mcp.json`, `mcp/`, `ticket-intake`, `scripts/automation/`", "MCP servers, PHI-safe FHIR server, Jira intake, deterministic gates", "06-mcp-and-tooling-architecture", "verified-format (.mcp.json, SKILL.md), illustrative (rest)"],
+    ["`workflows/composition/`", "execution modes aur nesting limits", "07-agent-composition", "illustrative"],
+    ["`.claude/agents/orchestrator.md`, `feature`/`bug-fix`/`incident` skills, `workflows/`, `check-handoff.mjs`", "main-thread orchestrator, entry points, specs, handoff hook", "08-workflow-orchestration", "verified-format (agent, skills, gates.settings.json), illustrative (specs, hook script)"],
+    ["`evaluations/`", "golden tasks, harness, rubrics, synthetic recordings, reports", "09-agent-evaluation", "illustrative"],
+    ["`.claude/settings.json`, `.claude/hooks/`, `docs/governance/`, `company-ai/`, `scripts/governance/`", "permissions, hooks, gates, plugin packaging, policy validators", "10-governance", "verified-format (settings, plugin.json), illustrative (rest)"],
+    ["`README.md`, `docs/capstone/`, `scripts/capstone/`", "entry point, component map, walkthroughs, verify-system, stack inventory", "11-capstone", "illustrative"],
+    ["`sample-app/`", "FHIR-lite API jis par agents kaam karte hain", "shared", "Claude Code file nahi"]
+   ]
+  },
+  {
+   "title": "Workflow gates (module 08) vs governance layers (module 10)",
+   "columns": ["Workflow gate", "Kab", "Mechanism", "Mechanism ya convention", "Governance layer"],
+   "rows": [
+    ["G1 plan approval", "har developer launch par", "`workflows/gates.settings.json` mein `ask: [\"Agent(developer)\"]`", "mechanism (permission prompt)", "G1 plan approval, G2-style `ask` ki tarah implemented"],
+    ["G2 findings", "tester/security ke baad aur review ke baad", "orchestrator `needs-human` return karta hai", "convention; backstop agla G1 prompt aur PR hai", "koi nahi"],
+    ["G-M mitigation", "incidents mein, 02-sre ke baad", "orchestrator ke paas Bash nahi; `tool-guard.mjs` mutating `kubectl` deny karta hai; `kubectl apply` ask, `kubectl delete` deny", "mechanism", "G2 risky command, G5 never allowed"],
+    ["G3 merge", "har run ke end mein", "PR review, `git push` ask, `gh pr merge` deny", "mechanism", "G6 AI-config PR gate, G7 code PR"],
+    ["hamesha on", "har tool call par", "`block-secrets`, `guard-outbound`, `flag-injection`, `Edit(./.claude/**)` ask, managed floor", "mechanism (flag-injection advisory hai)", "G3, G4, G5, G8"]
+   ]
+  },
+  {
+   "title": "Personalize karna: kya carry over hota hai aur kya tum rewrite karte ho",
+   "columns": ["Component", "Carry over hota hai", "Naye stack/domain ke liye rewrite", "Check jo ise prove karta hai"],
+   "rows": [
+    ["Memory", "structure, rules 1, 3-5, 7", "layout, commands, rule 2 aur 6, rule-file `paths`", "`verify-system` claude-md row"],
+    ["Context", "file layout, PHI policy structure", "glossary, PHI table, standards", "`stack-inventory` context row"],
+    ["Agents", "roles, har role ke tools, models, gates", "Bash guard aur write-scope arguments, bodies", "`node agents/check-agents.mjs`, guard-reach row"],
+    ["Skills", "procedures ka shape, output contracts", "checklists, tooling maps, scripts, golden cases", "`node scripts/governance/validate-skill-library.mjs`"],
+    ["Workflows", "steps, gates, retry policy, handoff format", "security-scoped paths, worked inputs", "`verify-system` workflows aur handoffs rows"],
+    ["Evals", "harness, scoring, gates", "datasets, recordings (live)", "live recordings par `run-evals.mjs --mode replay`"]
+   ]
+  }
+ ],
+ "exercises": {
+  "11-verify-system": {
+   "title": "Prove karo ki poora system wired hai, aur jo seam mile use fix karo",
+   "objective": "`scripts/capstone/verify-system.mjs` likho, ek zero-dependency Node script jo `AI-SDLC/` ka har cross-layer reference check kare (roster files aur contracts, flat delegation, preloaded skills, settings aur frontmatter mein hook script paths, G1 gate settings, `.mcp.json`, workflow step tables, CLAUDE.md imports, har agent ke Bash guard ke under reachable skill scripts, committed example runs, eval replay, module checkers) aur ek PASS/WARN/FAIL/SKIP table print kare. Ise broken fixtures ke against test karo, real repository par run karo, aur jo ek FAIL yeh report kare use fix karo. `AI-SDLC/README.md` aur `docs/capstone/README.md` likho taaki naya engineer ise dhoondh aur run kar sake.",
+   "testCases": [
+    {"name": "Checker ke apne tests pass hote hain", "expected": "22/22 passed, exit 0 (missing contract, name mismatch, missing ya non-preloadable skill, specialist mein Agent, orchestrator list mein sre missing, bad settings JSON, missing hook script, invented event PreCommit, missing tool-guard, bina Agent(developer) ka gate, bina type ka url, missing stdio script, workflow mein qa-bot, unknown skill, unresolved @import, unguarded skill script, invalid example handoff, usage error)"},
+    {"name": "Fix se pehle real repository", "expected": "Bilkul ek row: `FAIL    guard-reach    sre: preloaded skill production-rca runs production-rca/scripts/build-timeline.mjs ...`; exit code 1"},
+    {"name": "FAIL real hai, checker ka artefact nahi", "expected": "stderr `tool-guard [sre] blocked Bash: \"node .claude/skills/production-rca/scripts/build-timeline.mjs ...\" is outside this agent's Bash allowlist`, exit 2"},
+    {"name": "sre guard mein prefix jodne ke baad", "expected": "`verify-system: 38 pass, 0 warn, 0 fail, 0 skip -> WIRED` aur exit 0 (shipped tool-guard.mjs ke saath, jo `${CLAUDE_SKILL_DIR}`-expanded form bhi accept karta hai); `node agents/check-agents.mjs` abhi bhi exit 0 karta hai"},
+    {"name": "Har repo test ke saath full run", "expected": "Likhte waqt 20: checker ke apne test ko chhod kar repo ka har *.test.mjs (harness suite node --test ke under run hoti hai); koi FAIL row nahi"},
+    {"name": "README quickstart commands exist karte hain"}
+   ],
+   "evaluationCriteria": [
+    "Har check is repo ki file list hard-code karne ki jagah real file formats padhta hai (frontmatter `skills:` lists, settings `hooks` event map, `.mcp.json` `mcpServers`).",
+    "Missing optional component (koi eval harness nahi, koi example runs nahi) SKIP hai, FAIL nahi; missing required component (roster agent, contract, gate settings) FAIL hai.",
+    "Hook events FACTS section 4 ki documented event list ke against check hote hain, isliye `PreCommit` fail hota hai.",
+    "Har FAIL row us file aur exact reference ka naam leti hai jo toota hai, taaki fix obvious ho.",
+    "Test ek fixture project banata hai aur har case mein ek seam todta hai; yeh is baat par depend nahi karta ki real repo toota hua rahe.",
+    "README.md naye engineer ko course padhe bina verify, tests, evals aur ek gated workflow run karne deta hai."
+   ],
+   "improvements": [
+    "`verify-system.mjs` ko `mvn -q -B test` ke bagal mein required CI check ki tarah jodo (`docs/governance/` ka `ai-change-gate` workflow ek template hai).",
+    "Har preloaded skill ke `allowed-tools` parse karo aur unhe agent ke permission rules se compare karo, sirf uske Bash guard se nahi.",
+    "Check karo ki har `agents/<name>/CONTRACT.md` un skills ka naam leta hai jo agent file preload karti hai.",
+    "`${CLAUDE_SKILL_DIR}` skill ki directory mein expand hota hai (docs); plugin-installed skills ke liye woh directory project ke bahar hai, isliye guard ko trusted plugin roots ki explicit allow-list aur uske liye ek verify-system check se extend karo."
+   ]
+  },
+  "11-feature-run": {
+   "title": "PAT-142 ko poore system se run karo aur har gate ka hisaab do",
+   "objective": "PAT-142 (Patient search par `_count`/`_offset` paging) ke liye feature-delivery workflow ek fresh branch mein run karo, orchestrator ko main thread rakh kar, aur ek gate log produce karo: har step ke liye, kaunsa agent run hua, kaunsa mechanism fire hua (hook, permission prompt, orchestrator stop, PR review), aur kaunsa handoff aaya. Apne run folder ko `workflows/examples/feature-patient-pagination/` ke committed example se compare karo aur har difference explain karo. Dikhao ki evals (module 09) aur governance (module 10) ne kahan act kiya.",
+   "testCases": [
+    {"name": "Tumhare run ka har handoff valid hai", "expected": "Har file ki ek PASS line, exit 0"},
+    {"name": "G1 har developer launch par ek baar fire hua", "expected": "Dono numbers barabar hain (reference run mein 2: 04 aur 07)"},
+    {"name": "Sirf app badla", "expected": "0: kisi agent ne .claude/, CLAUDE.md ya skills/ ko touch nahi kiya, isliye AI-config gate (G6) ki zaroorat nahi; code-owner review (G7) ki hai"},
+    {"name": "Run ke baad tests pass hote hain", "expected": "exit 0; 25 se zyada tests (reference run mein 32)"},
+    {"name": "Kisi agent ne push nahi kiya", "expected": "`fatal: ambiguous argument` ya sirf tumhara apna push: transcript mein kisi agent ka approved `git push` prompt nahi dikhta"}
+   ],
+   "evaluationCriteria": [
+    "Gate log har gate ke liye ek real mechanism ka naam leta hai (prompt, hook exit code, `needs-human` stop, PR review) aur batata hai ki kaunsa convention hai (G2).",
+    "Committed example se har difference explain kiya gaya hai (alag finding ids, skip hua step, reworks ki alag sankhya).",
+    "Log record karta hai ki kaunse evaluated agents (architect, reviewer) run hue aur woh replay result jisne run se pehle unhe clear kiya.",
+    "Learner ne G1 ka jawab 01 se 03 padhne ke baad diya, reflex se nahi (log plan ki ek detail quote karta hai)."
+   ],
+   "improvements": [
+    "Run se pehle aur baad `/usage` ko gate log mein save karo aur `docs/governance/model-and-cost-policy.md` ke default run budget se compare karo.",
+    "Har us defect ke liye `evaluations/datasets/reviewer-golden.json` mein golden task jodo jo tester ne pakda aur reviewer ne miss kiya.",
+    "Ek plain `claude --settings workflows/gates.settings.json` session mein `/feature` ke saath rerun karo aur record karo ki handoff hook same tarah fire hua ya nahi (us mode mein sirf skill ka `hooks` registration active hai; `--agent` ke under orchestrator ka frontmatter hook bhi run hota hai, aur identical handlers deduplicate hote hain)."
+   ]
+  },
+  "11-incident-run": {
+   "title": "$lastn latency aur probe-restart incident ko system se guzaro",
+   "objective": "Production-rca evidence pack ke against INC-2026-0922-01 ke liye `/incident` run karo, dono mitigation gates par on-call insaan bano, aur run folder produce karo: incident brief, parallel sre aur security triage, do verification steps, bug-fix handover, postmortem aur run report. Har handoff ko `check-handoff.mjs` pass karna hai, us evidence ko cite karna hai jo step ke waqt exist karta tha, aur PHI ko bahar rakhna hai. Apne postmortem ko production-rca skill ke golden RCA se compare karo.",
+   "testCases": [
+    {"name": "Har handoff valid hai (CLI)", "expected": "8 PASS lines, exit 0"},
+    {"name": "Active run ke dauran hook sre ka inline handoff accept karta hai", "expected": "0; message mein iski jagah `status: done` ho toh exit 2 aur stderr `status \"done\" must be one of complete | blocked | needs-human`"},
+    {"name": "Run mein koi PHI nahi", "expected": "Koi output nahi: on-call report mein naam liya gaya patient 01 mein hata diya gaya"},
+    {"name": "Kisi agent ne mitigation execute nahi kiya", "expected": "2 (dono mitigations human outcomes ki tarah recorded hain), phir 4: har sre handoff Artifacts ke under `none (read-only; handoff returned inline and saved by the orchestrator)` list karta hai"},
+    {"name": "Postmortem golden RCA se agree karta hai"},
+    {"name": "verify-system example run cover karta hai"}
+   ],
+   "evaluationCriteria": [
+    "Har step sirf woh evidence cite karta hai jiska timestamp uske run hone se pehle ka hai (02 08:31 wala pg_stat_statements snapshot use nahi karta; 05 karta hai).",
+    "Security step ka run-or-skip decision spec condition aur ek repo fact (D-04) se justified hai, guess se nahi.",
+    "Hypotheses for aur against evidence ke saath ranked hain; bad deploy aur OOM specific lines se reject hote hain (`rollout-history.txt`, `Reason: Error`, `Exit Code: 137`).",
+    "Mitigations confidence levels ke saath insaan ke liye options hain, kabhi agent ke liye gaye actions nahi.",
+    "Bug-fix handover CLAUDE.md rule 6 exception, prior-art patch, regression test ka naam, aur kya scope se bahar rehta hai (D-02, D-03) batata hai.",
+    "Retry numbering `workflows/README.md` follow karti hai aur run ka README use explain karta hai."
+   ],
+   "improvements": [
+    "`evaluations/suites.json` mein is incident ko golden task bana kar ek `sre` suite jodo (expected findings: ObservationService.java:69 par SRE-1 critical, probe timeout; forbidden claim: OOMKilled).",
+    "`verify-system` jo seam report karta hai use fix karo taaki sre sach mein apne Bash guard ke under `build-timeline.mjs` run kar sake, phir live incident rerun karo.",
+    "`/bug-fix FHIR-311` handover ko ek scratch copy mein run karo aur uski run report ko 08-run-report.md se link karo."
+   ]
+  },
+  "11-personalize": {
+   "title": "System personalize karo: measured checklist ke saath stack aur domain swap karo",
+   "objective": "AI-SDLC system ko Java/Spring/FHIR-lite se apne stack aur domain par le jaane ka plan banao aur shuru karo (worked target: ek Python/FastAPI/pytest claims service). `stack-inventory.mjs` se measure karo ki kaunsi files purani assumptions encode karti hain, personalization checklist order mein apply karo (memory, context, agents, skills, workflows aur settings, wiring, evals, first run), aur har step ko ek command se prove karo. Deliverable hai tumhari bhari hui checklist, purane stack ke liye ek terms file, aur pehle aur baad ke inventory numbers.",
+   "testCases": [
+    {"name": "Inventory tool ke tests pass hote hain", "expected": "9/9 passed, exit 0"},
+    {"name": "Baseline recorded hai", "expected": "Likhte waqt course repository par 194 (files add hone ke saath badhta hai); apna baseline checklist mein record karo"},
+    {"name": "Memory, context aur agents swap ho gaye"},
+    {"name": "Swap hua system abhi bhi wired hai", "expected": "`-> WIRED`, exit 0: naye `pytest -q` aur summary-script prefixes ke liye guard-reach pass hota hai; contracts same tools list karte hain (check-agents sub-checker PASS)"},
+    {"name": "Done matlab ek number", "expected": "exit 0 jab zyada se zyada 10 files abhi bhi purane stack ka zikr karein (course docs aur woh purane example runs jo tumne rakhne chune), usse pehle exit 1"},
+    {"name": "Naye app par evals re-baseline hue", "expected": "0: purane app ki synthetic recordings delete ho gayi; naye suites ki live recordings unki jagah le leti hain"}
+   ],
+   "evaluationCriteria": [
+    "Checklist aise ordered hai ki har step ka check pass ho sake: agents se pehle context, evals se pehle agents.",
+    "Checklist ka har item ek named file ka concrete edit hai, us command ke saath jo use prove karti hai.",
+    "Roster names rakhe gaye hain, ya har hard-coded roster (check-handoff, check-agents, check-roster-flat, verify-system) ek saath update hua hai.",
+    "PHI rules swap ke baad bhi bache rehte hain: naye glossary mein PHI table hai aur deny rules naye real-data paths ka naam lete hain.",
+    "Golden tasks naye code ke against dobara likhe gaye hain, purane wale se translate nahi kiye gaye."
+   ],
+   "improvements": [
+    "`stack-inventory.mjs` se ek checklist skeleton emit karwao (har matching file ke liye ek checkbox) taaki kuch miss na ho.",
+    "Stack-neutral parts (orchestrator, handoff hook, tool-guard, verify-system) ko `company-ai/` ke bagal mein ek doosre plugin ki tarah package karo, aur har project mein sirf stack knowledge rakho.",
+    "Personal preferences ke liye ek `CLAUDE.local.md` template jodo taaki individual taste shared CLAUDE.md mein leak na ho."
+   ]
+  }
+ },
+ "agentContracts": [],
+ "checklist": [
+  "`node scripts/capstone/verify-system.mjs` `-> WIRED` print karta hai aur exit 0 karta hai (sre guard fix ke baad), aur CI mein run hota hai.",
+  "`node scripts/capstone/verify-system.test.mjs` 22/22 pass karta hai aur `node scripts/capstone/stack-inventory.test.mjs` 9/9 pass karta hai.",
+  "Tum G1, G2, G-M aur G3 mein se har ek ke liye use enforce karne wale mechanism ka naam le sakte ho aur bata sakte ho ki kaunsa convention hai.",
+  "Har workflow run `default` permission mode mein `claude --agent orchestrator --settings workflows/gates.settings.json` se start hota hai.",
+  "Feature run ke saare handoffs `node .claude/hooks/check-handoff.mjs .ai-sdlc/runs/<run-id>` pass karte hain aur PR sirf `sample-app/` badalta hai.",
+  "`node .claude/hooks/check-handoff.mjs docs/capstone/example-runs/incident-lastn-latency` 8 PASS lines print karta hai.",
+  "Incident run mein kisi agent ne mitigation execute nahi kiya; dono human outcomes ki tarah recorded hain.",
+  "Incident postmortem trigger, root cause aur impact par `skills/production-rca/tests/expected/INC-2026-0922-01-rca.md` se agree karta hai.",
+  "Run ke baad aane wale agent ya skill changes apne PR se pehle eval replay (aur live comparison) se guzarte hain, jo AI-config gate (G6) require karta hai.",
+  "`AI-SDLC/README.md` naye engineer ko course padhe bina verify, tests, evals aur ek gated workflow run karne deta hai.",
+  "Tumhari personalization checklist mein ek baseline aur ek current `stack-inventory` number hai, aur swap hua system abhi bhi WIRED verify hota hai."
+ ]
+}
