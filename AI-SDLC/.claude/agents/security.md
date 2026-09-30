@@ -47,7 +47,7 @@ run_id: <run-id>
 step: <step>
 agent: security
 status: complete        # complete | blocked | needs-human
-inputs: [<handoffs and files you read>]
+inputs: [<earlier run files you read; external refs such as ticket:PAT-142>]
 next: human             # security always hands to a human gate before merge
 ---
 ## Summary

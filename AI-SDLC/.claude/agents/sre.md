@@ -54,7 +54,7 @@ run_id: <run-id>
 step: <step>
 agent: sre
 status: complete        # complete | blocked | needs-human
-inputs: [<handoffs, files and commands you used>]
+inputs: [<earlier run files you read; external refs such as incident:INC-311>]
 next: developer         # or human for mitigations that touch production
 ---
 ## Summary

@@ -4,7 +4,7 @@
 
 ## architecture (architect-v1)
 
-Mode: replay. Agent file: `evaluations/agent-versions/architect-v1.md`. Dataset 1.0.0, context fingerprint `5bc3744c1c6e`.
+Mode: replay. Agent file: `evaluations/agent-versions/architect-v1.md`. Dataset 1.0.0, context fingerprint `e1d92cdb9b64`.
 
 | Metric | Value |
 |---|---|
@@ -60,7 +60,7 @@ Overall: **FAIL**
 
 ## reviewer (reviewer-v1)
 
-Mode: replay. Agent file: `evaluations/agent-versions/reviewer-v1.md`. Dataset 1.0.0, context fingerprint `e0c7991ab4b1`.
+Mode: replay. Agent file: `evaluations/agent-versions/reviewer-v1.md`. Dataset 1.0.0, context fingerprint `2f42c7b6e7b2`.
 
 | Metric | Value |
 |---|---|

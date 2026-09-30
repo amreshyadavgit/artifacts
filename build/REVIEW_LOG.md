@@ -62,3 +62,38 @@ Claims left marked unverified:
 - 10-governance: the ~750-token `plugin details` figure.
 - Whether preloaded `skills:` apply when an agent runs as the main thread via `--agent` (docs silent; no content depends on it beyond existing wording).
 - Exact `claude -p --output-format json` shape and `permission_denials` subfields (already marked in FACTS/module 09).
+
+## R2 Consistency
+
+PHI rule chosen (applied everywhere): PHI in logs/traces/error logs = `high`; `critical` when PHI also leaves the service (returned to an unauthorized caller, sent to an external system/MCP/prompt) or the path is unauthenticated. APPROVE rule: `APPROVE` = "no blocking findings from this review", never a merge approval (only a human approves the PR).
+
+| File | Problem | Fix |
+|---|---|---|
+| AI-SDLC/context/security/phi-and-secrets-policy.md | "PHI exposure = critical" conflicted with code-review/security-review/security agent ("PHI in logs high") | Split critical (PHI leaves service/unauthorized) vs high (internal sink); added explicit repo-wide PHI rule |
+| AI-SDLC/.claude/skills/code-review/SKILL.md | Severity table: critical "PHI exposure" and high "PHI in logs" contradicted each other | Critical = PHI disclosed outside the service; high = PHI in logs (critical if it also leaves) |
+| AI-SDLC/evaluations/rubrics/architecture-judge.md, AI-SDLC/docs/governance/model-and-cost-policy.md | "PHI exposure = critical" wording | Aligned to the rule |
+| AI-SDLC/evaluations/datasets/reviewer-golden.json (REV-02 F1) | Accepted `high` or `critical` for PHI in logs | Now `high` only; reports regenerated (replay-v1/v2, v1-vs-v2) |
+| build/sources/02-first-agent-skill-tools.py | Expected output rated a PHI log line `critical` | `high` |
+| build/sources/09-agent-evaluation.py, build/sources/10-governance.py | "PHI exposure critical" prose/table | Aligned to the rule |
+| AI-SDLC/context/standards/review-standards.md | Only said "never approve their own change"; draft contract cited it as "reviewers never approve" | Added verdict definition (APPROVE = no blocking findings, never merge approval) |
+| AI-SDLC/.claude/skills/code-review/output-format.md | APPROVE meaning undefined | Added definition |
+| AI-SDLC/docs/foundations/reviewer-contract-draft.md, anatomy-breakdown-reviewer.md, build/sources/01-foundations.py | "never approve" vs `APPROVE` verdict | Reworded to "never gives merge approval" |
+| AI-SDLC/workflows/examples/feature-patient-pagination/08-reviewer.md, AI-SDLC/docs/capstone/walkthrough-feature.md, build/sources/11-capstone.py | Non-canonical verdict "approve with comments" | Verdict `APPROVE` (no blocking findings) |
+| build/STYLE_GUIDE.md §9 | "three real, discovered defects D-01..D-04" (that is four) | "four"; §6 also notes `NN-<skill>.md` files per workflows/README.md |
+| AI-SDLC/sample-app/README.md | "One defect is planted" omitted D-01..D-04 | Mentions planted perf-n+1 plus four discovered defects |
+| AI-SDLC/.claude/skills/explain-endpoint/reference.md, build/sources/03-skills-architecture-code-test.py | Listed only the planted defect / did not map the two $lastn bugs to D-02/D-03 | Added D-01..D-04 / D-02, D-03 references |
+| AI-SDLC/skills/production-rca/tests/expected/INC-2026-0922-01-rca.md | `inputs: [.claude/skills/...]` rejected by check-handoff | `inputs: [incident:INC-2026-0922-01]` (pack path stays in the Evidence pack row) |
+| AI-SDLC/.claude/skills/production-rca/SKILL.md | No rule for `inputs` | States inputs = run files or external refs; pack path in body |
+| AI-SDLC/.claude/agents/security.md, sre.md, AI-SDLC/agents/sre/CONTRACT.md | Handoff template told agents to list files/commands in `inputs` (check-handoff rejects) | Earlier run files or `scheme:ref` references |
+| AI-SDLC/.claude/skills/ticket-intake/{SKILL.md,HANDOFF_TEMPLATE.md,examples/00-ticket-intake.FHIR-142.md}, build/sources/06-mcp-and-tooling-architecture.py | Run id `2026-09-30-fhir-142` violates workflows/README run-id format (check-handoff fails) | `2026-09-30-feat-fhir-142`; format `<date>-<feat\|bug>-<ticket>` |
+| AI-SDLC/evaluations/README.md | Eval handoffs (`run_id: eval-<id>`, repo files in `inputs`) differ from the canonical format without explanation | Documented the deliberate eval exception |
+| build/sources/05-agent-roster.py vs 02 | Table "Mechanisms for restricting an agent" + four-layer table duplicated module 02's "Controls for what an agent may do" | Removed from 05, concept now references module 02; unique `memory` row moved to 02's table |
+| build/sources/04-skills-security-performance-rca.py, 10-governance.py | Runtime/asset split + SemVer rule re-taught (already in module 03) | Replaced with references to module 03 (04 keeps answer-key/case-kind content; 10 keeps library governance) |
+| build/sources/10-governance.py | Per-agent model list and resolution order duplicated module 05; orchestrator row said effort/maxTurns "run-level" though orchestrator.md sets `medium`/`100` | Reference to module 05; row now `medium (optional)` / `100 (optional; ...)` |
+| build/sources/01-foundations.py | Nesting limits paragraph duplicated module 07 | Short summary + reference to module 07 |
+
+Checked, no change needed: agent roster (only the 7 roster names; `depth-probe`/`sdlc-monolith` are labelled temporary exercise files in module 07, and `Explore`/`general-purpose` appear only as built-ins), terminology banned synonyms (only legitimate uses: Tomcat connector, claude.ai connectors, CI pipeline), severity scale, prerequisites (all real module ids), module NN references, canonical skill names, module 10 policy expected output (generator runs the checker live: 7/7, 0 violations).
+Flagged, not fixed: the production-rca answer key uses the 11 RCA-template sections, not the five handoff sections, so check-handoff would still reject it as a handoff (template design decision for R3/owner).
+
+## Orchestrator resolution of open items
+- R2 open item (RCA answer key `AI-SDLC/skills/production-rca/tests/expected/INC-2026-0922-01-rca.md` uses the 11-section RCA template, not the 5 handoff sections): accepted as is. It is a golden answer key for the `production-rca` skill output, not a run handoff, and is never validated by `check-handoff.mjs`. Its front matter `inputs` was already corrected by R2.

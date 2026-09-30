@@ -20,6 +20,8 @@ evaluations/
 └── reports/                         # generated: replay-v1, replay-v2, v1-vs-v2 (.md and .json)
 ```
 
+Eval handoffs use the front matter from `workflows/README.md` with two deliberate differences, because an eval case has no run folder: `run_id` is `eval-<case id>` and `inputs` lists the repository files the agent read. `check-handoff.mjs` applies its run-id and run-file rules only to handoffs inside `.ai-sdlc/runs/<run-id>/` during an active run, so it never sees these.
+
 ## Run it
 
 From `AI-SDLC/`:

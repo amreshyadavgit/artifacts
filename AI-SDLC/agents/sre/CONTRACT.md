@@ -63,7 +63,7 @@ Frontmatter: `tools: Read, Grep, Glob, Bash`, `disallowedTools: Agent, Edit, Wri
 
 ## handoffFormat
 
-Markdown with YAML front matter `run_id`, `step`, `agent: sre`, `status` (`complete | blocked | needs-human`), `inputs` (handoffs, files and commands used), `next` (`developer` for code fixes, `human` for production mitigations), as defined in `workflows/README.md`. Sections: `## Summary`, `## Findings` (six-column table), `## Decisions` (root cause, rejected hypotheses, remediation with the proposed `diff`), `## Open questions`, `## Artifacts` ("none written; returned to main session"). Saved by the orchestrator as `.ai-sdlc/runs/<run-id>/NN-sre.md`.
+Markdown with YAML front matter `run_id`, `step`, `agent: sre`, `status` (`complete | blocked | needs-human`), `inputs` (earlier run files or external references such as `incident:INC-311`), `next` (`developer` for code fixes, `human` for production mitigations), as defined in `workflows/README.md`. Sections: `## Summary`, `## Findings` (six-column table), `## Decisions` (root cause, rejected hypotheses, remediation with the proposed `diff`), `## Open questions`, `## Artifacts` ("none written; returned to main session"). Saved by the orchestrator as `.ai-sdlc/runs/<run-id>/NN-sre.md`.
 
 ## humanGate
 
