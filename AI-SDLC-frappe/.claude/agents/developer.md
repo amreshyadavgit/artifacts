@@ -20,7 +20,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'cd {bench}' 'bench --site test.localhost run-tests' 'CI=1 bench --site test.localhost run-tests' '?bench --site test.localhost migrate' 'cd sample-app/spice_lite' 'python -m unittest discover -s spice_lite/tests/unit -t .' 'node .claude/skills/run-tests/scripts/** ...' 'date -u' 'git diff' 'git status' 'git log'"
+          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'cd {bench}' 'bench --site test.localhost run-tests' 'CI=1 bench --site test.localhost run-tests' '?bench --site test.localhost migrate' 'cd sample-app/spice_lite' 'python -m unittest discover -s spice_lite/tests/unit -t .' 'python3 .claude/skills/run-tests/scripts/** ...' 'date -u' 'git diff' 'git status' 'git log'"
           timeout: 10
 ---
 

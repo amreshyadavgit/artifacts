@@ -1,0 +1,2 @@
+10.40.2.14 - - [22/Sep/2026:08:03:15 +0000] "GET /api/method/spice_lite.api.fhir.search_patients?family=Wanjiru HTTP/1.1" 200 1804 "-" "Mozilla/5.0" 21.772 21.772
+10.40.2.31 - - [22/Sep/2026:08:03:16 +0000] "GET /api/method/spice_lite.api.fhir.get_patient?name=SLP-04711 HTTP/1.1" 200 412 "-" "ehr-bridge/2.4.0" 0.041 0.041

@@ -26,7 +26,7 @@ Every plan uses these eight categories. The `tool` column of a test case names t
 | Same suite on MariaDB | `bench --site mariadb.localhost run-tests --app spice_lite` |
 | Unit tests without a bench | `cd sample-app/spice_lite && python -m unittest discover -s spice_lite/tests/unit -t .` |
 
-`run-tests` needs `allow_tests` in the site config (`bench --site test.localhost set-config allow_tests true`, done by `setup-bench.sh`).
+`run-tests` needs `allow_tests` in the site config (`bench --site test.localhost set-config allow_tests true`, done by `setup-bench.sh`). It exits 0 even when tests fail unless the `CI` environment variable is set (`frappe/commands/utils.py`: `if os.environ.get("CI"): sys.exit(ret)`), so a plan's exit criteria read the final `OK` / `FAILED` line and the `Ran N tests` count, or use `CI=1 bench --site test.localhost run-tests ...` when an exit code gates something.
 
 ## Facts about the harness that change test design
 - **Rollback is per class.** `FrappeTestCase.setUpClass` commits, then rolls back when the class ends. Records created in one test are visible to the next test of the same class. Use unique values (`make_patient()` generates the MRN) and a fresh patient per test in `setUp`.

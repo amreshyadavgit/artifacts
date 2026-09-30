@@ -28,7 +28,7 @@ export const REVIEWER = ['git diff', 'git log', 'git show', 'git status'];
 export const DEVELOPER = [
   'cd {bench}', 'bench --site test.localhost run-tests', 'CI=1 bench --site test.localhost run-tests', '?bench --site test.localhost migrate',
   'cd sample-app/spice_lite', 'python -m unittest discover -s spice_lite/tests/unit -t .',
-  'node .claude/skills/run-tests/scripts/** ...', 'date -u', 'git diff', 'git status', 'git log',
+  'python3 .claude/skills/run-tests/scripts/** ...', 'date -u', 'git diff', 'git status', 'git log',
 ];
 export const SRE = [
   'cd {bench}', 'bench --site test.localhost doctor', 'bench --site test.localhost show-pending-jobs',
@@ -53,7 +53,7 @@ test('reviewer: read-only git passes; push, chaining and escaping flags do not',
 test('developer: run-tests and unit tests pass, with && and a pipe into the run-tests parser', () => {
   ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --app spice_lite`, DEVELOPER, root));
   ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api --test test_lastn_returns_latest_per_patient`, DEVELOPER, root));
-  ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api 2>&1 | node ${root}/.claude/skills/run-tests/scripts/parse-run-tests.mjs`, DEVELOPER, root));
+  ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api 2>&1 | python3 ${root}/.claude/skills/run-tests/scripts/parse_bench_tests.py`, DEVELOPER, root));
   ok(checkBash(`cd ${B} && CI=1 bench --site test.localhost run-tests --app spice_lite`, DEVELOPER, root));
   blocked(checkBash(`cd ${B} && CI=1 bench --site test.localhost console`, DEVELOPER, root), /never allowed/);
   ok(checkBash('cd sample-app/spice_lite && python -m unittest discover -s spice_lite/tests/unit -t .', DEVELOPER, root));

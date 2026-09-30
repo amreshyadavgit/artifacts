@@ -19,6 +19,8 @@ Run the timeline builder over every evidence file. Give it the date for time-onl
 node ${CLAUDE_SKILL_DIR}/scripts/build-timeline.mjs $0/*.log $0/*.txt $0/*.md --date 2026-09-22 --offset error-log.txt=+03:00 --offset worker.log=+00:00 --collapse
 ```
 
+The date and offsets above are the ones `examples/INC-2026-0922-lastn/incident-brief.md` states; take them from the brief of the incident you are analysing.
+
 - Exit `3` means PHI-like or secret-like content: MRNs, `Form Dict:` dumps with patient fields, PHI query parameters (`family=`, `identifier=`), traceback locals holding patient fields, `INSERT INTO "tabSL Patient"` with values, Frappe API tokens, `site_config.json` secrets. **Stop.** Report the `file:line` list it printed, recommend a privacy-incident review, and do not quote those lines. Do not work around the guard with Grep or Read.
 - Exit `0` gives a Markdown timeline with a `ref` column (`file:line`). Use those refs as evidence ids.
 - Read the warnings on stderr. "taken as UTC" on a file whose clock is site-local shifts that file by hours and invents a false sequence.

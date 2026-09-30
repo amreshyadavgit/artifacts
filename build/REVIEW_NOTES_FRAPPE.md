@@ -4,3 +4,7 @@
 - F2: plain `git apply` from a subdirectory of a larger repo silently skips ("Skipped patch", exit 0). Use `git apply --directory=$(git rev-parse --show-prefix) <patch>` (works at repo root too). Fixed in the Java edition; Frappe content must use this form everywhere it applies patches from inside AI-SDLC-frappe/.
 - F2: every insert on Postgres runs an `information_schema` query via Frappe's own `"*"` on_update doc_events (count it in query-count expectations).
 - F1: whether path-scoped `.claude/rules/` load inside subagents is not documented; content says so.
+- F6: reports Claude Code 2.1.285 opens stdio MCP servers with `server/discover` by default and uses `initialize` only with `MCP_PROTOCOL_NEGOTIATION=legacy`. The Java edition's W6 reported the opposite (initialize by default, discover with `=auto`). R1 must reconcile both editions against the docs (mcp.md, env-vars.md) and, if possible, a local `claude mcp get` run.
+- F6: a read-only API user can still read full SL Patient records via `/api/resource/SL Patient`; the MCP server is the PHI boundary. Security content should say this plainly.
+- F6: stdio MCP servers inherit the launching shell's environment (secrets exposure).
+- F6: the shared bench audit log contains lines written with `with_more_info=True` by some writer's experiment (synthetic data). Content must not cite that log as clean.

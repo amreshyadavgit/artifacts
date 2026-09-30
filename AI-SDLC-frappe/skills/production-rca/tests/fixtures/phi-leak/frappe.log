@@ -1,0 +1,3 @@
+2026-09-22 08:04:05,118 ERROR frappe New Exception collected in error log
+Site: ke.spice.example
+Form Dict: {'cmd': 'spice_lite.api.fhir.search_patients', 'family': 'Wanjiru'}
