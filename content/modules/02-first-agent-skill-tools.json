@@ -25,7 +25,7 @@
     },
     {
       "heading": "Permissions: permissionMode and the parent's mode",
-      "body_md": "A subagent can declare `permissionMode`: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` or `bypassPermissions`. For a read-only reviewer, `dontAsk` is attractive: anything that would prompt is denied automatically, and commands allowed by `permissions.allow` (for example `Bash(git diff *)` in `AI-SDLC/.claude/settings.json`) still run. No one has to sit at the terminal answering prompts for a background review.\n\nBut the docs are explicit that the **parent's mode wins in three cases**: a subagent's `permissionMode` is ignored when the parent session runs in `bypassPermissions`, `acceptEdits` or `auto`, and a subagent cannot escalate to `bypassPermissions` unless the parent already is. Recent versions start new terminal sessions in `auto`, so in practice your `dontAsk` line is often not in effect.\n\nThat is why this module layers controls:\n\n1. `tools` removes what the agent can never use (no Edit, no Write).\n2. The subagent-scoped `PreToolUse` hook in the agent's frontmatter runs whatever mode the parent is in; `reviewer-bash-guard.mjs` exits 2 for anything except `git diff/log/show/status`.\n3. `permissions.deny` in settings (`Read(./.env)`, `Bash(rm -rf *)`) applies everywhere.\n4. `permissionMode` is the last, best-effort layer.\n\nFor headless tests, `claude -p ... --permission-mode plan` makes the whole run read-only. Use it when testing an agent that still inherits Edit and Write, like v1."
+      "body_md": "A subagent can declare `permissionMode`: `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` or `bypassPermissions`. For a read-only reviewer, `dontAsk` is attractive: anything that would prompt is denied automatically, and commands allowed by `permissions.allow` (for example `Bash(git diff *)` in `AI-SDLC/.claude/settings.json`) still run. No one has to sit at the terminal answering prompts for a background review.\n\nBut the docs are explicit that the **parent's mode wins in three cases**: a subagent's `permissionMode` is ignored when the parent session runs in `bypassPermissions`, `acceptEdits` or `auto`, and a subagent cannot escalate to `bypassPermissions` unless the parent already is. Recent versions start new terminal sessions in `auto`, so in practice your `dontAsk` line is often not in effect.\n\nThat is why this module layers controls:\n\n1. `tools` removes what the agent can never use (no Edit, no Write).\n2. The subagent-scoped `PreToolUse` hook in the agent's frontmatter runs whatever mode the parent is in; `reviewer-bash-guard.mjs` exits 2 for anything except `git diff/log/show/status`. It needs one precondition: Claude Code runs a project agent's frontmatter hooks only once the folder has been trusted in an interactive session (accept the trust dialog when you first start `claude` in `AI-SDLC/`); a `claude -p` run in a never-trusted folder skips them.\n3. `permissions.deny` in settings (`Read(./.env)`, `Bash(rm -rf *)`) applies everywhere.\n4. `permissionMode` is the last, best-effort layer.\n\nFor headless tests, `claude -p ... --permission-mode plan` makes the whole run read-only. Use it when testing an agent that still inherits Edit and Write, like v1."
     },
     {
       "heading": "Context injection: CLAUDE.md, preloaded skills, and !`cmd`",
@@ -102,6 +102,13 @@
           "Rules, while the skill is active",
           "Not a restriction at all",
           "Pre-approving `mvn -q -B test *` for /run-tests"
+        ],
+        [
+          "`memory`",
+          "Subagent frontmatter",
+          "n/a",
+          "n/a",
+          "Nothing on a read-only agent: it auto-enables Read, Write and Edit"
         ]
       ]
     },

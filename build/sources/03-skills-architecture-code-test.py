@@ -178,7 +178,7 @@ ex_ar = {
 - Decision: page-number paging via Spring Data Pageable; _count default 20, >100 served as 100, <1 or non-numeric -> 400 invalid; Bundle gains link[self,next]; total = full match count.
 - Top risks: AR-001 ix_patient_family_name cannot serve `upper(p1_0.family_name)=upper(?)`; AR-002 Bundle.java:11 sets total to resources.size().
 - Follow-ups: FHIR-120 implement, FHIR-121 Observation search paging, FHIR-122 case-insensitive index spike (H2 2.3.232 rejects expression indexes).
-Validate: node .claude/skills/architecture-review/scripts/validate-adr.mjs docs/adr/0002-paginate-patient-search.md --repo .
+Validate: node /home/dev/AI-SDLC/.claude/skills/architecture-review/scripts/validate-adr.mjs docs/adr/0002-paginate-patient-search.md --repo .
 
 Excerpt of the ADR:
 ### Current architecture (evidence)

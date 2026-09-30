@@ -49,7 +49,7 @@ List risks in the canonical findings format (`id | severity | category | locatio
 Walk [checklist.md](checklist.md). Every item must be true. Then write the ADR file (writes outside `docs/adr/` are out of scope for this skill) and reply with:
 1. the ADR path,
 2. a five-line summary: decision, top two risks, follow-up tickets,
-3. the command a human runs to validate the structure: `node .claude/skills/architecture-review/scripts/validate-adr.mjs <adr-path> --repo .`
+3. the command a human runs to validate the structure: `node ${CLAUDE_SKILL_DIR}/scripts/validate-adr.mjs <adr-path> --repo .` (Claude Code expands `${CLAUDE_SKILL_DIR}` to this skill's directory, so the command works in this repo and in the packaged plugin)
 
 ## Rules
 - Never invent classes, endpoints, config keys or tables. If you did not find it with Read or Grep, it does not exist yet; call it "new".

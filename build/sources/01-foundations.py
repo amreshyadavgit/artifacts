@@ -115,7 +115,7 @@ This module ships a worked **reviewer** draft (`docs/foundations/reviewer-contra
   {"heading": "Handoffs and depth: why the roster stays flat",
    "body_md": """Agents in this course never talk to each other directly. Each one returns a **handoff**: a Markdown document with YAML front matter (`run_id`, `step`, `agent`, `status`, `inputs`, `next`) saved under `.ai-sdlc/runs/<run-id>/NN-<agent>.md`. The next agent reads the file, not the previous agent's conversation, because it has none.
 
-Claude Code does allow deeper structures. Per the current docs, a subagent **can** spawn subagents of its own, up to three layers below the main conversation by default (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` changes it; `1` turns nesting off), and at the limit the `Agent` tool is withheld. The `Agent(architect, developer, ...)` allowlist syntax in `tools` only applies to an agent running as the main thread with `claude --agent <name>`; inside a subagent definition the parenthesised list is ignored.
+Claude Code does allow deeper structures: per the current docs a subagent **can** spawn subagents of its own, and an `Agent(...)` type allowlist is only enforced for an agent running as the main thread. The exact limits and settings are taught in module 07-agent-composition ("Nesting: the real limits").
 
 This course's design decision built on those facts:
 

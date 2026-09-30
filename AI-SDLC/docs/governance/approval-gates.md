@@ -27,12 +27,12 @@ A **human gate** is a point where work stops until a named human approves. In th
 |---|---|---|---|---|
 | `default` | if entered | prompt | prompt | enforced |
 | `plan` | yes: read-only until approved | prompt | prompt | enforced |
-| `acceptEdits` | no | file edits in working dirs auto-accepted; other asks prompt | prompt | enforced |
-| `dontAsk` | no | anything that would prompt is auto-denied | expected auto-denied (verify) | enforced |
-| `bypassPermissions` | no | skipped | do not rely on it (verify) | deny rules still apply |
-| `auto` | no | classifier reviews actions (verify) | do not rely on it (verify) | enforced |
+| `acceptEdits` | no | still prompt: file edits in working dirs are auto-accepted, but an explicit `ask` rule such as `Edit(./.claude/**)` is never auto-approved | prompt | enforced |
+| `dontAsk` | no | denied instead of prompted (docs: dontAsk "denies calls matching your explicit ask rules") | denied (inferred: dontAsk auto-denies every call that would prompt; unverified) | enforced |
+| `bypassPermissions` | no | still prompt (docs: explicit ask rules are among the "actions no mode auto-approves") | (unverified) do not rely on it | deny rules still apply |
+| `auto` | no | still prompt (docs: "Explicit ask rules still force a prompt") | prompt; the classifier may still deny, but cannot approve silently (v2.1.211+) | enforced |
 
-Treat the `acceptEdits` row with care: the docs say it auto-accepts file edits in working directories, so do not rely on the `Edit(./.claude/**)` ask rule alone in that mode; G6 (PR review) is the backstop. Cells marked (verify) are inferred from the mode descriptions in the permission-modes docs; verify them in your Claude Code version with `node .claude/hooks/guard-outbound.test.mjs` plus one live MCP write attempt before relying on them.
+Source: https://code.claude.com/docs/en/permission-modes ("Actions no mode auto-approves", dontAsk and auto sections) and https://code.claude.com/docs/en/hooks (PreToolUse `permissionDecision`), checked 2026-09-30. Two caveats remain. `bypassPermissions` skips every prompt that is not on the "no mode auto-approves" list, and whether a hook's `"ask"` survives it is not stated, so G4 there is unverified: G8 (`disableBypassPermissionsMode`) is the control that matters. In `dontAsk`, gates G2 to G4 (and the `Agent(developer)` ask rule of the workflows) turn into denials, which stops a headless run at the first gate by design. Verify the rows in your Claude Code version with `node .claude/hooks/guard-outbound.test.mjs` plus one live MCP write attempt before relying on them.
 
 ## Setting up G6 on GitHub
 
