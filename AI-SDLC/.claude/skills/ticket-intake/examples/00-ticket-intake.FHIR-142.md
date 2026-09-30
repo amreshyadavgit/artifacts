@@ -1,5 +1,5 @@
 ---
-run_id: 2026-09-30-fhir-142
+run_id: 2026-09-30-feat-fhir-142
 step: 00
 agent: orchestrator
 status: complete
@@ -56,4 +56,4 @@ next: architect
 - Is the sort order fixed to `effectiveDateTime` descending, as today?
 
 ## Artifacts
-- `.ai-sdlc/runs/2026-09-30-fhir-142/00-ticket-intake.md`
+- `.ai-sdlc/runs/2026-09-30-feat-fhir-142/00-ticket-intake.md`

@@ -45,8 +45,8 @@ If `git status` lists untracked (`??`) files under `sample-app/`, Read them in f
 
 | Severity | Use when | Example in this codebase |
 |---|---|---|
-| `critical` | Exploitable now, PHI exposure, auth bypass | user input concatenated into JPQL; `DELETE` opened to `CLINICIAN` in `SecurityConfig` |
-| `high` | Wrong behaviour on a normal input, missing authZ on a write path, PHI in logs, endpoint without tests | JPA entity returned from a controller; name logged via SLF4J |
+| `critical` | Exploitable now, PHI disclosed outside the service or to an unauthorized party, auth bypass | user input concatenated into JPQL; `DELETE` opened to `CLINICIAN` in `SecurityConfig` |
+| `high` | Wrong behaviour on a normal input, missing authZ on a write path, PHI in logs (internal sink; `critical` if it also leaves the service), endpoint without tests | JPA entity returned from a controller; name logged via SLF4J |
 | `medium` | Standards violation with limited blast radius | controller calling a repository directly; missing `AuditLogger` call |
 | `low` | Hardening, naming, docs drift | README endpoint table not updated |
 | `info` | Observation, no action required | pre-existing `TEACHING-DEFECT(perf-n+1)` near the change |

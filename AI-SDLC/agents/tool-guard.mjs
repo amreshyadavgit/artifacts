@@ -37,7 +37,25 @@ const FORBIDDEN_SHELL = [
   [/>/, 'redirect >'], [/</, 'redirect <'], [/\|/, 'pipe |'],
 ];
 
-export function checkBash(command, allowedPrefixes) {
+// A skill that runs `node ${CLAUDE_SKILL_DIR}/scripts/x.mjs` reaches Bash with the variable
+// already substituted by Claude Code (the skill's directory, normally an absolute path).
+// Rewrite absolute paths inside the project to project-relative form (and drop plain
+// quotes around a path token) so one relative allow-list entry such as
+// `node .claude/skills/run-tests/scripts/summarize-surefire.mjs` matches both forms.
+// Absolute paths outside the project are left as they are, so they still fail the list.
+export function normalizeSegment(seg, projectDir) {
+  if (!projectDir) return seg;
+  const root = path.resolve(projectDir);
+  return seg.split(' ').map((tok) => {
+    const bare = tok.replace(/^(["'])(.*)\1$/, '$2');
+    if (!path.isAbsolute(bare)) return tok;
+    const rel = path.relative(root, path.resolve(bare)).split(path.sep).join('/');
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return tok;
+    return rel;
+  }).join(' ');
+}
+
+export function checkBash(command, allowedPrefixes, projectDir) {
   const cmd = String(command ?? '').trim();
   if (!cmd) return 'empty command';
   for (const [re, label] of ALWAYS_DENY) {
@@ -46,7 +64,7 @@ export function checkBash(command, allowedPrefixes) {
   for (const [re, label] of FORBIDDEN_SHELL) {
     if (re.test(cmd)) return `shell metacharacter ${label} is not allowed; run one allowed command at a time`;
   }
-  const segments = cmd.split('&&').map((s) => s.trim().replace(/\s+/g, ' '));
+  const segments = cmd.split('&&').map((s) => normalizeSegment(s.trim().replace(/\s+/g, ' '), projectDir));
   for (const seg of segments) {
     if (!seg || seg.includes('&')) return 'background (&) or empty command segment is not allowed';
     const ok = allowedPrefixes.some((p) => seg === p || seg.startsWith(p + ' '));
@@ -88,7 +106,7 @@ function main() {
   let reason = null;
   if (mode === 'bash-allow') {
     if (tool !== 'Bash') process.exit(0);
-    reason = checkBash(ti.command, args);
+    reason = checkBash(ti.command, args, projectDir);
   } else if (mode === 'write-scope') {
     if (!['Write', 'Edit', 'NotebookEdit'].includes(tool)) process.exit(0);
     reason = checkWrite(ti.file_path ?? ti.notebook_path, args, projectDir, input.cwd);

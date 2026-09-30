@@ -255,7 +255,7 @@ For the anatomy that means element 12 (handoffs) and element 2 (boundaries) meet
     "At least the no-edit and no-delegation rules are enforced by mechanism (`tools`, `disallowedTools`), not by instruction.",
     "The `permissionMode` caveat (ignored under `acceptEdits`, `auto`, `bypassPermissions` parents) is acknowledged with a backstop.",
     "`failureConditions` cover empty diff, oversized diff, missing inputs, and a request to fix code.",
-    "`humanGate` names a real mechanism (PR approval, `ask` rule) and states that the reviewer never approves."
+    "`humanGate` names a real mechanism (PR approval, `ask` rule) and states that the reviewer never gives merge approval (its `APPROVE` verdict only means no blocking findings)."
    ],
    "improvements": [
     "Fill the template for `tester` next; its `tools` include Edit and Write, so its `mustNot` must restrict *where* it writes (tests only) and say whether that is a mechanism or a convention.",

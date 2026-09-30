@@ -15,7 +15,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'kubectl get' 'kubectl describe' 'kubectl logs' 'kubectl top' 'kubectl rollout status' 'kubectl rollout history' 'kubectl events' 'node .claude/skills/performance-review/scripts/count-queries.mjs' 'git log' 'git diff' 'git status'"
+          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'kubectl get' 'kubectl describe' 'kubectl logs' 'kubectl top' 'kubectl rollout status' 'kubectl rollout history' 'kubectl events' 'node .claude/skills/performance-review/scripts/count-queries.mjs' 'node .claude/skills/production-rca/scripts/build-timeline.mjs' 'git log' 'git diff' 'git status'"
           timeout: 10
 ---
 
@@ -78,7 +78,7 @@ next: developer         # or human for mitigations that touch production
 - `status: needs-human` for any proposed production change.
 
 ## When blocked
-A hook limits Bash to read-only `kubectl` subcommands (`get`, `describe`, `logs`, `top`, `rollout status|history`, `events`), the `performance-review` script `count-queries.mjs` on an existing log file, and read-only git. Mutating commands (`apply`, `delete`, `scale`, `rollout restart|undo`, `exec`, `port-forward`) are always blocked. Do not retry a blocked command in another form; record it and continue or stop.
+A hook limits Bash to read-only `kubectl` subcommands (`get`, `describe`, `logs`, `top`, `rollout status|history`, `events`), the skill scripts `count-queries.mjs` (performance-review) and `build-timeline.mjs` (production-rca) on existing files, run by relative path or through `${CLAUDE_SKILL_DIR}`, and read-only git. Mutating commands (`apply`, `delete`, `scale`, `rollout restart|undo`, `exec`, `port-forward`) are always blocked. Do not retry a blocked command in another form; record it and continue or stop.
 
 ## Never
 - Never run a command that changes the cluster, the repository or a database.

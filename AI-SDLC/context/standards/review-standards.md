@@ -10,4 +10,5 @@ Reviewers must:
 - cite the standard violated (file + rule number from `context/standards/`),
 - quote evidence, never paraphrase code,
 - say "no findings" explicitly for a category they checked and found clean,
-- never approve their own change.
+- end with a verdict: `BLOCK` (any critical/high), `NEEDS-DECISION` (worst is medium) or `APPROVE` (only low/info or nothing). `APPROVE` means "no blocking findings from this review"; it is never a merge approval, which only a human gives on the PR,
+- never review or approve their own change.

@@ -11,7 +11,7 @@ This repository is a working AI-assisted SDLC system for a small FHIR-lite API. 
 - `context/`: architecture, standards, security, domain. Read the relevant file before acting.
 - `evaluations/`: golden datasets and the eval harness.
 
-## Context to load on demand
+## Context imported at session start (the @ imports below load with this file)
 - Architecture: @context/architecture/overview.md
 - Domain terms and PHI classification: @context/domain/fhir-lite-glossary.md
 - Security and PHI policy: @context/security/phi-and-secrets-policy.md

@@ -1,0 +1,36 @@
+{
+  "skill": "explain-endpoint",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/explain-endpoint. `deterministic` cases run from AI-SDLC/ without a model; `live` cases need a headless Claude Code session.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "Run each deterministic case's input in a shell and compare with expect.",
+    "Live cases: claude -p \"<case.input>\" --output-format json | jq -r '.result'"
+  ],
+  "cases": [
+    {
+      "id": "ee-01-route-map",
+      "kind": "deterministic",
+      "input": "grep -rnE \"@(Get|Post|Put|Delete|Request)Mapping\" sample-app/src/main/java/org/example/fhir/api | wc -l",
+      "expect": "11 (2 class-level prefixes + 9 routes): the map the skill injects is complete."
+    },
+    {
+      "id": "ee-02-reference-linked",
+      "kind": "deterministic",
+      "input": "grep -c '\\[reference.md\\](reference.md)' .claude/skills/explain-endpoint/SKILL.md",
+      "expect": "1"
+    },
+    {
+      "id": "ee-03-lastn",
+      "kind": "live",
+      "input": "/explain-endpoint GET /fhir/Observation/$lastn",
+      "expect": "Cites the per-subject loop in ObservationService.java (lines 69-75, the TEACHING-DEFECT(perf-n+1)), the `/fhir/**` rule in SecurityConfig.java, and ObservationApiTest#lastnReturnsMostRecentObservationPerSubject; reports one query per subject."
+    },
+    {
+      "id": "ee-04-unknown-route",
+      "kind": "live",
+      "input": "/explain-endpoint GET /fhir/Encounter",
+      "expect": "Says no route matches and lists the closest /fhir routes; does not invent an EncounterController. `git status --short` is unchanged."
+    }
+  ]
+}

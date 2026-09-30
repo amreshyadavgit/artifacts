@@ -60,7 +60,7 @@ mod = {
    "startingFiles": [
     {"path": "AI-SDLC/.claude/agents/sdlc-monolith.md", "content": d("sdlc-monolith.md")}
    ],
-   "requiredStructure": "AI-SDLC/\n├── .claude/agents/\n│   ├── architect.md developer.md reviewer.md tester.md security.md sre.md   # module 05\n│   ├── orchestrator.md                                                    # module 08\n│   └── sdlc-monolith.md                                                   # temporary, delete at the end\n└── workflows/composition/\n    ├── context-budget.mjs          # estimates start-up tokens per agent\n    └── one-vs-many.md              # decision record with the measured numbers",
+   "requiredStructure": "AI-SDLC/\n├── .claude/agents/\n│   ├── architect.md developer.md reviewer.md tester.md security.md sre.md   # module 05\n│   ├── orchestrator.md                                                    # module 08\n│   └── sdlc-monolith.md                                                   # temporary anti-pattern, not a roster agent; delete at the end\n└── workflows/composition/\n    ├── context-budget.mjs          # estimates start-up tokens per agent\n    └── one-vs-many.md              # decision record with the measured numbers",
    "implementation": [
     {"path": "AI-SDLC/workflows/composition/context-budget.mjs", "language": "javascript", "content": "", "tag": "illustrative"},
     {"path": "AI-SDLC/workflows/composition/one-vs-many.md", "language": "markdown", "content": "", "tag": "illustrative"}

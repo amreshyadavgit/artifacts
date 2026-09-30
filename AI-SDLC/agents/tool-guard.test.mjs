@@ -82,3 +82,15 @@ test('fails closed on malformed input or unknown mode', () => {
   assert.equal(runHook(['bash-allow', 'git diff'], 'not json').status, 2);
   assert.equal(runHook(['mystery'], { tool_name: 'Bash', tool_input: { command: 'ls' } }).status, 2);
 });
+
+test('bash-allow: ${CLAUDE_SKILL_DIR}-expanded absolute paths inside the project match relative entries', () => {
+  const allow = ['node .claude/skills/production-rca/scripts/build-timeline.mjs', 'node .claude/skills/performance-review/scripts/count-queries.mjs'];
+  const rel = 'node .claude/skills/production-rca/scripts/build-timeline.mjs evidence/*.log --collapse';
+  const abs = `node ${root}/.claude/skills/production-rca/scripts/build-timeline.mjs evidence/*.log --collapse`;
+  const quoted = `node "${root}/.claude/skills/performance-review/scripts/count-queries.mjs" /tmp/lastn.log`;
+  assert.equal(checkBash(rel, allow, root), null);
+  assert.equal(checkBash(abs, allow, root), null);
+  assert.equal(checkBash(quoted, allow, root), null);
+  assert.match(checkBash('node /tmp/evil/.claude/skills/production-rca/scripts/build-timeline.mjs', allow, root), /allowlist/);
+  assert.match(checkBash(`node ${root}/../x/.claude/skills/production-rca/scripts/build-timeline.mjs`, allow, root), /allowlist/);
+});

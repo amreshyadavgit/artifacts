@@ -46,7 +46,7 @@ The `feature` skill (`disable-model-invocation: true`, so only you can start it)
 | 05 + 06 | `tester` and `security` launched in the same turn | TST-1 **high** (`Bundle.total` is the page size), SEC-1 **medium** (`_offset` not capped) | runs in parallel; orchestrator waits for both | `05-tester.md` (status `blocked`), `06-security.md` |
 | G2 | **you** | orchestrator stops with `needs-human` and lists TST-1 and SEC-1 | **G2** (convention: orchestrator prompt) | decision recorded in the next handoff |
 | 07 | `developer` rework 1 of 2 | fixes both, `Tests run: 32, Failures: 0` | **G1 again**: every developer launch prompts | `07-developer.md` |
-| 08 | `reviewer` (sonnet, `dontAsk`, Bash guard `git diff`/`git log`/`git show`/`git status`) | CR-1 low, CR-2 info, "approve with comments" (never merge approval) | G2 again only if critical/high | `08-reviewer.md` |
+| 08 | `reviewer` (sonnet, `dontAsk`, Bash guard `git diff`/`git log`/`git show`/`git status`) | CR-1 low, CR-2 info, verdict `APPROVE` (no blocking findings, never merge approval) | G2 again only if critical/high | `08-reviewer.md` |
 | 09 | orchestrator | step table, open findings, human actions; `.active` set to `none` | ends with `next: human` | `09-run-report.md` |
 | G3 | **you**, outside the agents | push the branch and open the PR yourself | **G3**: `git push` is `ask`, `gh pr merge` is `deny`; branch protection and CODEOWNERS (module 10 G7) | PR approval |
 

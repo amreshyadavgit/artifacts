@@ -35,6 +35,6 @@ BLOCK
 | `recommendation` | The fix, plus the rule it satisfies as `file#rule` (for example `coding-standards.md#2`) or a named policy section. |
 
 ## Verdict values
-`BLOCK` (any critical or high), `NEEDS-DECISION` (worst is medium), `APPROVE` (only low or info, or no findings).
+`BLOCK` (any critical or high), `NEEDS-DECISION` (worst is medium), `APPROVE` (only low or info, or no findings). `APPROVE` means "no blocking findings from this review", never a merge approval; only a human approves the pull request.
 
 When there are no findings, keep the table header with no rows, list every category as `no findings`, and give the verdict `APPROVE`.

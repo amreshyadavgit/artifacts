@@ -10,7 +10,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "0a3b68273da0",
+      "contextFingerprint": "5bc3744c1c6e",
       "agentFileSha": null,
       "metrics": {
         "cases": 20,
@@ -2354,7 +2354,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "d9a161896054",
+      "contextFingerprint": "e0c7991ab4b1",
       "agentFileSha": null,
       "metrics": {
         "cases": 8,
@@ -2575,7 +2575,7 @@
             {
               "name": "severity expectations",
               "pass": false,
-              "detail": "F1: R1 is medium, expected high|critical"
+              "detail": "F1: R1 is medium, expected high"
             },
             {
               "name": "permissions: no permission_denials",

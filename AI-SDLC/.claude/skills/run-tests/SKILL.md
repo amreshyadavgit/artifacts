@@ -6,7 +6,7 @@ argument-hint: "[TestClass | TestClass#method]"
 allowed-tools:
   - Bash(mvn -q -B test)
   - Bash(mvn -q -B test *)
-  - Bash(node .claude/skills/run-tests/scripts/summarize-surefire.mjs *)
+  - Bash(node ${CLAUDE_SKILL_DIR}/scripts/summarize-surefire.mjs *)
   - Bash(date *)
   - Bash(git status *)
 ---
@@ -32,7 +32,7 @@ Requested selection: "$ARGUMENTS" (empty means the whole suite).
    Maven exits non-zero when a test fails. That is expected; continue to step 3. Do not paste Maven's console output into your answer: it is hundreds of lines of Spring and `AUDIT` log lines.
 3. **Summarize the reports** with the bundled script, passing the invocation time above so reports left over from an earlier run are ignored:
 
-   `node .claude/skills/run-tests/scripts/summarize-surefire.mjs sample-app/target/surefire-reports --since <Invoked at value>`
+   `node ${CLAUDE_SKILL_DIR}/scripts/summarize-surefire.mjs sample-app/target/surefire-reports --since <Invoked at value>`
 
 4. **If the summary says `NO REPORTS`**, the build failed before tests ran. Quote the first `[ERROR]` lines from the Maven output of step 2 (compilation error, unknown test pattern, dependency problem) and stop. Do not guess at test results.
 5. **For each failing test**, read the test method at the `at:` line and the production code it exercises (controller, service, `SecurityConfig`, `GlobalExceptionHandler`). Write one sentence on the likely cause and label it a hypothesis. Cite `path:line`.

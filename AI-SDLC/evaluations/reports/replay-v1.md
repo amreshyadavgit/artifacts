@@ -4,7 +4,7 @@
 
 ## architecture (architect-v1)
 
-Mode: replay. Agent file: `evaluations/agent-versions/architect-v1.md`. Dataset 1.0.0, context fingerprint `0a3b68273da0`.
+Mode: replay. Agent file: `evaluations/agent-versions/architect-v1.md`. Dataset 1.0.0, context fingerprint `5bc3744c1c6e`.
 
 | Metric | Value |
 |---|---|
@@ -60,7 +60,7 @@ Overall: **FAIL**
 
 ## reviewer (reviewer-v1)
 
-Mode: replay. Agent file: `evaluations/agent-versions/reviewer-v1.md`. Dataset 1.0.0, context fingerprint `d9a161896054`.
+Mode: replay. Agent file: `evaluations/agent-versions/reviewer-v1.md`. Dataset 1.0.0, context fingerprint `e0c7991ab4b1`.
 
 | Metric | Value |
 |---|---|
@@ -94,7 +94,7 @@ Overall: **FAIL**
 | Case | Result | Recall | Halluc. | Turns | Cost | Failing assertions |
 |---|---|---|---|---|---|---|
 | REV-01 (critical) | pass | 100.0% | 0 | 4 | $0.120 |  |
-| REV-02 (critical) | FAIL | 100.0% | 0 | 3 | $0.080 | severity expectations: F1: R1 is medium, expected high\|critical |
+| REV-02 (critical) | FAIL | 100.0% | 0 | 3 | $0.080 | severity expectations: F1: R1 is medium, expected high |
 | REV-03 | pass | 75.0% | 0 | 4 | $0.120 |  |
 | REV-04 | FAIL | 50.0% | 0 | 6 | $0.160 | must-mention: recall >= 0.75: missed F2 (ApiTestSupport.postAndReadId was loosened to is2xxSuccessful, which also weakens every Patient create test)<br/>permissions: no permission_denials: Bash({"command":"cd sample-app && mvn -q -B test","description":"Run the test suite"}) |
 | REV-05 (critical) | pass | 100.0% | 0 | 3 | $0.090 |  |

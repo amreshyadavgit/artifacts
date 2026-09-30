@@ -1,0 +1,36 @@
+{
+  "skill": "feature",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/feature. `deterministic` cases run from AI-SDLC/ without a model; `live` cases need a headless Claude Code session.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "Run each deterministic case's input in a shell and compare with expect.",
+    "Live cases: claude -p \"<case.input>\" --output-format json | jq -r '.result'"
+  ],
+  "cases": [
+    {
+      "id": "fe-01-reference-run-valid",
+      "kind": "deterministic",
+      "input": "node .claude/hooks/check-handoff.mjs workflows/examples/feature-patient-pagination | grep -c PASS",
+      "expect": "9 (01-requirements through 09-run-report)."
+    },
+    {
+      "id": "fe-02-user-only",
+      "kind": "deterministic",
+      "input": "grep -E '^(disable-model-invocation|argument-hint):' .claude/skills/feature/SKILL.md",
+      "expect": "disable-model-invocation: true\nargument-hint: \"[ticket-id] [short feature summary]\""
+    },
+    {
+      "id": "fe-03-g1-gate",
+      "kind": "deterministic",
+      "input": "grep -E '^(status|next):' workflows/examples/feature-patient-pagination/03-implementation-plan.md",
+      "expect": "status: needs-human\nnext: developer (no developer launch before a human approves G1)."
+    },
+    {
+      "id": "fe-04-live-run",
+      "kind": "live",
+      "input": "/feature PAT-142 Paginate Patient search with _count and _offset",
+      "expect": "A run folder with the same nine-step shape; every handoff passes check-handoff.mjs; `cd sample-app && mvn -q -B test` exits 0 with more than 25 tests."
+    }
+  ]
+}

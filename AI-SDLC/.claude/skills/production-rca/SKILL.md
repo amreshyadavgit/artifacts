@@ -48,7 +48,7 @@ Fill [rca-template.md](rca-template.md). Sections 1 to 11, none deleted.
 - If the evidence cannot decide between candidates, say "not determined", give your confidence, and list the evidence that would decide it.
 
 ## 5. Output
-Write the RCA to the run folder given in the task (for example `.ai-sdlc/runs/<run-id>/NN-sre-rca.md`) with the handoff front matter from `workflows/README.md`, `agent: sre`, `status: needs-human` (an RCA always needs human review). If you cannot write files, return the full RCA as your answer.
+Write the RCA to the run folder given in the task (for example `.ai-sdlc/runs/<run-id>/NN-sre-rca.md`) with the handoff front matter from `workflows/README.md`, `agent: sre`, `status: needs-human` (an RCA always needs human review), and `inputs` holding only earlier run files or external references such as `incident:INC-2026-0922-01` (the evidence pack path goes in the "Evidence pack" row, not in `inputs`). If you cannot write files, return the full RCA as your answer.
 
 ## 6. Do not
 - Do not include PHI, credentials, tokens or full patient-id lists in the RCA.

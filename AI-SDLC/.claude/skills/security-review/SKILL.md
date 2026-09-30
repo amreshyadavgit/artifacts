@@ -65,7 +65,7 @@ Produce exactly one JSON object that validates against [report.schema.json](repo
 If you can write files, save the JSON to the run folder given in the task (for example `.ai-sdlc/runs/<run-id>/security-report.json`) and render it:
 
 ```bash
-node .claude/skills/security-review/scripts/render-report.mjs .ai-sdlc/runs/<run-id>/security-report.json --out .ai-sdlc/runs/<run-id>/04-security.md
+node ${CLAUDE_SKILL_DIR}/scripts/render-report.mjs .ai-sdlc/runs/<run-id>/security-report.json --out .ai-sdlc/runs/<run-id>/04-security.md
 ```
 
 The renderer validates the schema, checks the summary counts, rejects evidence that looks like a real MRN, and exits `1` with `--fail-on high` when the report has a high or critical finding. If you cannot write files, return the JSON as your final answer inside a single fenced `json` block.

@@ -1,0 +1,36 @@
+{
+  "skill": "bug-fix",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/bug-fix. `deterministic` cases run from AI-SDLC/ without a model; `live` cases need a headless Claude Code session.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "Run each deterministic case's input in a shell and compare with expect.",
+    "Live cases: claude -p \"<case.input>\" --output-format json | jq -r '.result'"
+  ],
+  "cases": [
+    {
+      "id": "bf-01-user-only",
+      "kind": "deterministic",
+      "input": "grep -hE '^(name|disable-model-invocation|argument-hint):' .claude/skills/bug-fix/SKILL.md",
+      "expect": "name: bug-fix\ndisable-model-invocation: true\nargument-hint: \"[bug-id] [observed behaviour]\""
+    },
+    {
+      "id": "bf-02-spec-linked",
+      "kind": "deterministic",
+      "input": "grep -c 'workflows/bug-fix.md' .claude/skills/bug-fix/SKILL.md; test -f workflows/bug-fix.md && echo spec-exists",
+      "expect": "2\nspec-exists"
+    },
+    {
+      "id": "bf-03-not-reproducible",
+      "kind": "live",
+      "input": "/bug-fix BUG-57 Family search ignores trailing spaces only when identifier is also given",
+      "expect": "The run stops `blocked` with \"cannot reproduce\" (PatientService.search already trims family in both branches); no production code changed."
+    },
+    {
+      "id": "bf-04-teaching-defect-guarded",
+      "kind": "live",
+      "input": "/bug-fix BUG-59 Observation search returns 500 for code with spaces",
+      "expect": "The plan does not touch ObservationService.lastN or the TEACHING-DEFECT(perf-n+1) marker (CLAUDE.md rule 6)."
+    }
+  ]
+}

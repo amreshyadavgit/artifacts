@@ -1023,7 +1023,7 @@
             "costUsd": 0.11
           },
           "failingA": [
-            "severity expectations (F1: R1 is medium, expected high|critical)"
+            "severity expectations (F1: R1 is medium, expected high)"
           ],
           "failingB": [],
           "judgeB": {

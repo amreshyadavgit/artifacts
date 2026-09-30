@@ -88,7 +88,7 @@ Running the skills' reasoning against the real code turned up facts a generic re
 - **The obvious index fix does not port.** Hibernate generates `where upper(p1_0.family_name)=upper(?)` for `findByFamilyNameIgnoreCaseOrderByIdAsc`, so `ix_patient_family_name` cannot serve it on PostgreSQL. And H2 2.3.232 rejects `CREATE INDEX ... (lower(family_name))`, which matters because `V1__init.sql` must run on both. ADR-0002 records this as risk AR-001 and a spike ticket.
 - **Two real defects in `$lastn` besides the planted one.** An Observation without `effectiveDateTime` sorts first in `DESC` order (H2 runs with `DEFAULT_NULL_ORDERING=HIGH`; PostgreSQL defaults to `NULLS FIRST` for `DESC`) and wins `$lastn`; `subjects=1,1` returns the same Observation twice. The test-strategy example ships both as `@Disabled` tests that fail with `expected:<80> but was:<99>` and `expected:<1> but was:<2>` when enabled.
 
-`sample-app/docs/KNOWN_DEFECTS.md` says any defect other than the planted N+1 is a real bug. These are reported as findings, not fixed here, because other modules depend on the app as it is.
+`sample-app/docs/KNOWN_DEFECTS.md` says any defect other than the planted N+1 is a real bug; these two are listed there as D-02 and D-03. They are reported as findings, not fixed here, because other modules depend on the app as it is.
 
 So in practice: a skill that demands `path:line` evidence produces findings a human can verify in a minute, and it is the evidence requirement, more than the model, that finds these bugs."""},
  {"heading": "Skills are engineering assets: owner, version, changelog, tests",
@@ -193,7 +193,7 @@ Excerpt of the ADR:
 | A. Hard cap only: `_count` limits the list, no paging | Smallest change | Clients cannot reach result 101+ | Clinicians silently miss patients beyond the cap |
 | B. Page-number paging via Spring Data `Pageable` (chosen) | `Page<Patient>` gives content and total | One extra `count` query per request | `total` count on `upper(family_name)` is a full scan on PostgreSQL |
 
-$ node .claude/skills/architecture-review/scripts/validate-adr.mjs ... --case ...#ar-01-patient-search-pagination
+$ node .claude/skills/architecture-review/scripts/validate-adr.mjs docs/adr/0002-paginate-patient-search.md --repo . --status proposed --case skills/architecture-review/tests/cases.json#ar-01-patient-search-pagination
 OK  ADR-0002 status=proposed options=4 risks=5 citations=17 case=ar-01-patient-search-pagination""",
  "testCases": [
   {"name": "Validator unit tests pass", "input": "cd AI-SDLC && node --test .claude/skills/architecture-review/scripts/validate-adr.test.mjs", "expected": "# pass 8\n# fail 0"},
@@ -256,7 +256,7 @@ ex_cr = {
 ## Verdict
 BLOCK
 
-$ node .claude/skills/code-review/scripts/validate-findings.mjs /tmp/review.md --repo . --case ...#cr-01-jpql-concat-entity-return
+$ node .claude/skills/code-review/scripts/validate-findings.mjs /tmp/review.md --repo . --case skills/code-review/tests/cases.json#cr-01-jpql-concat-entity-return
 OK  10 findings {"critical":1,"high":5,"medium":2,"low":2,"info":0} verdict=BLOCK case=cr-01-jpql-concat-entity-return""",
  "testCases": [
   {"name": "Patch applies to the unmodified sample app", "input": "cd AI-SDLC && git apply --check -v --directory=\"$(git rev-parse --show-prefix)\" .claude/skills/code-review/examples/patient-by-name.patch", "expected": "Checking patch .../PatientController.java...\nChecking patch .../PatientNameSearch.java...\nexit code 0"},
@@ -265,7 +265,7 @@ OK  10 findings {"critical":1,"high":5,"medium":2,"low":2,"info":0} verdict=BLOC
   {"name": "Reference review passes its golden case", "input": "node .claude/skills/code-review/scripts/validate-findings.mjs .claude/skills/code-review/examples/expected-review-patient-by-name.md --case skills/code-review/tests/cases.json#cr-01-jpql-concat-entity-return", "expected": "OK  10 findings {\"critical\":1,\"high\":5,\"medium\":2,\"low\":2,\"info\":0} verdict=BLOCK case=cr-01-jpql-concat-entity-return"},
   {"name": "The project skill answers /code-review", "input": "claude -p \"/code-review\" --output-format json | jq -r '.result' | grep -c '^| CR-'", "expected": "A number >= 1 and headings `## Findings` / `## Verdict`; the bundled review's free-form output would contain no `CR-` ids."},
   {"name": "Reviewer cannot edit while reviewing", "input": "grep '^disallowed-tools:' .claude/skills/code-review/SKILL.md", "expected": "disallowed-tools: Edit Write NotebookEdit"},
-  {"name": "False-positive control", "input": "Apply skills/code-review/tests/patches/test-only-empty-identifier-search.patch, run /code-review, validate with --case ...#cr-06-clean-test-only-change", "expected": "Verdict APPROVE and no finding above low; exit code 0."},
+  {"name": "False-positive control", "input": "Apply skills/code-review/tests/patches/test-only-empty-identifier-search.patch, run /code-review, validate with `node .claude/skills/code-review/scripts/validate-findings.mjs /tmp/review.md --repo . --case skills/code-review/tests/cases.json#cr-06-clean-test-only-change`", "expected": "Verdict APPROVE and no finding above low; exit code 0."},
  ],
  "evaluationCriteria": [
   "Finds the JPQL concatenation as critical security and cites `coding-standards.md#6`.",
@@ -315,7 +315,7 @@ ex_ts = {
 | TC-10 | edge | MockMvc + H2 | `ObservationLastnTest#lastnPrefersDatedObservationOverUndated` | undated 99, dated 80 | value 80 | new-failing |
 | TC-18 | regression | MockMvc + H2 | `ObservationApiTest#lastnReturnsMostRecentObservationPerSubject` | existing guard | keeps passing | existing |
 
-$ node .claude/skills/test-strategy/scripts/validate-test-plan.mjs /tmp/lastn-plan.md --repo . --case ...#ts-01-lastn-endpoint
+$ node .claude/skills/test-strategy/scripts/validate-test-plan.mjs /tmp/lastn-plan.md --repo . --case skills/test-strategy/tests/cases.json#ts-01-lastn-endpoint
 OK  18 cases {"unit":2,"integration":1,"api":2,"negative":2,"edge":5,"performance":2,"security":3,"regression":1} {"existing":1,"new":13,"new-failing":4} findings=6 case=ts-01-lastn-endpoint
 
 $ (copy both example classes into a scratch copy of sample-app) mvn -q -B test
@@ -328,7 +328,7 @@ $ (remove the three @Disabled lines) mvn -q -B test -Dtest=ObservationLastnTest
 [ERROR]   ObservationLastnTest.lastnReturnsOneEntryPerDistinctSubject:128 JSON path "$.total" expected:<1> but was:<2>""",
  "testCases": [
   {"name": "Validator unit tests pass", "input": "cd AI-SDLC && node --test .claude/skills/test-strategy/scripts/validate-test-plan.test.mjs", "expected": "# pass 9\n# fail 0"},
-  {"name": "Reference plan is valid against the real test sources", "input": "node .claude/skills/test-strategy/scripts/validate-test-plan.mjs .claude/skills/test-strategy/examples/lastn-test-plan.md --repo .", "expected": "OK  18 cases ... {\"existing\":1,\"new\":13,\"new-failing\":4} findings=6"},
+  {"name": "Reference plan is valid against the real test sources", "input": "node .claude/skills/test-strategy/scripts/validate-test-plan.mjs .claude/skills/test-strategy/examples/lastn-test-plan.md --repo .", "expected": "OK  18 cases {\"unit\":2,\"integration\":1,\"api\":2,\"negative\":2,\"edge\":5,\"performance\":2,\"security\":3,\"regression\":1} {\"existing\":1,\"new\":13,\"new-failing\":4} findings=6"},
   {"name": "Plan does not invent existing tests", "input": "Generated plan validated with --repo .", "expected": "No `FAIL test case TC-..: marked existing but ... is not in sample-app/src/test/java` lines. The only existing $lastn test is `ObservationApiTest#lastnReturnsMostRecentObservationPerSubject`."},
   {"name": "Example tests compile and pass with defects disabled", "input": "cp -r sample-app /tmp/sa && cp .claude/skills/test-strategy/examples/ObservationLastnTest.java /tmp/sa/src/test/java/org/example/fhir/ && mkdir -p /tmp/sa/src/test/java/org/example/fhir/service && cp .claude/skills/test-strategy/examples/ObservationServiceLastnTest.java /tmp/sa/src/test/java/org/example/fhir/service/ && (cd /tmp/sa && mvn -q -B test)", "expected": "Exit code 0; 41 tests run, 3 skipped, 0 failures."},
   {"name": "Disabled tests really detect the defects", "input": "In /tmp/sa: sed -i 's/^    @Disabled(.*)$//' src/test/java/org/example/fhir/ObservationLastnTest.java && mvn -q -B test -Dtest=ObservationLastnTest", "expected": "3 failures: expected:<80> but was:<99>; Status expected:<400> but was:<200>; expected:<1> but was:<2>."},

@@ -403,6 +403,10 @@ export function verify(root, opts = {}) {
   }
 
   // guard-reach
+  // agents/tool-guard.mjs rewrites absolute paths inside the project to relative form before
+  // matching, so a relative prefix also covers the ${CLAUDE_SKILL_DIR}-expanded absolute call.
+  const guardNormalizes = exists(join("agents", "tool-guard.mjs")) &&
+    /export function normalizeSegment\b/.test(read(join("agents", "tool-guard.mjs")));
   for (const [name, prefixes] of Object.entries(guards)) {
     const fm = agents[name];
     const skills = fm ? (Array.isArray(fm.fields.skills) ? fm.fields.skills : splitTools(fm.fields.skills)) : [];
@@ -423,9 +427,9 @@ export function verify(root, opts = {}) {
         const want = `${s}/${script}`;
         const hit = prefixes.find((pfx) => pfx.startsWith("node ") && pfx.includes(want));
         if (!hit) add("FAIL", "guard-reach", `${name}: preloaded skill ${s} runs ${want}, but ${name}'s tool-guard bash-allow list has no "node .claude/skills/${want}" prefix, so the PreToolUse hook blocks it (exit 2)`);
-        else if (viaSkillDir.has(script) && !hit.includes("CLAUDE_SKILL_DIR") && !hit.startsWith("node /"))
+        else if (viaSkillDir.has(script) && !guardNormalizes && !hit.includes("CLAUDE_SKILL_DIR") && !hit.startsWith("node /"))
           add("WARN", "guard-reach", `${name}: ${s} invokes ${script} as \${CLAUDE_SKILL_DIR}/${script}; the guard prefix "${hit}" is relative and matched literally, so the call passes only if the agent runs the relative form`);
-        else add("PASS", "guard-reach", `${name}: ${want} allowed by its Bash guard`);
+        else add("PASS", "guard-reach", `${name}: ${want} allowed by its Bash guard${viaSkillDir.has(script) ? " (relative and ${CLAUDE_SKILL_DIR} forms)" : ""}`);
       }
     }
   }

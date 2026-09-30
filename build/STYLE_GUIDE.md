@@ -90,7 +90,7 @@ AI-SDLC/
 └── sample-app/                       # Java 21 Spring Boot FHIR-lite API (real, tested)
 ```
 
-Run artifacts (handoffs) go to `AI-SDLC/.ai-sdlc/runs/<run-id>/NN-<agent>.md` (git-ignored).
+Run artifacts (handoffs) go to `AI-SDLC/.ai-sdlc/runs/<run-id>/NN-<agent>.md` (or `NN-<skill>.md` for a step the orchestrator runs itself with a skill; see `AI-SDLC/workflows/README.md`) (git-ignored).
 
 **File ownership (prevents collisions between parallel writers):** each writer only creates files listed in its brief. If you need a file owned by another writer, reference it by path; do not write it. Shared files (`CLAUDE.md`, `.claude/settings.json`, `.mcp.json`) are owned by the orchestrator (Phase 0) and specific writers named in their briefs; others may *reference* them and propose additions in their module text.
 
@@ -128,4 +128,4 @@ next: developer
 - Resources: `Patient` (identifier MRN, name family/given, gender, birthDate, active) and `Observation` (status, code LOINC, subject `Patient/{id}`, effectiveDateTime, valueQuantity).
 - Errors are FHIR `OperationOutcome`.
 - PHI = anything identifying a patient. PHI must never appear in logs, prompts sent to external tools, eval datasets, or commit messages. Use synthetic data only (e.g. MRN `MRN-000123`, patient "Test Patient").
-- The sample app contains exactly one planted teaching defect (`perf-n+1`) and three real, discovered defects D-01..D-04, all listed in `AI-SDLC/sample-app/docs/KNOWN_DEFECTS.md`. Any other defect used in an exercise must be introduced by the exercise itself via a starting file or patch, and clearly labelled.
+- The sample app contains exactly one planted teaching defect (`perf-n+1`) and four real, discovered defects D-01..D-04, all listed in `AI-SDLC/sample-app/docs/KNOWN_DEFECTS.md`. Any other defect used in an exercise must be introduced by the exercise itself via a starting file or patch, and clearly labelled.

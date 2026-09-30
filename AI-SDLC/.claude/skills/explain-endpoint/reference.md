@@ -17,7 +17,7 @@ All Java paths are under `sample-app/src/main/java/org/example/fhir/`.
 | Schema and indexes | `src/main/resources/db/migration/V1__init.sql` (under `sample-app/`) | Tables `patient`, `observation`; `uq_patient_mrn`, `ix_patient_family_name`, `ix_observation_patient_code (patient_id, code)`; `ON DELETE CASCADE` from observation to patient. |
 | Audit | `audit/AuditLogger.java` | `record(Action, type, id)` and `recordSearch(type, count)`; ids and counts only. |
 | Tests | `sample-app/src/test/java/org/example/fhir/` | `PatientApiTest`, `ObservationApiTest`, `SecurityTest`; helpers in `ApiTestSupport`. |
-| Known defect | `sample-app/docs/KNOWN_DEFECTS.md` | `TEACHING-DEFECT(perf-n+1)` in `ObservationService.lastN`. |
+| Known defects | `sample-app/docs/KNOWN_DEFECTS.md` | Planted `TEACHING-DEFECT(perf-n+1)` in `ObservationService.lastN`; discovered D-01..D-04 (D-02 and D-03 are also in `lastN`). |
 
 ## From Spring Data method names to SQL
 

@@ -7,7 +7,7 @@ A small but real Java 21 / Spring Boot 3 reference service exposing a **FHIR-lit
 `code.coding`, `subject.reference`, `valueQuantity`, `Bundle`, `OperationOutcome`) without
 depending on HAPI FHIR.
 
-> One defect is planted on purpose for exercises. See [docs/KNOWN_DEFECTS.md](docs/KNOWN_DEFECTS.md).
+> One defect (`perf-n+1`) is planted on purpose for exercises, and four real defects found by the course agents (D-01..D-04) are left in place. See [docs/KNOWN_DEFECTS.md](docs/KNOWN_DEFECTS.md).
 
 ## Layout
 

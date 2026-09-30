@@ -20,4 +20,6 @@ This policy applies to code, logs, prompts, eval datasets, commit messages, and 
 - Authorization is enforced server-side per endpoint; never trust client-supplied role claims.
 
 ## Review severities
-`critical` (exploitable now, PHI exposure, auth bypass) · `high` (exploitable with effort, missing authZ on a write path) · `medium` (defence-in-depth gap) · `low` (hardening) · `info`.
+`critical` (exploitable now, PHI disclosed outside the service or to an unauthorized party, auth bypass) · `high` (exploitable with effort, PHI written to an internal sink such as application logs or traces, missing authZ on a write path) · `medium` (defence-in-depth gap) · `low` (hardening) · `info`.
+
+PHI rule used by every skill, agent and eval in this repo: PHI in logs, traces or error logs is `high`; it becomes `critical` when the PHI also leaves the service (returned to a caller who should not see it, sent to an external system, MCP server or prompt) or the path is reachable without authentication.

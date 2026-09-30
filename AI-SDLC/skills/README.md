@@ -29,23 +29,23 @@ Why two folders: `.claude/skills/<name>/` is loaded into context, so everything 
 
 | Skill | Purpose | Owner | Preloaded by | Invoked from | Library entry |
 |---|---|---|---|---|---|
-| `explain-endpoint` | Explain one endpoint end to end with file:line citations | @example-org/fhir-platform | none | `/explain-endpoint` | runtime only |
-| `run-tests` | Run `mvn -q -B test` and summarise failures | @example-org/fhir-platform | developer, tester | `/run-tests` | runtime only |
+| `explain-endpoint` | Explain one endpoint end to end with file:line citations | @example-org/fhir-platform | none | `/explain-endpoint` | `skills/explain-endpoint/` |
+| `run-tests` | Run `mvn -q -B test` and summarise failures | @example-org/fhir-platform | developer, tester | `/run-tests` | `skills/run-tests/` |
 | `architecture-review` | Requirement vs architecture: options, trade-offs, risks, ADR | @example-org/architecture | architect | `/feature` workflow | `skills/architecture-review/` |
 | `code-review` | Diff review against `context/standards/` with canonical findings | @example-org/fhir-platform | reviewer | `/code-review` (replaces the bundled one here) | `skills/code-review/` |
 | `test-strategy` | Test plan and missing-test analysis for a change | @example-org/qa | tester | `/feature`, `/bug-fix` | `skills/test-strategy/` |
 | `security-review` | AuthN/Z, PHI, secrets, injection, dependencies, logging | @example-org/appsec | security | `/security-review` (replaces the bundled one here) | `skills/security-review/` |
 | `performance-review` | N+1, unbounded queries, pagination, resource limits | @example-org/sre | sre | `/incident`, `/feature` | `skills/performance-review/` |
 | `production-rca` | Root-cause analysis from logs, metrics and code | @example-org/sre | sre | `/incident` | `skills/production-rca/` |
-| `ticket-intake` | Jira ticket to a PHI-free requirements handoff | @example-org/fhir-platform | none | `/ticket-intake` | runtime only |
-| `feature` | Feature-delivery workflow entry point | @example-org/ai-governance | none | `/feature` | runtime only |
-| `bug-fix` | Bug-fix workflow entry point | @example-org/ai-governance | none | `/bug-fix` | runtime only |
-| `incident` | Incident-response workflow entry point | @example-org/ai-governance | none | `/incident` | runtime only |
-| `requirements` | Requirements handoff from a request | @example-org/ai-governance | none | `/requirements` | runtime only |
-| `implementation-plan` | Implementation plan for the developer agent | @example-org/ai-governance | none | `/implementation-plan` | runtime only |
+| `ticket-intake` | Jira ticket to a PHI-free requirements handoff | @example-org/fhir-platform | none | `/ticket-intake` | `skills/ticket-intake/` |
+| `feature` | Feature-delivery workflow entry point | @example-org/ai-governance | none | `/feature` | `skills/feature/` |
+| `bug-fix` | Bug-fix workflow entry point | @example-org/ai-governance | none | `/bug-fix` | `skills/bug-fix/` |
+| `incident` | Incident-response workflow entry point | @example-org/ai-governance | none | `/incident` | `skills/incident/` |
+| `requirements` | Requirements handoff from a request | @example-org/ai-governance | none | `/requirements` | `skills/requirements/` |
+| `implementation-plan` | Implementation plan for the developer agent | @example-org/ai-governance | none | `/implementation-plan` | `skills/implementation-plan/` |
 | `skill-library-check` | Run this policy's validator | @example-org/ai-governance | none | `/company-ai:skill-library-check` | plugin-native (`company-ai/skills/`) |
 
-Current versions come from each `CHANGELOG.md`; the validator prints them. They are not repeated here so this index never goes stale. "runtime only" skills get a library entry before they are promoted into the `company-ai` plugin; the validator lists them as warnings.
+Current versions come from each `CHANGELOG.md`; the validator prints them. They are not repeated here so this index never goes stale. Every runtime skill has a library entry; a new runtime skill without one is reported by the validator as a warning (and fails `--strict`) until its `skills/<name>/` folder exists.
 
 ## Policy
 

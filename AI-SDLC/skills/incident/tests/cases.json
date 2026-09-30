@@ -1,0 +1,36 @@
+{
+  "skill": "incident",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/incident. `deterministic` cases run from AI-SDLC/ without a model; `live` cases need a headless Claude Code session.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "Run each deterministic case's input in a shell and compare with expect.",
+    "Live cases: claude -p \"<case.input>\" --output-format json | jq -r '.result'"
+  ],
+  "cases": [
+    {
+      "id": "in-01-reference-run-valid",
+      "kind": "deterministic",
+      "input": "node .claude/hooks/check-handoff.mjs docs/capstone/example-runs/incident-lastn-latency | grep -c PASS",
+      "expect": "8 (01-incident-brief through 08-run-report)."
+    },
+    {
+      "id": "in-02-mitigation-is-human",
+      "kind": "deterministic",
+      "input": "grep -E '^(status|next):' docs/capstone/example-runs/incident-lastn-latency/02-sre.md",
+      "expect": "status: needs-human\nnext: human"
+    },
+    {
+      "id": "in-03-cluster-guard",
+      "kind": "deterministic",
+      "input": "grep -nE 'kubectl (apply|delete)' .claude/settings.json",
+      "expect": "`Bash(kubectl apply *)` in the ask list and `Bash(kubectl delete *)` in the deny list."
+    },
+    {
+      "id": "in-04-live-lastn-latency",
+      "kind": "live",
+      "input": "/incident INC-TEST-01 p95 of GET /fhir/Observation/$lastn above 2 s since 07:40 UTC",
+      "expect": "The sre handoff names the per-subject query loop in ObservationService.lastN as root cause; security is skipped with a recorded reason; only read-only kubectl commands run."
+    }
+  ]
+}

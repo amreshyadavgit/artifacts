@@ -120,12 +120,15 @@ run-tests skill pre-approves exactly the commands it needs:
 allowed-tools:
   - Bash(mvn -q -B test)
   - Bash(mvn -q -B test *)
-  - Bash(node .claude/skills/run-tests/scripts/summarize-surefire.mjs *)
+  - Bash(node ${CLAUDE_SKILL_DIR}/scripts/summarize-surefire.mjs *)
   - Bash(date *)
   - Bash(git status *)
 ```
 
-Use the YAML list form here: the rules themselves contain spaces.
+Use the YAML list form here: the rules themselves contain spaces. Claude Code substitutes
+`${CLAUDE_SKILL_DIR}` (the directory holding this `SKILL.md`) both in the body and in `allowed-tools`
+Bash rules, so the rule matches the exact command the body tells Claude to run, and the path still
+works when the skill is packaged into a plugin (module 10).
 
 Design choices worth copying:
 

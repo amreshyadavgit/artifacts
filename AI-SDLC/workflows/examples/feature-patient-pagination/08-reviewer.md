@@ -7,7 +7,7 @@ inputs: [03-implementation-plan.md, 05-tester.md, 06-security.md, 07-developer.m
 next: human
 ---
 ## Summary
-Reviewed `git diff main...HEAD` (7 files) with the `code-review` skill against the plan and `context/standards/`. TST-1 and SEC-1 are resolved (verified by `searchPageTotalCountsAllMatches` and `searchOffsetAbove10000Is400`). No critical or high findings; ready for human PR review.
+Reviewed `git diff main...HEAD` (7 files) with the `code-review` skill against the plan and `context/standards/`. TST-1 and SEC-1 are resolved (verified by `searchPageTotalCountsAllMatches` and `searchOffsetAbove10000Is400`). Verdict: APPROVE (no critical or high findings; not a merge approval). Ready for human PR review.
 
 ## Findings
 | id | severity | category | location | evidence | recommendation |
@@ -18,7 +18,7 @@ Reviewed `git diff main...HEAD` (7 files) with the `code-review` skill against t
 Checked and clean: correctness (paging arithmetic, last-page `next` omitted), design (layering per coding standard 1, no entity leaks), testing (6 new MockMvc tests, AC-1..AC-6 mapped), standards (validation via `FhirApiException`).
 
 ## Decisions
-- Verdict: approve with comments. CR-1 and CR-2 are non-blocking.
+- Verdict: APPROVE with two non-blocking findings (CR-1, CR-2). `APPROVE` means no blocking findings from this review; only a human approves the PR.
 
 ## Open questions
 None.

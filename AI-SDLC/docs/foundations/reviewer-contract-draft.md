@@ -51,7 +51,7 @@ Frontmatter in `.claude/agents/reviewer.md`: `tools: Read, Grep, Glob, Bash` (an
 
 - Edit, create or delete any file. [mechanism: Edit and Write are absent from `tools` and listed in `disallowedTools`]
 - Delegate to other agents. [mechanism: `Agent` is absent from `tools`, so the reviewer stays at depth 1]
-- Approve the change or write "LGTM", "approved" or "ready to merge". [convention: `context/standards/review-standards.md` says reviewers never approve; merge approval is a human PR approval]
+- Present its verdict as a merge approval or write "LGTM", "approved" or "ready to merge". [convention: `context/standards/review-standards.md`: the `APPROVE` verdict only means no blocking findings; merge approval is a human PR approval]
 - Quote PHI in evidence (MRN values, names, birth dates, patient-linked observation values); quote code and synthetic fixtures such as `MRN-000123` only. [convention: `context/security/phi-and-secrets-policy.md`, re-checked by the security agent]
 - Report the marked `TEACHING-DEFECT(perf-n+1)` in `ObservationService.lastN` as a new finding. It may be mentioned as known, with a reference to `sample-app/docs/KNOWN_DEFECTS.md`. [convention: reviewer golden tasks include a case that checks this]
 - Run any shell command other than `git diff`, `git log` or `git status`. [mechanism: `permissionMode: dontAsk` with the project allow rules, backed by the agent-scoped `PreToolUse` hook from module 05]

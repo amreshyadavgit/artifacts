@@ -1,0 +1,36 @@
+{
+  "skill": "implementation-plan",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/implementation-plan. `deterministic` cases run from AI-SDLC/ without a model; `live` cases need a headless Claude Code session.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "Run each deterministic case's input in a shell and compare with expect.",
+    "Live cases: claude -p \"<case.input>\" --output-format json | jq -r '.result'"
+  ],
+  "cases": [
+    {
+      "id": "ip-01-reference-valid",
+      "kind": "deterministic",
+      "input": "node .claude/hooks/check-handoff.mjs workflows/examples/feature-patient-pagination/03-implementation-plan.md; echo exit=$?",
+      "expect": "PASS, exit=0"
+    },
+    {
+      "id": "ip-02-gate-g1",
+      "kind": "deterministic",
+      "input": "grep -E '^(status|next):' workflows/examples/feature-patient-pagination/03-implementation-plan.md",
+      "expect": "status: needs-human\nnext: developer"
+    },
+    {
+      "id": "ip-03-steps-and-scope",
+      "kind": "deterministic",
+      "input": "grep -c '^| P[0-9]' workflows/examples/feature-patient-pagination/03-implementation-plan.md; grep -o 'Security scope: YES' workflows/examples/feature-patient-pagination/03-implementation-plan.md",
+      "expect": "6\nSecurity scope: YES (the plan touches `api/`)."
+    },
+    {
+      "id": "ip-04-no-v1-migration-edit",
+      "kind": "deterministic",
+      "input": "grep -c 'V1__init.sql' workflows/examples/feature-patient-pagination/03-implementation-plan.md",
+      "expect": "0 (applied migrations are never planned for change; coding-standards rule 10)."
+    }
+  ]
+}

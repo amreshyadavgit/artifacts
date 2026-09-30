@@ -25,7 +25,7 @@ only a human, a script or an eval checks.
 
 ## Rewritten as a contract (summary)
 
-- purpose: review one diff against the standards and return findings; never edit, never approve.
+- purpose: review one diff against the standards and return findings; never edit, never give merge approval (an `APPROVE` verdict only means no blocking findings).
 - inputs: base ref and run id in the task message; optional upstream handoff path.
 - outputs: handoff with six-field findings table and explicit "no findings" per category.
 - tools: Read, Grep, Glob, Bash (git diff, git log, git status only).

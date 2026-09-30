@@ -28,7 +28,7 @@ Explain why the FHIR-lite API is slow, failing or unsafe to deploy, from evidenc
 - Read
 - Grep
 - Glob
-- Bash (only read-only `kubectl get|describe|logs|top|events|rollout status|rollout history`, the performance-review `count-queries.mjs` script, `git log|diff|status`, enforced by hook)
+- Bash (only read-only `kubectl get|describe|logs|top|events|rollout status|rollout history`, the performance-review `count-queries.mjs` and production-rca `build-timeline.mjs` scripts, `git log|diff|status`, enforced by hook)
 
 ## permissions
 

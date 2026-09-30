@@ -1,5 +1,5 @@
 ---
-run_id: <YYYY-MM-DD>-<ticket-key-lowercase>
+run_id: <YYYY-MM-DD>-<feat|bug>-<ticket-key-lowercase>
 step: 00
 agent: orchestrator
 status: <complete | blocked | needs-human>

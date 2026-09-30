@@ -1,0 +1,36 @@
+{
+  "skill": "run-tests",
+  "skillVersion": "1.0.0",
+  "description": "Golden cases for .claude/skills/run-tests. `deterministic` cases run from AI-SDLC/ without a model; `live` cases need a headless Claude Code session.",
+  "howToRun": [
+    "cd AI-SDLC",
+    "Run each deterministic case's input in a shell and compare with expect.",
+    "Live cases: claude -p \"<case.input>\" --output-format json | jq -r '.result'"
+  ],
+  "cases": [
+    {
+      "id": "rt-01-unit-tests",
+      "kind": "deterministic",
+      "input": "node --test .claude/skills/run-tests/scripts/summarize-surefire.test.mjs",
+      "expect": "# pass 6, # fail 0"
+    },
+    {
+      "id": "rt-02-green-suite",
+      "kind": "deterministic",
+      "input": "(cd sample-app && mvn -q -B test) ; node .claude/skills/run-tests/scripts/summarize-surefire.mjs | head -3",
+      "expect": "`## Test summary: PASS` and `25 tests: 25 passed, 0 failed, 0 errors, 0 skipped (3 suites, ...)`"
+    },
+    {
+      "id": "rt-03-no-reports",
+      "kind": "deterministic",
+      "input": "node .claude/skills/run-tests/scripts/summarize-surefire.mjs /nonexistent; echo exit=$?",
+      "expect": "`## Test summary: NO REPORTS` and exit=2 (never a fake PASS)."
+    },
+    {
+      "id": "rt-04-regression",
+      "kind": "deterministic",
+      "input": "git apply docs/tutorials/level-2/patches/02-clinician-delete-regression.patch; (cd sample-app && mvn -q -B test -Dtest=SecurityTest); node .claude/skills/run-tests/scripts/summarize-surefire.mjs --strict; git apply -R docs/tutorials/level-2/patches/02-clinician-delete-regression.patch",
+      "expect": "`1. SecurityTest.clinicianCannotDelete` with `Status expected:<403> but was:<204>` at SecurityTest.java:33; non-zero exit."
+    }
+  ]
+}
