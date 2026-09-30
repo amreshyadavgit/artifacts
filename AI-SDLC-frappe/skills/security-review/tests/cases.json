@@ -1,0 +1,225 @@
+{
+  "skill": "security-review",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Apply input.patch (if any) with `git apply` from AI-SDLC-frappe/, run claude -p \"<input.invoke>\" --permission-mode plan --output-format json --json-schema \"$(cat .claude/skills/security-review/report.schema.json)\", compare .structured_output with expect, then `git checkout -- sample-app`.",
+    "deterministic": "Run input.command from AI-SDLC-frappe/ and compare the exit code and output with expect.",
+    "bench": "Needs the bench and the shared lock (see .claude/skills/security-review/probes/RUN.md); compare the printed PROBE lines with expect."
+  },
+  "matching": {
+    "minSeverity": "finding severity is at least this level (critical > high > medium > low > info)",
+    "maxSeverity": "no finding above this level",
+    "locationContains": "substring of finding.location",
+    "evidenceContains": "substring of finding.evidence (case-insensitive)"
+  },
+  "cases": [
+    {
+      "id": "sec-01-baseline-sample-app",
+      "kind": "live",
+      "title": "Full review of the unmodified app finds the get_all bypass, the two PHI sinks, and no injection",
+      "input": {
+        "setup": "none",
+        "invoke": "/security-review sample-app/"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "authz",
+            "minSeverity": "high",
+            "locationContains": "api/fhir.py:17",
+            "evidenceContains": "frappe.get_all",
+            "cwe": "CWE-863"
+          },
+          {
+            "category": "phi",
+            "minSeverity": "high",
+            "locationContains": "api/fhir.py",
+            "evidenceContains": "Error Log"
+          },
+          {
+            "category": "phi",
+            "minSeverity": "high",
+            "locationContains": "api/fhir.py:6",
+            "evidenceContains": "GET"
+          }
+        ],
+        "mustNotFind": [
+          {
+            "category": "injection"
+          },
+          {
+            "category": "authn",
+            "minSeverity": "medium"
+          },
+          {
+            "category": "secrets",
+            "minSeverity": "high"
+          }
+        ],
+        "checkedCleanIncludes": [
+          "injection",
+          "authn"
+        ]
+      },
+      "answerKey": "skills/security-review/tests/expected/sample-app-report.json"
+    },
+    {
+      "id": "sec-02-fstring-sql",
+      "kind": "live",
+      "title": "EXERCISE-INTRODUCED: an f-string frappe.db.sql search is critical injection",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/spice_lite/spice_lite/api/fhir.py\n+++ b/sample-app/spice_lite/spice_lite/api/fhir.py\n@@ -185,3 +185,9 @@\n \n \tlog_access(\"lastn\", \"SL Observation\", [r[\"id\"] for r in results], result_count=len(results))\n \treturn bundle(results)\n+\n+\n+@frappe.whitelist(methods=[\"GET\"])\n+def search_family_fast(family: str):\n+\t# EXERCISE-INTRODUCED defect for security-review sec-02\n+\treturn frappe.db.sql(f\"select name from `tabSL Patient` where last_name = '{family}'\", pluck=True)\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "injection",
+            "minSeverity": "critical",
+            "locationContains": "api/fhir.py:19",
+            "cwe": "CWE-89"
+          },
+          {
+            "category": "authz",
+            "minSeverity": "high",
+            "evidenceContains": "frappe.db.sql"
+          }
+        ]
+      },
+      "notes": "probes/test_security_probes.py probe 7 shows the effect: unsafe_rows=10 safe_rows=0 total_patients=10."
+    },
+    {
+      "id": "sec-03-allow-guest",
+      "kind": "live",
+      "title": "EXERCISE-INTRODUCED: allow_guest on get_patient is critical",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/spice_lite/spice_lite/api/fhir.py\n+++ b/sample-app/spice_lite/spice_lite/api/fhir.py\n@@ -45,7 +45,7 @@\n \treturn _error(403, \"forbidden\", _(\"Not permitted to {0} {1}\").format(ptype, doctype))\n \n \n-@frappe.whitelist(methods=[\"GET\"])\n+@frappe.whitelist(methods=[\"GET\"], allow_guest=True)\n def get_patient(name: str):\n \tif not frappe.has_permission(\"SL Patient\", \"read\"):\n \t\treturn _forbidden(\"SL Patient\")\n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "authn",
+            "minSeverity": "critical",
+            "locationContains": "api/fhir.py:48",
+            "evidenceContains": "allow_guest"
+          }
+        ]
+      },
+      "notes": "test_whitelisted_methods_are_not_guest_accessible fails with this patch, which the review may cite."
+    },
+    {
+      "id": "sec-04-form-dict-logger",
+      "kind": "live",
+      "title": "EXERCISE-INTRODUCED: frappe.logger(with_more_info=True) in search_patients writes search terms to frappe.log",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/spice_lite/spice_lite/api/fhir.py\n+++ b/sample-app/spice_lite/spice_lite/api/fhir.py\n@@ -89,6 +89,7 @@\n \t)\n \t# audit: names + count only. NEVER the search terms (a family name is PHI).\n \tlog_access(\"search\", \"SL Patient\", [r.name for r in rows], result_count=len(rows))\n+\tfrappe.logger(with_more_info=True).warning(\"search_patients returned %s rows\", len(rows))\n \treturn bundle([patient_to_fhir(r) for r in rows])\n \n \n"
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "phi",
+            "minSeverity": "high",
+            "locationContains": "api/fhir.py:92",
+            "evidenceContains": "with_more_info",
+            "cwe": "CWE-532"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sec-05-clinician-delete",
+      "kind": "live",
+      "title": "EXERCISE-INTRODUCED: granting delete on SL Observation to Clinician is a permissions-array change",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "Edit sample-app/spice_lite/spice_lite/clinical/doctype/sl_observation/sl_observation.json: in the permissions entry with \"role\": \"Clinician\" add \"delete\": 1."
+      },
+      "expect": {
+        "verdict": "block",
+        "mustFind": [
+          {
+            "category": "authz",
+            "minSeverity": "high",
+            "locationContains": "sl_observation.json",
+            "evidenceContains": "delete"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sec-06-negative-control-docstring",
+      "kind": "live",
+      "title": "Negative control: a docstring-only diff has no finding above low",
+      "input": {
+        "setup": "patch",
+        "invoke": "/security-review diff",
+        "patch": "--- a/sample-app/spice_lite/spice_lite/api/fhir.py\n+++ b/sample-app/spice_lite/spice_lite/api/fhir.py\n@@ -139,7 +139,7 @@\n \n @frappe.whitelist(methods=[\"GET\"])\n def lastn(subjects, code: str | None = None):\n-\t\"\"\"Latest Observation per patient (FHIR `$lastn` with max=1), as a Bundle.\"\"\"\n+\t\"\"\"Latest Observation per patient (FHIR `$lastn` with max=1), returned as a searchset Bundle.\"\"\"\n \ttry:\n \t\tsubject_list = parse_subjects(subjects)\n \texcept ValueError:\n"
+      },
+      "expect": {
+        "verdict": "pass",
+        "maxSeverity": "low",
+        "limitationsMentionDiffOnly": true
+      }
+    },
+    {
+      "id": "sec-07-renderer-tests",
+      "kind": "deterministic",
+      "title": "Renderer: schema, counts, verdict, PHI and token guards, --fail-on",
+      "input": {
+        "command": "node --test skills/security-review/tests/render-report.test.mjs"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 7",
+          "# fail 0"
+        ]
+      }
+    },
+    {
+      "id": "sec-08-answer-key-gates",
+      "kind": "deterministic",
+      "title": "The answer key blocks a CI step with --fail-on high",
+      "input": {
+        "command": "node .claude/skills/security-review/scripts/render-report.mjs skills/security-review/tests/expected/sample-app-report.json --fail-on high > /dev/null"
+      },
+      "expect": {
+        "exitCode": 1,
+        "stderrContains": [
+          "3 finding(s) at or above high: SEC-001, SEC-002, SEC-003"
+        ]
+      }
+    },
+    {
+      "id": "sec-09-probes-confirm-findings",
+      "kind": "bench",
+      "title": "The probes reproduce SEC-001, SEC-002, SEC-006 and SEC-008 on the real app",
+      "input": {
+        "command": "see .claude/skills/security-review/probes/RUN.md (copy, run --module spice_lite.tests.test_security_probes, delete)"
+      },
+      "expect": {
+        "stdoutContains": [
+          "Ran 7 tests",
+          "OK",
+          "lastn_returned=",
+          "value_in_error_log_traceback=True",
+          "existing_but_forbidden=403 not_existing=404",
+          "last_name_in_version=True",
+          "create_status=403"
+        ]
+      }
+    }
+  ]
+}

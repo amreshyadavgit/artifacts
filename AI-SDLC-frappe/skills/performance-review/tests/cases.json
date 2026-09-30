@@ -1,0 +1,158 @@
+{
+  "skill": "performance-review",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Apply input.patch (if any), run claude -p \"<input.invoke>\" --permission-mode plan --output-format json, compare the findings table in .result with expect, then revert.",
+    "deterministic": "Run input.command from AI-SDLC-frappe/ and compare exit code and output with expect.",
+    "bench": "Follow .claude/skills/performance-review/examples/lastn-fix/APPLY.md under the shared lock; compare the LASTN_QUERY_COUNT lines with expect."
+  },
+  "matching": {
+    "minSeverity": "finding severity is at least this level (critical > high > medium > low > info)",
+    "maxSeverity": "no finding above this level",
+    "locationContains": "substring of finding.location",
+    "evidenceContains": "substring of finding.evidence (case-insensitive)"
+  },
+  "cases": [
+    {
+      "id": "perf-01-lastn-baseline",
+      "kind": "live",
+      "title": "Finds the lastn N+1 with a measurement and proposes the set-based patch",
+      "input": {
+        "setup": "none",
+        "invoke": "/performance-review spice_lite.api.fhir.lastn"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "n+1",
+            "minSeverity": "high",
+            "locationContains": "api/fhir.py:1",
+            "evidenceContains": "frappe.get_doc"
+          }
+        ],
+        "resultContains": [
+          "2 queries per subject",
+          "lastn-set-based.patch",
+          "assertQueryCount"
+        ],
+        "mustNotRecommendFirst": "frappe.cache"
+      },
+      "answerKey": "skills/performance-review/tests/expected/sample-app-findings.md"
+    },
+    {
+      "id": "perf-02-count-in-loop",
+      "kind": "live",
+      "title": "EXERCISE-INTRODUCED: frappe.db.count per row in a roster endpoint is an N+1",
+      "input": {
+        "setup": "patch",
+        "invoke": "/performance-review diff",
+        "patch": "--- a/sample-app/spice_lite/spice_lite/api/fhir.py\n+++ b/sample-app/spice_lite/spice_lite/api/fhir.py\n@@ -185,3 +185,10 @@\n \n \tlog_access(\"lastn\", \"SL Observation\", [r[\"id\"] for r in results], result_count=len(results))\n \treturn bundle(results)\n+\n+\n+@frappe.whitelist(methods=[\"GET\"])\n+def encounter_counts(country: str):\n+\t# EXERCISE-INTRODUCED defect for performance-review perf-02\n+\trows = frappe.get_list(\"SL Patient\", filters={\"country\": country}, pluck=\"name\")\n+\treturn {name: frappe.db.count(\"SL Encounter\", {\"patient\": name}) for name in rows}\n"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "n+1",
+            "minSeverity": "high",
+            "locationContains": "api/fhir.py:19",
+            "evidenceContains": "frappe.db.count"
+          },
+          {
+            "category": "indexes",
+            "minSeverity": "medium",
+            "evidenceContains": "pg_indexes"
+          }
+        ]
+      },
+      "notes": "The second expected finding is the Postgres index trap: SL Encounter.patient and SL Patient.country have no index on test.localhost (KNOWN_DEFECTS.md D-6)."
+    },
+    {
+      "id": "perf-03-negative-control-after-fix",
+      "kind": "live",
+      "title": "Negative control: with lastn-set-based.patch applied there is no n+1 finding in lastn",
+      "input": {
+        "setup": "patch",
+        "invoke": "/performance-review spice_lite.api.fhir.lastn",
+        "patch": "file:.claude/skills/performance-review/examples/lastn-fix/lastn-set-based.patch (apply from sample-app/spice_lite)"
+      },
+      "expect": {
+        "mustNotFind": [
+          {
+            "category": "n+1",
+            "locationContains": "api/fhir.py"
+          }
+        ],
+        "resultContains": [
+          "3"
+        ]
+      }
+    },
+    {
+      "id": "perf-04-index-trap",
+      "kind": "live",
+      "title": "Reports search_index fields with no Postgres index",
+      "input": {
+        "setup": "none",
+        "invoke": "/performance-review sample-app/spice_lite/spice_lite/clinical/doctype/"
+      },
+      "expect": {
+        "mustFind": [
+          {
+            "category": "indexes",
+            "minSeverity": "medium",
+            "locationContains": "sl_encounter",
+            "evidenceContains": "patient"
+          }
+        ]
+      }
+    },
+    {
+      "id": "perf-05-helper-tests",
+      "kind": "deterministic",
+      "title": "count-queries.mjs: shapes, suspects, durations, masking, usage",
+      "input": {
+        "command": "node --test skills/performance-review/tests/count-queries.test.mjs"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 6",
+          "# fail 0"
+        ]
+      }
+    },
+    {
+      "id": "perf-06-helper-flags-real-log",
+      "kind": "deterministic",
+      "title": "The captured statements of the shipped lastn fail the N+1 gate",
+      "input": {
+        "command": "node .claude/skills/performance-review/scripts/count-queries.mjs .claude/skills/performance-review/examples/lastn-fix/sql-before.log --from LASTN_BEGIN --to LASTN_END --fail-on-suspect"
+      },
+      "expect": {
+        "exitCode": 1,
+        "stdoutContains": [
+          "statements: 40",
+          "<-- N+1 suspect"
+        ]
+      }
+    },
+    {
+      "id": "perf-07-before-after-on-bench",
+      "kind": "bench",
+      "title": "Query count 2/40/200 before, 3/3/3 after, full suite green, sample-app reverted",
+      "input": {
+        "command": "see .claude/skills/performance-review/examples/lastn-fix/APPLY.md"
+      },
+      "expect": {
+        "stdoutContains": [
+          "LASTN_QUERY_COUNT subjects=100 queries=200",
+          "LASTN_QUERY_COUNT subjects=100 queries=3",
+          "Ran 49 tests",
+          "OK"
+        ],
+        "afterRevert": "git status --short sample-app prints nothing"
+      }
+    }
+  ]
+}

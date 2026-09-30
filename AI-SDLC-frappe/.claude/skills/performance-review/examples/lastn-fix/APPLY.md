@@ -35,23 +35,23 @@ On the shared course bench, wrap steps 1 to 3 in one `flock /tmp/spice-bench.loc
 
 ```text
 === BEFORE (shipped app)
-AssertionError: 200 not less than or equal to 6 : Queries executed:
-Ran 3 tests in 8.356s
+AssertionError: 200 not less than or equal to 6 : statements per call: {1: 2, 20: 40, 100: 200}
+Ran 3 tests in 9.027s
 FAILED (failures=1)
 LASTN_QUERY_COUNT subjects=1 queries=2 rows_returned_by_sql=5
 LASTN_QUERY_COUNT subjects=20 queries=40 rows_returned_by_sql=100
 LASTN_QUERY_COUNT subjects=100 queries=200 rows_returned_by_sql=500
 === AFTER (patched)
-Ran 3 tests in 7.073s
+Ran 3 tests in 6.856s
 OK
 LASTN_QUERY_COUNT subjects=1 queries=3 rows_returned_by_sql=3
 LASTN_QUERY_COUNT subjects=20 queries=3 rows_returned_by_sql=60
 LASTN_QUERY_COUNT subjects=100 queries=3 rows_returned_by_sql=300
 === AFTER on MariaDB (mariadb.localhost)
-Ran 3 tests in 4.492s
+Ran 3 tests in 5.970s
 OK            (same three LASTN_QUERY_COUNT lines)
 === AFTER full app suite (46 shipped tests + the 3 above)
-Ran 49 tests in 10.159s
+Ran 49 tests in 10.309s
 OK
 ```
 

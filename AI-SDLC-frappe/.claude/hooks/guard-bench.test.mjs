@@ -9,6 +9,7 @@ const hook = join(dirname(fileURLToPath(import.meta.url)), "guard-bench.mjs");
 const cases = [
   { name: "run-tests on the test site passes through", cmd: "bench --site test.localhost run-tests --app spice_lite", expect: null },
   { name: "run-tests module inside su -c passes through", cmd: "su - frappe -c \"source ~/.spice-lite-bench-env && cd /home/user/frappe-bench && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api\"", expect: null },
+  { name: "CI=1 run-tests on the test site passes through", cmd: "cd /home/user/frappe-bench && CI=1 bench --site test.localhost run-tests --app spice_lite", expect: null },
   { name: "list-apps passes through", cmd: "cd /home/user/frappe-bench && bench --site test.localhost list-apps", expect: null },
   { name: "non-bench command is ignored", cmd: "git diff --stat", expect: null },
   { name: "the word bench as an argument is ignored", cmd: "grep -rn 'bench migrate' docs/", expect: null },

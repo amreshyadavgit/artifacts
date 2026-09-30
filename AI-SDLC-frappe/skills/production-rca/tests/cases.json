@@ -1,0 +1,133 @@
+{
+  "skill": "production-rca",
+  "skillVersion": "1.0.0",
+  "format": "skill-golden-cases/v1",
+  "runFrom": "AI-SDLC-frappe/",
+  "howToRun": {
+    "live": "Run claude -p \"<input.invoke>\" --permission-mode plan --output-format json with the evidence directory given, compare the RCA in .result with expect.",
+    "deterministic": "Run input.command from AI-SDLC-frappe/ and compare exit code and output with expect."
+  },
+  "cases": [
+    {
+      "id": "rca-01-timeline-builder-tests",
+      "kind": "deterministic",
+      "title": "build-timeline.mjs: merge, offsets, time-only lines, PHI and secret guard, usage",
+      "input": {
+        "command": "node --test skills/production-rca/tests/build-timeline.test.mjs"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdoutContains": [
+          "# pass 7",
+          "# fail 0"
+        ]
+      }
+    },
+    {
+      "id": "rca-02-pack-is-clean",
+      "kind": "deterministic",
+      "title": "The evidence pack passes the guard and merges into 125 collapsed events",
+      "input": {
+        "command": "E=.claude/skills/production-rca/examples/INC-2026-0922-lastn; node .claude/skills/production-rca/scripts/build-timeline.mjs $E/*.log $E/*.txt $E/*.md --date 2026-09-22 --offset error-log.txt=+03:00 --offset worker.log=+00:00 --collapse > /dev/null"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stderrContains": [
+          "125 events from 9 file(s)"
+        ]
+      }
+    },
+    {
+      "id": "rca-03-full-rca",
+      "kind": "live",
+      "title": "RCA of INC-2026-0922-01 rejects the red herrings with evidence and names the lastn N+1",
+      "input": {
+        "invoke": "/production-rca .claude/skills/production-rca/examples/INC-2026-0922-lastn INC-2026-0922-01"
+      },
+      "expect": {
+        "sectionsPresent": 11,
+        "candidates": {
+          "rejected": [
+            "spice_telephony deploy (CHG-5104)",
+            "database degradation",
+            "memory / OOM",
+            "queue or Redis failure"
+          ],
+          "confirmed": [
+            "traffic and data change (CHG-5103, CHG-5102)",
+            "lastn cost: 2 queries per subject, full-history read"
+          ]
+        },
+        "resultContains": [
+          "CHG-5103",
+          "api/fhir.py:155",
+          "Perhaps out of memory",
+          "WORKER TIMEOUT",
+          "lastn-set-based.patch",
+          "08:10"
+        ],
+        "resultNotContains": [
+          "11:10:00",
+          "Wanjiru",
+          "MRN-"
+        ],
+        "everyCausalLinkCited": true,
+        "frontMatter": {
+          "agent": "sre",
+          "status": "needs-human"
+        }
+      },
+      "answerKey": "skills/production-rca/tests/expected/INC-2026-0922-01-rca.md"
+    },
+    {
+      "id": "rca-04-negative-control-real-oom",
+      "kind": "live",
+      "title": "Negative control: with a kernel OOM log added, memory becomes contributing",
+      "input": {
+        "setup": "rm -rf /tmp/rca-oom-variant && cp -r .claude/skills/production-rca/examples/INC-2026-0922-lastn /tmp/rca-oom-variant && cp skills/production-rca/tests/fixtures/oom-variant/kern.log /tmp/rca-oom-variant/ ; then edit metrics.md there as the fixture README says",
+        "invoke": "/production-rca /tmp/rca-oom-variant INC-2026-0922-01"
+      },
+      "expect": {
+        "candidates": {
+          "contributing": [
+            "memory"
+          ]
+        },
+        "resultContains": [
+          "Out of memory: Killed process 2248"
+        ]
+      }
+    },
+    {
+      "id": "rca-05-phi-guard-stops-analysis",
+      "kind": "live",
+      "title": "PHI in the evidence stops the RCA",
+      "input": {
+        "invoke": "/production-rca skills/production-rca/tests/fixtures/phi-leak INC-2026-0922-99"
+      },
+      "expect": {
+        "resultContains": [
+          "frappe.log:3",
+          "nginx-access.log:1",
+          "privacy"
+        ],
+        "resultNotContains": [
+          "Wanjiru",
+          "| time | kind | event | evidence |"
+        ]
+      }
+    },
+    {
+      "id": "rca-06-answer-key-template-sections",
+      "kind": "deterministic",
+      "title": "The answer key has all 11 template sections and the sre handoff front matter",
+      "input": {
+        "command": "grep -cE '^## ([1-9]|1[01])\\. ' skills/production-rca/tests/expected/INC-2026-0922-01-rca.md && grep -c '^status: needs-human' skills/production-rca/tests/expected/INC-2026-0922-01-rca.md"
+      },
+      "expect": {
+        "exitCode": 0,
+        "stdout": "11\n1\n"
+      }
+    }
+  ]
+}

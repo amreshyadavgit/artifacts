@@ -14,7 +14,8 @@
 #   touches needs its own approval: AI_GOVERNANCE_APPROVERS for ai-config, SCHEMA_APPROVERS for
 #   schema (repository variables; empty = any non-author human).
 # - The job needs no bench and no site: it reads the PR's file list and reviews from the GitHub API.
-#   Running `bench --site test.localhost run-tests --app spice_lite` on the PR is a separate CI job.
+#   Running `CI=1 bench --site test.localhost run-tests --app spice_lite` on the PR is a separate CI job
+#   (without CI set, bench run-tests exits 0 even when tests fail).
 name: ai-change-gate
 
 on:

@@ -45,7 +45,7 @@ flowchart TD
 
 ## Worked input (spice_lite)
 
-`/incident INC-311 p95 latency on lastn above 2s since 14:05 UTC on the KE site, subjects up to 100, error rate normal, no deploy since yesterday`. 02-sre is expected to find the N+1 loop in `spice_lite/api/fhir.py` `lastn()` (marker `TEACHING-DEFECT(perf-n+1)`, 2 SQL calls per subject; see `sample-app/docs/KNOWN_DEFECTS.md` T-1) and to propose: mitigate now (cap `subjects`), fix (one permission-aware `frappe.get_list` per DocType instead of per subject, handed to `/bug-fix` in step 05; allowed by CLAUDE.md rule 8 because the report is explicitly about `lastn` performance), prevent (`assertQueryCount` test per `context/standards/testing-standards.md`). Security is skipped: the symptom is latency with normal error rates and no permission anomaly.
+`/incident INC-311 p95 latency on lastn above 2s since 14:05 UTC on the KE site, subjects up to 100, error rate normal, no deploy since yesterday`. 02-sre is expected to find the N+1 loop in `spice_lite/api/fhir.py` `lastn()` (marker `TEACHING-DEFECT(perf-n+1)`, 2 SQL calls per subject; see `sample-app/docs/KNOWN_DEFECTS.md` T-1) and to propose: mitigate now (cap `subjects`), fix (one permission-aware `frappe.get_list` per DocType instead of per subject, handed to `/bug-fix` in step 05; allowed by CLAUDE.md rule 8 because the report is explicitly about `lastn` performance), prevent (a query-budget test for 1 vs 50 subjects that counts `frappe.db.sql` calls, like `test_lastn_query_count_grows_with_subjects`; `FrappeTestCase.assertQueryCount` raises `TypeError` on v15 with Postgres, defect D-10). Security is skipped: the symptom is latency with normal error rates and no permission anomaly.
 
 ## Failure and retry policy
 
