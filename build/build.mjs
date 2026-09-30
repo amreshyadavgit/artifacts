@@ -105,6 +105,8 @@ const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/\u2028/g,
 const html = template.replace(MARK, () => json);
 mkdirSync(join(ROOT, "dist"), { recursive: true });
 writeFileSync(join(ROOT, "dist/index.html"), html);
+// GitHub Pages serves the repo root of main: publish a copy there too.
+writeFileSync(join(ROOT, "ai-sdlc-curriculum.html"), html);
 
 // ---- self-containment check: only https CDN references allowed ----
 const refs = [...html.matchAll(/<(?:script|link|img|iframe)\b[^>]*?\s(?:src|href)="([^"]+)"/gi)].map((m) => m[1]);
