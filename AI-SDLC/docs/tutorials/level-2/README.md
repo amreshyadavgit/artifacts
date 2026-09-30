@@ -46,7 +46,7 @@ Give it something to review. The patch below adds two labelled defects to `Patie
 (PHI in a log line; patient search without criteria returns every patient):
 
 ```bash
-git apply docs/tutorials/level-2/patches/02-review-exercise.patch
+git apply --directory=$(git rev-parse --show-prefix) docs/tutorials/level-2/patches/02-review-exercise.patch
 git diff --stat
 ```
 
@@ -82,7 +82,7 @@ What to notice in the v1 output: it finds the problems, but as prose with no ids
 no `path:line`. Nothing downstream can parse it, and two runs are hard to compare. That is the
 point of v1; module 05 fixes it with an Agent Contract.
 
-Undo the patch when done: `git apply -R docs/tutorials/level-2/patches/02-review-exercise.patch`.
+Undo the patch when done: `git apply -R --directory=$(git rev-parse --show-prefix) docs/tutorials/level-2/patches/02-review-exercise.patch`.
 
 ## Step 2: the first skill (explain-endpoint)
 
@@ -157,9 +157,9 @@ node --test .claude/skills/run-tests/scripts/summarize-surefire.test.mjs
 Then introduce a labelled regression (clinicians allowed to DELETE) and let the skill find it:
 
 ```bash
-git apply docs/tutorials/level-2/patches/02-clinician-delete-regression.patch
+git apply --directory=$(git rev-parse --show-prefix) docs/tutorials/level-2/patches/02-clinician-delete-regression.patch
 claude -p "/run-tests SecurityTest" --output-format json | jq -r '.result'
-git apply -R docs/tutorials/level-2/patches/02-clinician-delete-regression.patch
+git apply -R --directory=$(git rev-parse --show-prefix) docs/tutorials/level-2/patches/02-clinician-delete-regression.patch
 ```
 
 The developer and tester agents preload this skill with `skills: [run-tests]` (module 05). Preloading
@@ -216,7 +216,7 @@ Treat an agent like code. For every change to an agent or skill file:
 ## Clean up
 
 ```bash
-git apply -R docs/tutorials/level-2/patches/02-review-exercise.patch 2>/dev/null || true
-git apply -R docs/tutorials/level-2/patches/02-clinician-delete-regression.patch 2>/dev/null || true
+git apply -R --directory=$(git rev-parse --show-prefix) docs/tutorials/level-2/patches/02-review-exercise.patch 2>/dev/null || true
+git apply -R --directory=$(git rev-parse --show-prefix) docs/tutorials/level-2/patches/02-clinician-delete-regression.patch 2>/dev/null || true
 git status --short -- sample-app
 ```

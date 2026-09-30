@@ -32,6 +32,7 @@ This repository is a working AI-assisted SDLC system for a small Frappe v15 clin
 ## Commands (run from the bench directory, as the bench user)
 - Tests (integration + unit, 46): `bench --site test.localhost run-tests --app spice_lite`
 - One module: `bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api`
+- `bench run-tests` exits 0 even when tests fail unless `CI` is set (`frappe/commands/utils.py`). Use `CI=1 bench --site test.localhost run-tests --app spice_lite` when the exit code matters, and always read the final `OK` / `FAILED` line. `--test <name>` with a wrong name prints `Ran 0 tests` and `OK`: check the count.
 - Unit tests, no bench needed: `cd sample-app/spice_lite && python -m unittest discover -s spice_lite/tests/unit -t .`
 - Apply schema/patch changes to the test site: `bench --site test.localhost migrate`
 - Evals (offline replay): `node evaluations/harness/run-evals.mjs --mode replay`

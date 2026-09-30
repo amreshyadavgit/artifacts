@@ -215,7 +215,7 @@
           "tag": "illustrative"
         }
       ],
-      "exampleInput": "cd AI-SDLC\nnode --test --test-name-pattern \"datasets|diffs|recordings\" evaluations/harness/test/harness.test.mjs\ngit apply --check evaluations/datasets/reviewer-diffs/REV-08.patch && echo applies\ntest ! -e docs/adr/0002-event-sourcing.md && echo \"ARCH-19 trap intact\"",
+      "exampleInput": "cd AI-SDLC\nnode --test --test-name-pattern \"datasets|diffs|recordings\" evaluations/harness/test/harness.test.mjs\ngit apply --check --directory=$(git rev-parse --show-prefix) evaluations/datasets/reviewer-diffs/REV-08.patch && echo applies\ntest ! -e docs/adr/0002-event-sourcing.md && echo \"ARCH-19 trap intact\"",
       "expectedOutput": "ok 1 - datasets: 20 architecture and >= 6 reviewer cases, well-formed and grounded in real files\nok 2 - reviewer diffs apply cleanly to sample-app\nok 3 - recordings: one synthetic recording and one judge recording per case and version\n# tests 3\n# pass 3\n# fail 0\napplies\nARCH-19 trap intact\n\nThe starting file's single case would pass any answer that contains the word \"performance\". The finished ARCH-02 requires the N+1 *and* its location (`[[\"N\\\\+1\", \"queries per subject\", \"per-subject quer\"], [\"lastN\", \"\\\\$lastn\"]]`, severity high or critical), the set-based query, a cap on `subjects`, and the existing index `ix_observation_patient_code`, and forbids claiming that `lastN` already batches its queries.",
       "testCases": [
         {

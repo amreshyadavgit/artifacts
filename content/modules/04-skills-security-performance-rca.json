@@ -309,7 +309,7 @@
         },
         {
           "name": "Patch fixes it without regressions",
-          "input": "git apply lastn-set-based.patch in the scratch copy, then mvn -q -B test",
+          "input": "git apply --directory=$(git rev-parse --show-prefix) lastn-set-based.patch in the scratch copy, then mvn -q -B test",
           "expected": "exit 0 (29 tests: 25 existing + 4 new), 'LASTN_QUERY_COUNT subjects=20 statements=1'"
         },
         {

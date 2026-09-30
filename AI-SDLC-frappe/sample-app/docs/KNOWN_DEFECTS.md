@@ -12,6 +12,7 @@ Each discovered defect has a status, and a test pins its current behaviour.
 | D-3 | FHIR conformance: datetimes have no UTC offset | `api/mappers.py` `_iso()` | Open |
 | D-4 | Audit lines were silently dropped (logger level) | `spice_lite/audit.py` | **Fixed**. Has a regression test |
 | D-5 | `family="%"` listed every patient (LIKE wildcard) | `search_patients()` | **Fixed**. Has a test |
+| D-6 | Framework (v15 + Postgres): some `search_index` indexes are never created | `SL Patient.country`, `SL Encounter.patient` | Open. Found by the course agents |
 
 ---
 
@@ -106,3 +107,17 @@ read. That turned "search" into "enumerate". Frappe's filter layer doubles backs
 values (`db_query.py`: `value.replace("\\", "\\\\").replace("%", "%%")`), so a literal `%` or `_`
 cannot be escaped through `get_list` filters. **Fix:** a `family` that contains `%`, `_` or `\`
 returns 400 `OperationOutcome` (`invalid`). **Test:** `test_search_rejects_like_wildcards`.
+
+---
+
+## D-6: some `search_index` indexes are never created on Postgres
+
+**Found by:** a course writer agent while capturing SQL for the `explain-endpoint` skill; confirmed with `pg_indexes`.
+
+**What happens:** Frappe v15 on Postgres names a `search_index` index after the bare field name (`country`, `patient`). Postgres index names are unique per schema, not per table, so when another table already owns an index with that name (for example `tabAddress Template` has `country`), the index is silently not created. On the test site, `tabSL Patient` has `last_name` but no `country` index, and `tabSL Encounter` has no `patient` index, while `tabSL Observation` does have `patient` and `code`.
+
+**Check:** `select tablename, indexname from pg_indexes where tablename like 'tabSL %' order by 1, 2;`
+
+**Impact:** filters on `SL Patient.country` and `SL Encounter.patient` do sequential scans. Harmless at test-site size, visible at country scale.
+
+**Expected fix (for the learner):** a patch that creates explicitly named indexes (`frappe.db.add_index("SL Patient", ["country"], index_name="sl_patient_country_idx")`), plus a check in `scripts/automation/` that every `search_index` field has an index in `pg_indexes`.
