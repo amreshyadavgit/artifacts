@@ -149,7 +149,8 @@ export function validateHandoff(text, opts = {}) {
   if ("Findings" in s) checkFindings(s.Findings, errors);
   if (TEST_AGENTS.includes(f.agent) && f.status === "complete") {
     const body = fm.body;
-    if (!/\bRan \d+ tests?\b/.test(body) || !/(^|[\s,(`])OK\b/m.test(body)) {
+    if (/\bRan 0 tests\b/.test(body)) errors.push('the quoted summary says "Ran 0 tests": a wrong --module/--test name also prints OK; quote a run that executed tests');
+    else if (!/\bRan [1-9]\d* tests?\b/.test(body) || !/(^|[\s,(`])OK\b/m.test(body)) {
       errors.push('status "complete" needs the quoted bench summary ("Ran N tests" and "OK"): bench run-tests exits 0 even when tests fail unless CI is set, so the summary line is the evidence');
     }
     if (/FAILED \(/.test(body)) errors.push('status "complete" but the handoff quotes "FAILED (": use status blocked, or quote the final passing run');

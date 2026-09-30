@@ -162,7 +162,7 @@ export function checkGuardArgs(mode, args) {
       if (deny) errs.push(`bash-allow entry "${raw}" grants "${deny[1]}"; the guard blocks it anyway, and the entry misleads readers`);
       if (/\bbench\b/.test(e.text)) {
         if (/\bmigrate\b/.test(e.text) && !e.ask) errs.push(`bash-allow entry "${raw}" auto-allows bench migrate; use an ask entry ("?${raw}") so a human decides`);
-        if (/^bench\b/.test(e.text) && !/^bench( --verbose)? --site test\.localhost /.test(e.text + ' ')) errs.push(`bash-allow entry "${raw}" must target --site test.localhost`);
+        if (/^(CI=1 )?bench\b/.test(e.text) && !/^(CI=1 )?bench( --verbose)? --site test\.localhost /.test(e.text + ' ')) errs.push(`bash-allow entry "${raw}" must target --site test.localhost`);
       }
     }
   }

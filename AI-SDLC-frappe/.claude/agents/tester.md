@@ -21,7 +21,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'cd {bench}' 'bench --site test.localhost run-tests' 'cd sample-app/spice_lite' 'python -m unittest discover -s spice_lite/tests/unit -t .' 'node .claude/skills/run-tests/scripts/** ...' 'date -u' 'git diff' 'git status' 'git log'"
+          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'cd {bench}' 'bench --site test.localhost run-tests' 'CI=1 bench --site test.localhost run-tests' 'cd sample-app/spice_lite' 'python -m unittest discover -s spice_lite/tests/unit -t .' 'node .claude/skills/run-tests/scripts/** ...' 'date -u' 'git diff' 'git status' 'git log'"
           timeout: 10
 ---
 
@@ -47,6 +47,7 @@ The preloaded `test-strategy` skill defines how to derive cases and which Frappe
 - Integration tests subclass `frappe.tests.utils.FrappeTestCase` (there is no `IntegrationTestCase` in v15). If you override `setUpClass`, call `super().setUpClass()`. Data is rolled back at the end of each class, so use unique MRNs.
 - `bench run-tests --app spice_lite` imports every `test_*.py` in the app, including unit tests, and the bench venv has no pytest: never `import pytest`.
 - `self.assertQueryCount(n)` asserts at most n queries; use it for collection endpoints.
+- `bench run-tests` exits 0 even when tests fail unless `CI` is set: run `CI=1 bench --site test.localhost run-tests ...` and read the `Ran N tests` count and the final `OK` / `FAILED (...)` line. A `--test` name that does not exist prints `Ran 0 tests` and `OK`.
 - Unit tests for `api/mappers.py` use stdlib `unittest` and must not import frappe.
 
 ## Procedure

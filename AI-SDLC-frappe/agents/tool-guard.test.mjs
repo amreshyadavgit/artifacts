@@ -26,7 +26,7 @@ const blocked = (r, re, c) => { assert.ok(r?.reason, `${c}: expected a block, go
 
 export const REVIEWER = ['git diff', 'git log', 'git show', 'git status'];
 export const DEVELOPER = [
-  'cd {bench}', 'bench --site test.localhost run-tests', '?bench --site test.localhost migrate',
+  'cd {bench}', 'bench --site test.localhost run-tests', 'CI=1 bench --site test.localhost run-tests', '?bench --site test.localhost migrate',
   'cd sample-app/spice_lite', 'python -m unittest discover -s spice_lite/tests/unit -t .',
   'node .claude/skills/run-tests/scripts/** ...', 'date -u', 'git diff', 'git status', 'git log',
 ];
@@ -54,6 +54,8 @@ test('developer: run-tests and unit tests pass, with && and a pipe into the run-
   ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --app spice_lite`, DEVELOPER, root));
   ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api --test test_lastn_returns_latest_per_patient`, DEVELOPER, root));
   ok(checkBash(`cd ${B} && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api 2>&1 | node ${root}/.claude/skills/run-tests/scripts/parse-run-tests.mjs`, DEVELOPER, root));
+  ok(checkBash(`cd ${B} && CI=1 bench --site test.localhost run-tests --app spice_lite`, DEVELOPER, root));
+  blocked(checkBash(`cd ${B} && CI=1 bench --site test.localhost console`, DEVELOPER, root), /never allowed/);
   ok(checkBash('cd sample-app/spice_lite && python -m unittest discover -s spice_lite/tests/unit -t .', DEVELOPER, root));
   blocked(checkBash(`cd ${B} && bench --site test.localhost run-tests --app spice_lite &`, DEVELOPER, root), /background/);
   blocked(checkBash(`cd ${B} && bench --site mariadb.localhost run-tests --app spice_lite`, DEVELOPER, root), /outside this agent's Bash allowlist/);

@@ -20,7 +20,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'cd {bench}' 'bench --site test.localhost run-tests' '?bench --site test.localhost migrate' 'cd sample-app/spice_lite' 'python -m unittest discover -s spice_lite/tests/unit -t .' 'node .claude/skills/run-tests/scripts/** ...' 'date -u' 'git diff' 'git status' 'git log'"
+          command: "node \"${CLAUDE_PROJECT_DIR}/agents/tool-guard.mjs\" bash-allow 'cd {bench}' 'bench --site test.localhost run-tests' 'CI=1 bench --site test.localhost run-tests' '?bench --site test.localhost migrate' 'cd sample-app/spice_lite' 'python -m unittest discover -s spice_lite/tests/unit -t .' 'node .claude/skills/run-tests/scripts/** ...' 'date -u' 'git diff' 'git status' 'git log'"
           timeout: 10
 ---
 
@@ -44,7 +44,7 @@ The preloaded `run-tests` skill defines how to run `bench run-tests` and read it
 
 ## Where the bench is
 The bench is outside the repo: `/home/user/frappe-bench`, site `test.localhost`, unless `CLAUDE.local.md` names another bench (then `SPICE_BENCH_DIR` is set to it). Every bench command runs from the bench directory, as the bench user:
-- all tests: `cd /home/user/frappe-bench && bench --site test.localhost run-tests --app spice_lite`
+- all tests: `cd /home/user/frappe-bench && CI=1 bench --site test.localhost run-tests --app spice_lite` (without `CI` the command exits 0 even when tests fail, so always read the final `OK` / `FAILED (...)` line and the `Ran N tests` count)
 - one module: `cd /home/user/frappe-bench && bench --site test.localhost run-tests --module spice_lite.tests.test_fhir_api`
 - unit tests, no site: `cd sample-app/spice_lite && python -m unittest discover -s spice_lite/tests/unit -t .`
 

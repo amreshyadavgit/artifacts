@@ -132,6 +132,8 @@ const cases = [
   // ---- Frappe-specific rules -------------------------------------------------------------
   { name: "developer complete without a quoted bench summary is blocked",
     run: () => hookRun({ agent_type: "developer", message: devHandoff({ summary: "Implemented the plan. bench run-tests exited 0." }) }, { active: RUN }), expect: 2, stderr: /quoted bench summary/ },
+  { name: "developer complete that quotes Ran 0 tests / OK (wrong --test name) is blocked",
+    run: () => hookRun({ agent_type: "developer", message: devHandoff({ summary: "Ran 0 tests in 0.000s\n\nOK" }) }, { active: RUN }), expect: 2, stderr: /Ran 0 tests/ },
   { name: "tester complete that quotes FAILED ( is blocked",
     run: () => hookRun({ agent_type: "tester", message: devHandoff({ agent: "tester", summary: "Ran 56 tests in 4.418s\n\nFAILED (failures=1, errors=1)\n\nOK for the other 54" }) }, { active: RUN }), expect: 2, stderr: /quotes "FAILED \("/ },
   { name: "tester blocked with a FAILED summary and an open question passes",
