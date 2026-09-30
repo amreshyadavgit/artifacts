@@ -99,7 +99,10 @@ main { min-width: 0; padding-block: 32px 80px; padding-inline: clamp(16px, 4vw, 
 .lede { font-size: 1.08rem; color: var(--muted); max-width: 68ch; }
 .prose { max-width: 70ch; }
 .prose p, .prose ul, .prose ol { margin: 0 0 .8em; }
-.prose table { border-collapse: collapse; }
+.prose table { border-collapse: collapse; display: block; max-width: 100%; overflow-x: auto; font-size: .9rem; }
+.prose th, .prose td { text-align: left; vertical-align: top; padding: 6px 10px; border: 1px solid var(--line); }
+.prose th { background: var(--surface-2); }
+.prose pre { max-width: 100%; overflow-x: auto; padding: 12px 14px; background: var(--code-bg); border: 1px solid var(--line); border-radius: var(--radius); }
 .section { display: flex; flex-direction: column; gap: 14px; }
 .section > h2 { padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
