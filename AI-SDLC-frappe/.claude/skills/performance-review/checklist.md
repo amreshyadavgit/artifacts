@@ -10,7 +10,7 @@ Paths are relative to `AI-SDLC-frappe/`. `APP` = `sample-app/spice_lite/spice_li
 
 ## indexes
 - Every field used in a `filters` key, `order_by` or join needs an index: `search_index: 1` in the DocType JSON, `unique: 1`, or a patch calling `frappe.db.add_index(doctype, fields, index_name)`.
-- **Frappe v15 on Postgres names a `search_index` index after the field only** (`CREATE INDEX IF NOT EXISTS "<fieldname>"`, `frappe/database/postgres/schema.py` lines 63 and 115). Postgres index names are unique per schema, so the second DocType with the same indexed fieldname silently gets no index. On test.localhost: `tabSL Encounter.patient` and `tabSL Patient.country` have `search_index: 1` and **no index** (the names `patient` and `country` belong to `tabSL Observation` and `tabAddress Template`). MariaDB names indexes per table, so `mariadb.localhost` has both. Check with:
+- **Frappe v15 on Postgres names a `search_index` index after the field only** (`sample-app/docs/KNOWN_DEFECTS.md` D-6) (`CREATE INDEX IF NOT EXISTS "<fieldname>"`, `frappe/database/postgres/schema.py` lines 63 and 115). Postgres index names are unique per schema, so the second DocType with the same indexed fieldname silently gets no index. On test.localhost: `tabSL Encounter.patient` and `tabSL Patient.country` have `search_index: 1` and **no index** (the names `patient` and `country` belong to `tabSL Observation` and `tabAddress Template`). MariaDB names indexes per table, so `mariadb.localhost` has both. Check with:
   ```sql
   select tablename, indexname from pg_indexes where tablename like 'tabSL%' order by 1, 2;
   ```

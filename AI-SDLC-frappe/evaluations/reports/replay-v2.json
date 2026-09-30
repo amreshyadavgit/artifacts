@@ -10,7 +10,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "27984898ba7f",
+      "contextFingerprint": "e950694a3cd9",
       "agentFileSha": null,
       "metrics": {
         "cases": 20,
@@ -2704,7 +2704,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "42d984439609",
+      "contextFingerprint": "e747b6af4d18",
       "agentFileSha": null,
       "metrics": {
         "cases": 8,

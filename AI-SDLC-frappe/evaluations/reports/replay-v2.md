@@ -4,7 +4,7 @@
 
 ## architecture (architect-v2)
 
-Mode: replay. Agent file: `.claude/agents/architect.md`. Dataset 1.0.0, context fingerprint `27984898ba7f`.
+Mode: replay. Agent file: `.claude/agents/architect.md`. Dataset 1.0.0, context fingerprint `e950694a3cd9`.
 
 | Metric | Value |
 |---|---|
@@ -63,7 +63,7 @@ Overall: **PASS**
 
 ## reviewer (reviewer-v2)
 
-Mode: replay. Agent file: `.claude/agents/reviewer.md`. Dataset 1.0.0, context fingerprint `42d984439609`.
+Mode: replay. Agent file: `.claude/agents/reviewer.md`. Dataset 1.0.0, context fingerprint `e747b6af4d18`.
 
 | Metric | Value |
 |---|---|

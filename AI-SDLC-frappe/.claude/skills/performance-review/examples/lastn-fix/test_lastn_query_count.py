@@ -43,7 +43,7 @@ def measure(fn, **kwargs):
 
 class PostgresQueryCountMixin:
 	"""FrappeTestCase.assertQueryCount crashes on Postgres in frappe v15 (TypeError: LazyDecode in
-	the eagerly built failure message). Same fix as the one lastn-set-based.patch adds to
+	the eagerly built failure message; KNOWN_DEFECTS.md D-10). Same fix as the one lastn-set-based.patch adds to
 	spice_lite/tests/utils.py; defined here too so this file also runs on the unpatched app."""
 
 	@contextmanager
@@ -97,9 +97,12 @@ class TestLastnQueryCount(PostgresQueryCountMixin, FrappeTestCase):
 				for sql in statements:
 					print("SQL: " + sql)
 				print("LASTN_END")
-		with self.assertQueryCount(MAX_QUERIES):
-			call(fhir.lastn, subjects=self.subjects, code="8480-6")
+		# The proof is the counter above; it does not depend on FrappeTestCase.assertQueryCount,
+		# which crashes on Postgres in v15 (KNOWN_DEFECTS.md D-10) unless the mixin is used.
+		self.assertLessEqual(counts[100], MAX_QUERIES, f"statements per call: {counts}")
 		self.assertEqual(counts[1], counts[100], f"query count grows with subjects: {counts}")
+		with self.assertQueryCount(MAX_QUERIES):  # same bound through Frappe's helper (mixin applied)
+			call(fhir.lastn, subjects=self.subjects, code="8480-6")
 
 	def test_lastn_still_returns_the_latest_per_patient(self):
 		frappe.set_user(CLINICIAN)
