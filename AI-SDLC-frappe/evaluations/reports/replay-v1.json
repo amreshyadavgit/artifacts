@@ -10,7 +10,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "e950694a3cd9",
+      "contextFingerprint": "ac4a94fdd464",
       "agentFileSha": null,
       "metrics": {
         "cases": 20,
@@ -2066,7 +2066,7 @@
             {
               "name": "must-mention: recall >= 0.75",
               "pass": false,
-              "detail": "missed F3 (fields=[\"*\"] and every observation per patient are fetched to keep rows[0]); F4 (Pin the fix with assertQueryCount)"
+              "detail": "missed F3 (fields=[\"*\"] and every observation per patient are fetched to keep rows[0]); F4 (Pin the fix with a query-count test: a manual counter around frappe.db.sql on Postgres (assertQueryCount raises TypeError there in v15, D-10); assertQueryCount only on MariaDB)"
             },
             {
               "name": "must-not-mention: no forbidden claims",
@@ -2133,7 +2133,7 @@
             },
             {
               "id": "F4",
-              "concept": "Pin the fix with assertQueryCount",
+              "concept": "Pin the fix with a query-count test: a manual counter around frappe.db.sql on Postgres (assertQueryCount raises TypeError there in v15, D-10); assertQueryCount only on MariaDB",
               "covered": false
             }
           ],
@@ -2818,7 +2818,7 @@
       "mode": "replay",
       "synthetic": true,
       "datasetVersion": "1.0.0",
-      "contextFingerprint": "e747b6af4d18",
+      "contextFingerprint": "0049b91e54de",
       "agentFileSha": null,
       "metrics": {
         "cases": 8,

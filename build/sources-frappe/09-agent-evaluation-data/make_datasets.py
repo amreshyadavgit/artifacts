@@ -302,7 +302,7 @@ arch_cases = [
    F("F1", "The known N+1 in lastn: get_doc + get_all per subject, 2N queries", [["N\\+1", "2N", "per subject", "per-subject"], ["lastn"]], ["high", "critical"]),
    F("F2", "One permission-aware get_list for patients and one for observations, latest per patient in Python or a window function", [["get_list"], ["in", "one query", "single query", "window"]]),
    F("F3", "fields=[\"*\"] and every observation per patient are fetched to keep rows[0]", [[r"fields=\[\"\*\"\]", r"\[\"\*\"\]", "every column", "all columns"]], ["medium", "high"]),
-   F("F4", "Pin the fix with assertQueryCount", [["assertQueryCount"]]),
+   F("F4", "Pin the fix with a query-count test: a manual counter around frappe.db.sql on Postgres (assertQueryCount raises TypeError there in v15, D-10); assertQueryCount only on MariaDB", [["query-count test", "query count test", "manual counter", "count queries manually", "counts queries manually"]]),
   ],
   "forbiddenClaims": [
    C("C1", "Claims lastn already batches its queries", [r"lastn\b[^.\n]{0,60}\balready (batch|uses a (single|set-based)|issues one)"],

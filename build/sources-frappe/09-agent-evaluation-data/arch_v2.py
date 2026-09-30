@@ -177,11 +177,11 @@ def build(c):
       8, 0.244, 54100, S(5, 4, 5, 5, 5), {"missed": ["D-4: the audit logger level must stay INFO"]})
 
     H("ARCH-15", "complete", "developer", [FHIR, OJ, KD, A + "tests/test_fhir_api.py"],
-      "No. 40 offices x 100 subjects once a minute is about 8,000 queries a minute from lastn alone, because of the known N+1 (T-1). Rewrite lastn with two permission-aware get_list calls and pin it with assertQueryCount.",
+      "No. 40 offices x 100 subjects once a minute is about 8,000 queries a minute from lastn alone, because of the known N+1 (T-1). Rewrite lastn with two permission-aware get_list calls and pin it with a query-count test: a manual counter around frappe.db.sql on Postgres, where FrappeTestCase.assertQueryCount raises TypeError in v15 (D-10); assertQueryCount only on MariaDB.",
       [("ARC-001", "high", "performance", FHIR + ":156", "`# TEACHING-DEFECT(perf-n+1): one get_doc + one get_all PER SUBJECT -> 2N queries`", "The N+1 in lastn: one get_doc and one get_all per subject, 2N queries per call (200 for 100 subjects)."),
        ("ARC-002", "medium", "performance", FHIR + ":177", "`rows = frappe.get_all(`", "One `frappe.get_list(\"SL Patient\", filters={\"name\": (\"in\", subjects)}, pluck=\"name\")` and one get_list on SL Observation with `patient in` those names, latest per patient in Python (or a window function)."),
        ("ARC-003", "medium", "performance", FHIR + ":181", '`fields=["*"],`', 'fields=["*"] fetches every column of every observation of the patient to keep rows[0]; list the six fields the mapper needs.'),
-       ("ARC-004", "low", "standards", A + "tests/test_fhir_api.py:160", "`def test_lastn_query_count_grows_with_subjects(self):`", "Replace the pinning test with `with self.assertQueryCount(6):` for 1 and 100 subjects.")],
+       ("ARC-004", "low", "standards", A + "tests/test_fhir_api.py:160", "`def test_lastn_query_count_grows_with_subjects(self):`", "Replace the pinning test with a constant query-count test for 1 and 100 subjects: a manual counter around frappe.db.sql on Postgres (assertQueryCount raises TypeError there in v15, KNOWN_DEFECTS D-10); `with self.assertQueryCount(6):` only on MariaDB.")],
       ["Chosen: two get_list calls, keep the range filter from D-2.", "The requirement is about lastn performance, so the T-1 fix is in scope."],
       ["None."],
       8, 0.236, 52400, S(5, 5, 5, 5, 5))
