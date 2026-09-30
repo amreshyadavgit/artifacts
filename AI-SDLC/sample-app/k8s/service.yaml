@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fhir-lite-api
+  labels:
+    app: fhir-lite-api
+spec:
+  type: ClusterIP
+  selector:
+    app: fhir-lite-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

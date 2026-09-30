@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: fhir-lite-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fhir}
+    username: ${DB_USERNAME:fhir}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+    generator:
+      write-bigdecimal-as-plain: true
+  mvc:
+    problemdetails:
+      enabled: false
+
+fhir:
+  security:
+    # No defaults outside the local/test profiles: the app refuses to start without them.
+    clinician-password: ${FHIR_CLINICIAN_PASSWORD}
+    admin-password: ${FHIR_ADMIN_PASSWORD}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+logging:
+  level:
+    AUDIT: INFO

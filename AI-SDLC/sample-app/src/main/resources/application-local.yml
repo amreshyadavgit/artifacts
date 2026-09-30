@@ -1,0 +1,11 @@
+# Local development: in-memory H2 in PostgreSQL mode, so no database is needed.
+spring:
+  datasource:
+    url: jdbc:h2:mem:fhir;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+fhir:
+  security:
+    clinician-password: clinician-pass
+    admin-password: admin-pass

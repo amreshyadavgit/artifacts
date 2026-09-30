@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fhir
+      POSTGRES_USER: fhir
+      POSTGRES_PASSWORD: fhir-dev-password
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fhir -d fhir"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/fhir
+      DB_USERNAME: fhir
+      DB_PASSWORD: fhir-dev-password
+      FHIR_CLINICIAN_PASSWORD: clinician-pass
+      FHIR_ADMIN_PASSWORD: admin-pass
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
