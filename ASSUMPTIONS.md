@@ -23,3 +23,10 @@ Decisions made without asking, so the run could complete uninterrupted.
 12. Deep links use bare hash tokens (`#m-<module>`, `#x-<exercise>`, `#t-<type>`, `#f~<path>`), which keeps them valid in sandboxed viewers that only pass simple anchors.
 13. "Download starter repo" zips every implementation file at its real path. When a starting file would overwrite an implementation file with the same path, the starting version goes under `starting-files/<exercise-id>/`.
 14. `sample-app/` is not embedded in full in the SPA (only the files exercises touch); the full app is in the repository.
+
+## Publication and language (added on request)
+15. Published through GitHub Pages from the root of `main`. The build writes the page to both `dist/index.html` and `ai-sdlc-curriculum.html` at the repo root, since Pages serves `main` root (as the repo's existing pages do). URL: https://amreshyadavgit.github.io/artifacts/ai-sdlc-curriculum.html
+16. **Hinglish** means Hindi grammar in Latin script with English technical terms kept as is, in the informal "tum" register engineers use with each other. No Devanagari.
+17. Only prose is translated: titles, summaries, concepts, table text, exercise objectives, test-case names and descriptive expectations, criteria, improvements, contracts, and checklists. Code, file contents, commands, config keys, mermaid source, and real tool output stay English so they still match the repository byte for byte.
+18. Translations are overlay files (`content/i18n/hinglish/<module>.json`) merged by index at runtime. Any missing string falls back to English, and the build warns when an overlay's shape drifts from the English module. The language choice is stored in localStorage (wrapped in try/catch) and defaults to English.
+19. The reference repository files (`AI-SDLC/**`: agent prompts, skills, docs) stay English. Agents run best on one language, and the files must match the English content exactly.
