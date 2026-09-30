@@ -29,4 +29,6 @@ node .claude/skills/performance-review/scripts/count-queries.mjs /tmp/lastn-afte
 rm -rf /tmp/lastn-copy
 ```
 
+The patch changes performance only. D-02 (null `effectiveDateTime` returned as latest) and D-03 (duplicate subject ids returned twice) from `sample-app/docs/KNOWN_DEFECTS.md` still reproduce in the patched copy (checked 2026-09-30); they are separate fixes with their own tests.
+
 `git apply` works in a directory that is not a git repository; it applies the patch to the files in the current directory.

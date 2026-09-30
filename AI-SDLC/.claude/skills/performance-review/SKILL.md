@@ -38,6 +38,8 @@ Never run the application against a database that holds real patient data to tak
 - one native query with `ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY effective_date_time DESC, id DESC)` over `WHERE patient_id IN (:patientIds)`, with a second variant that also filters `code`,
 - results re-ordered in Java to match the request order,
 - a cap of 100 subjects per request (400 `OperationOutcome` above that).
+The patch is behaviour-preserving on purpose: the discovered defects D-02 (an Observation without `effectiveDateTime` sorts first and is returned as latest) and D-03 (duplicate subject ids return the same Observation twice) in `sample-app/docs/KNOWN_DEFECTS.md` still reproduce after it. A performance fix that silently changes results is two changes in one; fix those separately with their own regression tests (for D-02, `NULLS LAST` in the window `ORDER BY`).
+
 Do not apply the patch to `sample-app/` unless the task explicitly asks for it (CLAUDE.md rule 6). Propose it, and let the developer agent or the learner apply it in a copy.
 
 ## 5. Severity

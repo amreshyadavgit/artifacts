@@ -12,6 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). SemVer: major 
 ### Verified (2026-09-30, Java 21, Maven 3.9, Node 22)
 - Unpatched scratch copy: `LastnQueryCountTest` 2 of 4 fail, 40 statements for 20 subjects.
 - Patched scratch copy: `mvn -q -B test` passes (29 tests), 1 statement for 20 subjects.
+- Patched copy still reproduces D-02 (null `effectiveDateTime` returned as latest) and D-03 (duplicate subjects returned twice): the patch is behaviour-preserving.
 - `count-queries.mjs`: before log 40 statements / 2 suspects (exit 1 with `--fail-on-suspect`), after log 1 statement / none (exit 0).
 ### Not yet verified
 - Live cases perf-01 to perf-05 need a model run; record the first pass rate here.

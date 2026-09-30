@@ -28,7 +28,7 @@ function scalar(raw) {
 }
 
 export function parseFrontmatter(text) {
-  const m = /^﻿?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+  const m = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
   if (!m) return { data: null, body: text, unsupported: [] };
   const data = {};
   const unsupported = [];

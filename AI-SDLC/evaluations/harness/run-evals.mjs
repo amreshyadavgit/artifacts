@@ -18,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { agentDefinitionFromMarkdown, aggregate, checkGates, compareRuns, scoreCase } from "./scoring.mjs";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const rel = (p) => join(ROOT, p);
+const rel = (p) => resolve(ROOT, p); // absolute paths (e.g. --out-dir /tmp/x) stay absolute
 const readJson = (p) => JSON.parse(readFileSync(rel(p), "utf8"));
 const sha = (s) => createHash("sha256").update(s).digest("hex").slice(0, 12);
 
