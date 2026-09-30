@@ -1,0 +1,266 @@
+{
+ "id": "07-agent-composition",
+ "title": "Agent Composition: Specialists, Execution Modes aur Nesting ki Asli Limits",
+ "summary": "Decide karo ki kab ek agent kaafi hai aur kab specialists ka roster apni cost wasool karta hai, phir unhe waise compose karo jaise Claude Code sach mein subagents execute karta hai: main thread se sequential, conditional aur parallel launches, background vs foreground, fork mode, concurrency limit, aur results jo summary ke roop mein wapas aate hain. Aakhir mein nesting ke asli rules (default depth 3, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH, limit par Agent withheld, Agent(type) allowlist sirf `claude --agent` main threads ke liye) aur ek sanctioned depth-2 pattern.",
+ "prerequisites": [
+  "05-agent-roster",
+  "06-mcp-and-tooling-architecture",
+  "Default nesting depth 3 ke liye Claude Code v2.1.219 ya usse naya (`claude --version`)",
+  "Lint aur budget scripts ke liye Node 22"
+ ],
+ "concepts": [
+  {
+   "heading": "Ek bada agent ya roster: asal mein kya badalta hai",
+   "body_md": "Har tool aur har skill wala ek single agent simple lagta hai. Sample app par yeh predictable tareekon se fail hota hai, jo `AI-SDLC/workflows/composition/one-vs-many.md` mein record hai:\n\n- **Yeh apna hi kaam review karta hai.** Jis agent ne `PatientController.search` likha, woh uska sabse bura reviewer hai. Code review exist hi independence ki wajah se karta hai; jo agent author ka context share karta hai, woh uske blind spots bhi share karta hai.\n- **Context har launch par pay hota hai.** Subagent apni file body, CLAUDE.md hierarchy, git status aur apni `skills:` list ki har skill ke *poore content* ke saath start hota hai. Jo monolith saat skills preload karta hai, woh ek-line fix par bhi saaton ki cost bharta hai. `node workflows/composition/context-budget.mjs` har agent ke liye yeh estimate karta hai.\n- **Tool surface union ban jaata hai.** Agar ek agent ko `Edit`, `Bash` aur ek MCP server chahiye, toh har task ko woh sab milte hain, aur ticket mein ek prompt injection sab tak pahunch jaata hai. Module 05 ke security agent ke paas sirf `Read, Grep, Glob` hai; jo woh review karta hai use woh badal *nahi sakta*.\n- **Koi intermediate artifacts nahi.** Monolith poora ka poora fail hota hai. Roster ek-ek step karke fail hota hai, aur har complete step ek handoff chhod jaata hai jahan se tum resume kar sakte ho.\n\nSpecialists free nahi hain: tumhe ek orchestrator, ek handoff format aur gates chahiye. Yeh cost ek baar pay hoti hai, module 08 mein, aur har workflow use reuse karta hai.\n\n**Rule of thumb:** tab split karo jab parts ko alag tools, alag models ya independent judgement chahiye, ya jab tum unhe alag se evaluate karna chahte ho (module 09). Chhote tasks ke liye, jahan ek hi judgement ho aur alag review na ho, jaise `/explain-endpoint`, ek single agent ya sirf main session rakho.\n\nToh practically: six-agent roster plus ek orchestrator course ka default hai, aur har nayi capability yeh pooch kar start hoti hai ki koi existing agent use own karta hai ya nahi, naya banane se pehle."
+  },
+  {
+   "heading": "Subagent kaise launch hota hai aur kya wapas aata hai",
+   "body_md": "Delegation ek tool call hai. Main session (ya main thread ki tarah chal raha agent) **`Agent` tool** call karta hai (v2.1.63 mein `Task` se rename hua; `Task(...)` ab bhi alias ki tarah kaam karta hai), ek `prompt`, ek `description` aur `reviewer` jaise `subagent_type` ke saath. Optional `model` parameter us ek launch ke liye agent ke frontmatter `model` ko override karta hai.\n\nSubagent **fresh context** ke saath start hota hai:\n\n- apna system prompt (agent file body), Claude Code system prompt nahi;\n- caller ka likha task message;\n- CLAUDE.md hierarchy aur git status;\n- apni preloaded `skills` ka poora content.\n\nUse caller ki conversation history, output style ya auto memory **nahi** milti. Subagent ko jo bhi chahiye woh task message mein ho ya kisi aisi file mein jo woh padh sake.\n\nCaller ko subagent ka **final message** wapas milta hai, summary ke roop mein. Baaki sab (padhi hui files, chalaye commands, dead ends) uske apne transcript mein rehta hai, `~/.claude/projects/{project}/{sessionId}/subagents/agent-{agentId}.jsonl` ke under. Finished subagent ko uske agent id ya name par `SendMessage` bhej kar continue kiya ja sakta hai; har naya launch ek naya instance hai.\n\nTeen consequences is course ke baaki hisse ko drive karte hain:\n\n1. **Task message ticket ki tarah likho**: run id, step, input *paths*, goal, output format. Pichhle handoffs usme paste mat karo; paths do aur agent ko khud padhne do.\n2. **Final message ko hi artifact banao.** Course convention (module 08): final message *hi* handoff document hai, ya `HANDOFF: <path>` par khatam hota hai. Tab summary bilkul wahi hai jo tumhe chahiye, koi lossy paraphrase nahi.\n3. **Handoffs files se jaate hain.** Kyonki har subagent fresh start hota hai, agla step `.ai-sdlc/runs/<run-id>/NN-<agent>.md` padhta hai, pichhle agent ka context kabhi nahi."
+  },
+  {
+   "heading": "Sequential, conditional aur parallel execution",
+   "body_md": "Teen shapes is course ke har workflow ko cover karte hain. Teeno caller (main thread) decide karta hai, subagents nahi.\n\n**Sequential**: step B ko A ka output chahiye. Caller A launch karta hai, uske result ka wait karta hai, phir A ke handoff ke path ke saath B launch karta hai. Requirements, architecture review aur implementation plan sequential hain kyonki har ek pichhle wale ko consume karta hai.\n\n**Conditional**: caller pehle ka handoff padhta hai aur decide karta hai ki step chalega ya nahi. Feature workflow mein security step sirf tab chalta hai jab developer ki `## Artifacts` list `api/`, `config/`, `error/`, `audit/`, `src/main/resources/`, `k8s/`, `pom.xml` ya `Dockerfile` ko touch kare. Decision aur uski wajah run report mein likhi jaati hai. File se evaluate hui condition deterministic aur auditable hoti hai. \"Relevant lage toh security agent use karo\" dono mein se kuch nahi hai.\n\n**Parallel**: independent steps **ek hi turn mein** launch hote hain. Developer ke baad tester aur security dono same diff padhte hain; tester `sample-app/src/test/` ke under likhta hai, security kuch nahi likhta. Claude Code unhe concurrently chalata hai, aur woh concurrent-subagent limit mein count hote hain (default 20, `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`).\n\nParallel safety course ka rule hai, Claude Code ka feature nahi:\n\n- koi do parallel agents same files edit nahi karte;\n- har parallel agent ko pehle se assigned step number aur handoff file milti hai (`05-tester.md`, `06-security.md`);\n- caller gates tabhi evaluate karta hai jab *saare* parallel results aa jaayein.\n\nToh practically: pehle dependency graph banao. Jin cheezon ke beech koi arrow nahi, woh parallel chal sakti hain agar unke write sets overlap na karein. Baaki sab sequential hai, aur har \"shayad\" ek handoff field par explicit condition ban jaata hai."
+  },
+  {
+   "heading": "Foreground, background, fork mode aur concurrency limit",
+   "body_md": "Subagent kahan chalta hai isse yeh badalta hai ki caller kya dekhta hai, yeh nahi ki subagent kya kar sakta hai.\n\n- **Interactive sessions**: fork mode default on hai (v2.1.232+), isliye subagents **background** mein chalte hain aur har ek ke finish hone par main session ko notify kiya jaata hai. `Ctrl+B` foreground mein chal rahe task ko background kar deta hai.\n- **`claude -p` aur Agent SDK**: fork mode off hai, isliye subagents **foreground** mein chalte hain.\n- **Overrides**: `CLAUDE_CODE_FORK_SUBAGENT=1|0`; `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` foreground force karta hai; frontmatter `background: true` us agent ko hamesha background karta hai.\n- **Permission prompts** background subagent se main session mein surface hote hain. Permission `ask` rules par bane human gates ab bhi insaan tak pahunchte hain (module 08).\n- **Background tool set**: background subagents MCP tools rakhte hain par built-ins ki sirf ek fixed list (Read, Grep, Glob, Bash, Edit, Write, WebFetch, Skill, SendMessage aur kuch aur).\n- **Waiting**: interactively, jo subagent background children launch karta hai woh unka wait karta hai. `-p` ya SDK ke under nahi karta. Jaise hi tum nest karte ho, yeh matter karta hai.\n- **Concurrency**: default 20 running subagents; agla launch `Concurrent subagent limit reached` ke saath fail hota hai.\n\n**Fork aur fork mode ek cheez nahi hain.** Fork (`/subtask <task>`, ya subagent type `fork`) caller ki *poori conversation*, system prompt, tools aur model inherit karta hai. Yeh tumhare current context ki side branch mein kuch try karne ke liye useful hai. Workflow steps ke liye galat hai: forked \"reviewer\" author ka context share karta hai, conversation ka har token saath le jaata hai, aur aage forks spawn nahi kar sakta.\n\nToh practically: workflow steps fresh context wale named roster agents use karte hain; forks tumhare apne exploratory side-questions ke liye hain."
+  },
+  {
+   "heading": "Nesting: asli limits",
+   "body_md": "Purani Claude Code documentation kehti thi ki subagents subagents spawn nahi kar sakte. **Current docs kehte hain ki kar sakte hain**, aur tumhare design ko iska dhyan rakhna hoga:\n\n- Default mein ek subagent apne subagents spawn kar sakta hai, **main conversation se teen layers neeche tak** (v2.1.219+; 2.1.172 se pehle ke versions mein koi nesting nahi thi, aur beech ke kuch versions mein alag limits thi).\n- `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` limit badalta hai (`\"2\"`, ya nesting band karne ke liye `\"1\"`). Ise settings file ke `env` block mein set kiya ja sakta hai.\n- **Depth limit par Claude Code `Agent` tool withhold karta hai**, fork ko chhod kar har subagent se, taaki woh subagent kaam khud kare aur ek summary return kare.\n- Jo agent **`tools` omit karta hai woh har tool inherit karta hai, `Agent` bhi**. Kisi agent ko delegate karne se rokne ke liye uske tools bina `Agent` ke list karo, ya `Agent` ko `disallowedTools` mein daalo.\n- `tools` mein `Agent(architect, developer)` **spawnable types ki allowlist sirf tab hai jab woh agent main thread ho** (`claude --agent <name>` ya `agent` setting). Subagent definition mein parenthesised list **ignore** hoti hai: woh bas `Agent` grant karti hai.\n- Settings mein `permissions.deny: [\"Agent(general-purpose)\"]` ek type ko har depth par block karta hai.\n\nIs course ke liye design ka nateeja: spawnable-type allowlist sirf main thread par enforce hoti hai, isliye orchestrator wahin chalta hai (`claude --agent orchestrator`), aur six roster agents bina `Agent` ke explicit `tools` list karte hain. `node workflows/composition/check-roster-flat.mjs` build fail karta hai agar koi roster agent delegate kar sake, agar koi `tools` omit kare, ya agar orchestrator koi non-roster type naam le. Yeh warn bhi karta hai jab subagent definition mein `Agent(...)` list ho, kyonki woh list kuch restrict nahi karti."
+  },
+  {
+   "heading": "Ek sanctioned depth-2 pattern, aur roster flat kyon rehta hai",
+   "body_md": "Ek situation hai jahan nesting worth it hai: tum pehle se ek normal interactive session mein ho aur bina restart kiye poora workflow orchestrator ko dena chahte ho. Orchestrator ko **subagent ki tarah** launch karo (`@agent-orchestrator ...`). Main session = depth 0, orchestrator = depth 1, roster = depth 2.\n\nIse `claude --settings workflows/composition/depth-2.settings.json` ke saath chalao:\n\n- `env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: \"2\"` roster ko limit par rakhta hai, isliye unse `Agent` withhold hota hai, chahe koi baad mein use roster file mein add kar de.\n- `permissions.deny: [\"Agent(general-purpose)\"]` khoyi hui allowlist ki bharpai karta hai: subagent ke roop mein orchestrator ki `Agent(...)` list ignore hoti hai.\n- `permissions.ask: [\"Agent(developer)\"]` gate G1 ko rakhta hai. Prompt main session mein surface hota hai.\n\nTum kya chhodte ho, aur yeh exception kyon rehta hai (`workflows/composition/hierarchy-and-depth.md`):\n\n1. **Allowlist lost**: sirf deny rules constrain karte hain ki orchestrator kaunse types launch kare.\n2. **Summaries ki summaries**: roster results orchestrator tak summaries ki tarah pahunchte hain, aur uska result tum tak unki summary ki tarah. Chat nahi, run folder padho.\n3. **Waiting semantics**: `-p` ya SDK ke under orchestrator background children ka wait nahi karta. Depth 2 kabhi headless mat chalao.\n4. **Split audit trail**: delegations orchestrator ke subagent transcript mein rehte hain, tumhare main transcript mein nahi.\n\nRoster khud kabhi delegate kyon nahi karta: har delegation orchestrator ki ek visible `Agent` call plus ek handoff file honi chahiye; allowlist sirf main thread par enforceable hai; har level launches aur start-up context ko multiply karta hai; aur nested failure do levels upar ek vague summary ki tarah surface hota hai, evidence wale `blocked` handoff ki tarah nahi. Kyonki har subagent fresh start hota hai, agle step ko waise bhi file chahiye. Jab files hain hi, toh nesting kuch aisa nahi deta jo orchestrator mein sequencing nahi deti."
+  }
+ ],
+ "diagrams": [
+  {
+   "title": "Main thread specialists ko compose karta hai: sequential, conditional, parallel"
+  },
+  {
+   "title": "Depth: course ka default aur ek sanctioned depth-2 pattern"
+  }
+ ],
+ "comparisonTables": [
+  {
+   "title": "Ek bada agent vs specialised agents",
+   "columns": [
+    "Dimension",
+    "Ek bada agent",
+    "Specialised roster + orchestrator",
+    "Is repo mein kaise check karein"
+   ],
+   "rows": [
+    [
+     "Context size",
+     "Har launch par CLAUDE.md + imports + har preloaded skill (monolith 7 skills preload karta hai)",
+     "CLAUDE.md + imports + chhoti body + 1-2 skills; har launch par fresh context",
+     "`node workflows/composition/context-budget.mjs`"
+    ],
+    [
+     "Tool surface",
+     "Har zaroorat ka union: Edit, Write, Bash, MCP",
+     "Role ke hisaab se; security ke paas sirf Read, Grep, Glob",
+     "`node workflows/composition/check-roster-flat.mjs` har agent ke tools print karta hai"
+    ],
+    [
+     "Auditability",
+     "Ek interleaved transcript, har decision ka koi artifact nahi",
+     "`.ai-sdlc/runs/<run-id>/` mein har step ka ek validated handoff; har delegation ek `Agent` call",
+     "`node .claude/hooks/check-handoff.mjs <run-folder>`"
+    ],
+    [
+     "Cost",
+     "Kam launches; bada context har turn dobara padha jaata hai; sabke liye ek model",
+     "Zyada launches, har ek chhota; role ke hisaab se model (opus architect/security, sonnet developer/tester/reviewer)",
+     "`claude -p --output-format json` mein `total_cost_usd` (module 09)"
+    ],
+    [
+     "Failure isolation",
+     "Koi bhi failure poora run kho deta hai; koi resume point nahi",
+     "Failed step akele retry hota hai; completed handoffs reuse hote hain",
+     "Same ticket ke saath `/feature` dobara chalao: completed steps skip hote hain"
+    ],
+    [
+     "Review independence",
+     "Author khud ko review karta hai",
+     "Reviewer aur security ne code kabhi nahi likha aur edit nahi kar sakte",
+     "reviewer ke `tools` mein Edit/Write nahi"
+    ],
+    [
+     "Latency",
+     "Strictly sequential",
+     "Independent steps parallel mein (tester aur security)",
+     "`05-tester.md` aur `06-security.md` ke timestamps"
+    ]
+   ]
+  },
+  {
+   "title": "Delegation asal mein kahan constrain hota hai",
+   "columns": [
+    "Mechanism",
+    "Kahan apply hota hai",
+    "Effect",
+    "Pitfall"
+   ],
+   "rows": [
+    [
+     "`tools` mein `Agent(type1, type2)`",
+     "Sirf main thread ki tarah chalaya gaya agent (`claude --agent`, `agent` setting)",
+     "Spawnable subagent types ki allowlist",
+     "Subagent file mein list ignore hoti hai aur bas `Agent` grant karti hai"
+    ],
+    [
+     "`tools` se `Agent` omit karo / `disallowedTools: Agent`",
+     "Koi bhi subagent definition",
+     "Woh agent delegate nahi kar sakta",
+     "`tools` poora omit karne se `Agent` inherit hota hai"
+    ],
+    [
+     "`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`",
+     "Poora session (env ya settings `env`)",
+     "Limit par `Agent` withhold hota hai (forks ko chhod kar)",
+     "Default main conversation se 3 layers neeche hai, 1 nahi"
+    ],
+    [
+     "`permissions.deny: [\"Agent(name)\"]`",
+     "Settings (saari depths)",
+     "Type kahin bhi launch nahi ho sakta",
+     "Main session ko bhi use karne se block karta hai"
+    ],
+    [
+     "`permissions.ask: [\"Agent(developer)\"]`",
+     "Settings (saari depths)",
+     "Har launch insaan approve karta hai; prompt main session mein surface hota hai",
+     "Sirf aise mode mein meaningful jahan prompts dikhte hain (module 10)"
+    ]
+   ]
+  }
+ ],
+ "exercises": {
+  "07-split-the-monolith": {
+   "title": "Monolith ko roster ke against measure karo aur decision record karo",
+   "objective": "Jaan-boojh kar monolithic `sdlc-monolith` agent install karo, budget aur lint scripts se uska start-up context aur tool surface six roster agents ke against measure karo, phir woh decision record likho jo split ko justify karta hai. Tum opinions nahi, numbers lekar nikloge.",
+   "testCases": [
+    {
+     "name": "Budget script chalta hai aur har agent list karta hai"
+    },
+    {
+     "name": "Monolith ka start-up context sabse bada hai"
+    },
+    {
+     "name": "Lint monolith ke inherited Agent tool ko reject karta hai",
+     "expected": "sdlc-monolith.md ka naam lene wali ek ERROR line aur `exit=1`."
+    },
+    {
+     "name": "Budget script unit test"
+    },
+    {
+     "name": "Cleanup flat roster wapas laata hai"
+    }
+   ],
+   "evaluationCriteria": [
+    "Decision record `context-budget.mjs` ke measured numbers cite karta hai, memory se estimates nahi.",
+    "Har trade-off row (context size, tool surface, auditability, cost, failure isolation) is repo mein use check karne ka tareeka batati hai.",
+    "Record batata hai ki kab single agent (ya main session) ab bhi sahi choice hai.",
+    "Aakhir mein monolith remove hota hai aur lint 0 par exit karta hai."
+   ],
+   "improvements": [
+    "`context-budget.mjs` mein `--json` flag jodo aur numbers ko har release ke hisaab se `evaluations/` mein track karo (module 09).",
+    "Jo agents MCP tools inherit karte hain unke liye estimate mein MCP tool definitions bhi include karo.",
+    "Teen golden tasks par paired `claude -p` comparison chalao aur decision record mein cost per finding jodo."
+   ]
+  },
+  "07-parallel-and-conditional": {
+   "title": "Tester aur security ko parallel mein chalao, aur jab diff ko zaroorat na ho toh security skip karo",
+   "objective": "Sample app par ek chhota labelled change apply karo, main session se tester aur security subagents ek hi turn mein launch karwao, observe karo ki woh background mein concurrently chalte hain aur sirf summaries return karte hain, phir ek service-only refactor apply karo aur dikhao ki conditional rule recorded reason ke saath security skip karta hai.",
+   "testCases": [
+    {
+     "name": "Patch apply hota hai aur existing suite ab bhi pass hoti hai",
+     "expected": "`checking file sample-app/src/main/java/org/example/fhir/api/PatientController.java`, phir 25 tests ke saath exit=0: defect tabhi dikhta hai jab tester boundary tests jodta hai."
+    },
+    {
+     "name": "Dono handoffs exist karte hain aur time mein overlap karte hain",
+     "expected": "05-tester.md 06-security.md; agent: tester, agent: security. Dono background tasks ek hi time par task list mein dikhe."
+    },
+    {
+     "name": "Security labelled defect dhoondhta hai",
+     "expected": "PatientController.java par ek finding jo bina bounds ke `_count` cite karti hai."
+    },
+    {
+     "name": "Handoffs valid hain",
+     "expected": "05-tester.md aur 06-security.md ke liye PASS, exit 0."
+    },
+    {
+     "name": "Service-only diff ke liye conditional skip",
+     "expected": "Sirf sample-app/src/main/java/org/example/fhir/service/PatientService.java: execution-modes.md ki security list se koi path match nahi karta, isliye main session `06 security: skipped` record karta hai aur sirf tester launch karta hai."
+    }
+   ],
+   "evaluationCriteria": [
+    "Dono launches ek turn mein hote hain, aur caller dono results aane ke baad hi summarise karta hai.",
+    "Tester aur security disjoint paths par likhte hain; 06-security.md sirf main session likhta hai.",
+    "Skip decision changed paths ki list se liya jaata hai aur reason ke saath likha jaata hai.",
+    "Learner explain kar sakta hai ki transcript har subagent ki sirf summary kyon dikhata hai aur poora subagent transcript kahan rehta hai."
+   ],
+   "improvements": [
+    "Parallel run `claude -p` ke saath repeat karo aur compare karo: wahan subagents foreground mein chalte hain (fork mode off).",
+    "`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=1` set karo aur dekho ki doosra launch `Concurrent subagent limit reached` ke saath fail hota hai.",
+    "Naya launch karne ki jagah security subagent ko SendMessage se resume karo aur fix ke baad re-check karne ko bolo."
+   ]
+  },
+  "07-depth-limits": {
+   "title": "Nesting limits prove karo aur roster flat rakho",
+   "objective": "Agent topology lint karo, phir ek diagnostic `depth-probe` agent use karo jo ek child probe launch karta hai, taaki asli rules observe ho sakein: default limit par dono levels ke paas Agent tool hai; `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2` (`depth-2.settings.json` se) par do layers neeche wala child use kho deta hai; `1` par nesting off hai. Phir dikhao ki lint roster agent ko Agent paane se rokta hai, aur clean lint ke saath khatam karo.",
+   "testCases": [
+    {
+     "name": "Unit tests pass hote hain"
+    },
+    {
+     "name": "Lint probe ko flag karta hai (tools omitted)"
+    },
+    {
+     "name": "Limit par Agent withheld",
+     "expected": "`child:` ke baad wali line `Agent tool available: no` report karti hai."
+    },
+    {
+     "name": "Default limit Agent ko ek level aur neeche tak rakhta hai",
+     "expected": "Probe aur uska child dono `Agent tool available: yes` report karte hain."
+    },
+    {
+     "name": "Nesting off",
+     "expected": "Pehla probe `Agent tool available: no` report karta hai aur uska koi `child:` section nahi hota."
+    },
+    {
+     "name": "Agent wala roster agent lint fail karta hai"
+    },
+    {
+     "name": "Cleanup"
+    }
+   ],
+   "evaluationCriteria": [
+    "Learner default limit (main conversation se 3 layers neeche) aur use badalne ka tareeka batata hai, yeh claim kiye bina ki nesting impossible hai.",
+    "Learner dikhata hai ki `Agent(...)` list sirf `claude --agent` main thread ko restrict karti hai.",
+    "depth-2.settings.json sirf documented keys use karta hai (`env`, `permissions.ask`, `permissions.deny`).",
+    "Final lint 0 par exit karta hai aur koi roster agent Agent list nahi karta."
+   ],
+   "improvements": [
+    "Lint ko CI mein `mvn -q -B test` ke saath jodo (module 10) taaki Agent add karne wala roster change PR fail kar de.",
+    "`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` try karo aur confirm karo ki orchestrator-as-subagent pattern bilkul kaam karna band kar deta hai.",
+    "Ek `SubagentStart` hook jodo jo har launch ke liye `agent_type` aur `agent_id` log kare, taaki audits ke liye delegation tree ban sake."
+   ]
+  }
+ },
+ "checklist": [
+  "`node workflows/composition/check-roster-flat.mjs` 0 par exit karta hai: sirf orchestrator `Agent` list karta hai, aur har roster agent ke paas explicit `tools` hain.",
+  "`node workflows/composition/composition.test.mjs` pass hota hai (11 tests).",
+  "`node workflows/composition/context-budget.mjs` har roster agent ko monolith ke start-up context se neeche dikhata hai.",
+  "`workflows/composition/one-vs-many.md` context size, tool surface, auditability, cost aur failure isolation ke measured numbers record karta hai.",
+  "Tum bata sakte ho ki subagent ko kya milta hai (body, task message, CLAUDE.md, git status, preloaded skills) aur kya nahi (history, system prompt, output style, auto memory).",
+  "Parallel steps ek turn mein launch hote hain, disjoint paths par likhte hain, aur gates saare results aane ke baad hi evaluate hote hain.",
+  "Conditional steps ek handoff field (changed paths) se decide hote hain, aur skips reason ke saath record hote hain.",
+  "Tum default nesting depth (3), use badalne wala env var, aur yeh ki limit par `Agent` withhold hota hai, bata sakte ho.",
+  "Tum explain kar sakte ho ki `Agent(type)` allowlist sirf `claude --agent` main threads ke liye kyon kaam karti hai aur depth-2 settings iski bharpai kaise karti hain.",
+  "`.claude/agents/` mein koi diagnostic agents (`sdlc-monolith`, `depth-probe`) baaki nahi hain."
+ ]
+}

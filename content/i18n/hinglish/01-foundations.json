@@ -1,0 +1,203 @@
+{
+  "id": "01-foundations",
+  "title": "Foundations: Agent Anatomy, Primitives aur Agent Contract",
+  "summary": "Samjho ki agent ko prompt ya template se kya alag karta hai, ek agent ko baarah anatomy elements mein todo aur har element ko us Claude Code mechanism se map karo jo use implement karta hai (ya maano ki woh sirf ek convention hai), prompt, skill, agent, workflow, MCP server aur hook mein se sahi choose karo, aur apna pehla Agent Contract likho, jise ek script validate karti hai jo tum khud run karoge.",
+  "prerequisites": [
+    "00-example",
+    "Node 22 (`node --version`)",
+    "Claude Code CLI installed aur authenticated (`claude --version`)",
+    "Spring Boot service layer padhne mein comfort"
+  ],
+  "concepts": [
+    {
+      "heading": "Prompt, template, agent: asal fark kya hai",
+      "body_md": "**Prompt** us conversation ke andar ek instruction hai jisme tum pehle se ho. Woh sab kuch usi conversation se udhaar leta hai: uski history, uske tools, uska permission mode, aur jawab check karne ke liye tumhara attention. **Template** ek prompt hai jise tumne save kar liya taaki dobara paste kar sako. Claude Code mein template ka saved, versioned form **skill** hai (`.claude/skills/<name>/SKILL.md`): wahi idea, plus supporting files, arguments (`$ARGUMENTS`, pehle argument ke liye `$0`) aur ek optional `/name` entry point.\n\n**Agent** (Claude Code subagent, `.claude/agents/<name>.md`) wording mein nahi, kind mein alag hai. `build/CLAUDE_CODE_FACTS.md` §1 ke hisaab se uske paas hota hai:\n\n- **apna context window**: woh apni file body ko system prompt, task message, CLAUDE.md hierarchy, git status aur koi bhi preloaded `skills` ke saath start hota hai. Use tumhari conversation history, Claude Code system prompt, tumhara output style ya auto memory **nahi** milti;\n- **apni tool boundary**: `tools` ek allowlist hai, `disallowedTools` ek denylist;\n- **apni authority**: `permissionMode`, `maxTurns`, `model`, optional `memory`, `hooks` aur `isolation: worktree`;\n- **ek loop**: woh tab tak tools call karta rehta hai jab tak use lage ki kaam ho gaya, phir main session ko **ek final message** return karta hai.\n\nIsliye practical test yeh nahi hai ki \"prompt lamba hai kya\". Test yeh hai: *kya is kaam ko us conversation se alag context, alag tools, ya alag authority chahiye jo ise maang rahi hai?* Jis context ne code likha, usi ka likha code review independent nahi hai. Jis reviewer ke paas `Edit` hai, woh chupchaap wahi fix kar sakta hai jise judge karne ko kaha gaya tha. Yeh aisi problems hain jo better prompt solve nahi kar sakta, par subagent definition kar sakti hai.\n\nCost bhi real hai: subagent un files ko dobara padhta hai jo main session pehle se jaanta hai, aur jo bhi tum uske task message mein daalna bhool gaye, woh uske paas hota hi nahi. Isliye practically tum prompt ko agent tabhi banate ho jab isolation, tool boundary ya repeatable independent opinion us cost ke layak ho."
+    },
+    {
+      "heading": "Agent anatomy: baarah elements",
+      "body_md": "Is course ka har agent inhi baarah elements se specify hota hai. \"Chat mein ek baar chal gaya\" wale prompts ke zyada failures inme se kisi ek ko implicit chhodne se aate hain.\n\n1. **Responsibilities**: ek hi kaam. Do kaam (review *aur* fix) matlab do agents.\n2. **Boundaries**: kya scope se bahar hai, chahe agent woh kar sakta ho.\n3. **Inputs**: task message mein exactly kya aata hai (base ref, run id, handoff path). Subagent ke paas tumse aur kuch nahi hota.\n4. **Outputs**: artifact aur uska format, itna precise ki script check kar sake.\n5. **Tools**: allowlist, waise hi spelling ke saath jaise Claude Code tools ko likhta hai (`Read`, `Grep`, `Glob`, `Bash`, `mcp__server__tool`).\n6. **Context**: kaunsa project knowledge woh automatically load karta hai (CLAUDE.md, preloaded skills) aur is task ke liye use kaunsi files `Read` karni hain.\n7. **Instructions**: procedure, persona nahi. \"Tum ek senior reviewer ho\" koi step nahi hai.\n8. **Memory/state**: runs ke beech kya bachta hai (`memory` field, ya handoff files) aur kya jaan-boojhkar nahi bachta.\n9. **Permissions**: bina pooche kya kar sakta hai, kiske liye insaan chahiye, kya denied hai.\n10. **Verification**: koi bhi kaise pehchane ki output achha hai ya sirf plausible lagta hai.\n11. **Failure handling**: jab input kharab ho ya kaam bahut bada ho toh guess karne ki jagah woh kya karta hai.\n12. **Handoffs**: structured artifact jo agla step consume karta hai.\n\nNeeche wali table *Anatomy element to Claude Code mechanism* har element ko us real configuration se map karti hai jo use implement karti hai. Dhyaan dene wala pattern: elements 1, 5, 6, 7, 8 aur 9 ke liye first-class Claude Code fields hain; elements 2, 3, 4, 10, 11 aur 12 zyada tar **conventions** hain jab tak tum koi hook, permission rule ya eval nahi jodte jo unhe enforce kare. Modules 05, 08, 09 aur 10 ka bada kaam inhi conventions ko mechanisms mein badalna hai.\n\nExercise `01-anatomy-breakdown` is list ko ek real one-off review prompt par apply karti hai aur dikhati hai ki woh kaunse elements undefined chhodta hai."
+    },
+    {
+      "heading": "Mechanism ya convention: enforced versus requested",
+      "body_md": "Module 00 ne rule bataya tha: **instructions intent batati hain, permissions aur hooks use enforce karte hain.** Yeh module ise aadat bana deta hai: agent ke liye likha har rule in dono mein se ek label paata hai.\n\n**Mechanism** woh cheez hai jo Claude Code khud karta hai, model chahe jo decide kare:\n\n- `tools: Read, Grep, Glob` ka matlab hai ki `Edit` agent ke toolset mein hai hi nahi. Use baaton se edit karne ke liye manaya nahi ja sakta.\n- `.claude/settings.json` mein `permissions.deny: [\"Read(./.env)\"]` har agent ke liye read block kar deta hai.\n- `.claude/hooks/block-secrets.mjs` `Edit|Write` par ek `PreToolUse` hook hai; yeh **2** se exit karta hai, jo call ko block karta hai. Exit 1 block nahi karega. Settings hooks subagents ke andar bhi fire hote hain.\n- Ek `SubagentStop` hook jo 2 se exit kare, subagent ko kaam jaari rakhne par majboor karta hai.\n\n**Convention** woh cheez hai jise sirf koi insaan, script ya eval check karta hai: six-field finding format, \"standard cite karo\", \"kabhi LGTM mat likho\", handoff front matter jab tak module 08 `check-handoff.mjs` nahi jodta.\n\nConventions buri nahi hain; contract ka zyada hissa convention hi hai. Failure mode yeh maan lena hai ki convention ek mechanism hai. Docs se do real traps:\n\n- Subagent ka `permissionMode` **ignore** hota hai jab parent session `bypassPermissions`, `acceptEdits` ya `auto` mein chal raha ho. Reviewer par `permissionMode: dontAsk` tabhi mechanism hai jab parent `default` ya `plan` mein ho; durable guard ek agent-scoped `PreToolUse` hook hai.\n- Skill ka `allowed-tools` turn ke liye tools ko **pre-approve** karta hai; unhe restrict nahi karta. Kisi tool ko hatane ke liye `disallowed-tools` use karo.\n\nIsliye practically, Agent Contract ki har `must` aur `mustNot` line `[mechanism: ...]` ya `[convention: ...]` par khatam hoti hai, aur `validate-contract.mjs` aisi line reject karta hai jisme dono mein se kuch na ho. Jab kisi `mustNot` mein sirf conventions hon, validator tumhe warn karta hai: us agent ki boundaries poori tarah model ke sahi behave karne par depend karti hain."
+    },
+    {
+      "heading": "Chhe primitives aur choose kaise karein",
+      "body_md": "Claude Code SDLC automation ke liye chhe building blocks deta hai. Yeh overlap karte hain, aur zyada tar bure designs galat wala use karte hain: jahan hook chahiye tha wahan agent, jahan skill pachaas baar reuse hoti wahan prompt.\n\nYeh decision order use karo; pehla \"haan\" jeetta hai (exercise `01-classify-primitives` ki answer key ka logic bhi yahi hai):\n\n1. **Kya yeh har baar hona hi chahiye**, model yaad rakhe ya na rakhe? **Hook** use karo (ya permission rule). Secrets scanning, handoff validation aur `kubectl delete` ko block karna suggestions nahi hain.\n2. **Kya ise repo ke bahar ka data ya actions chahiye** (Jira, chalta hua FHIR server, GitHub)? **MCP server** use karo, taaki access ek named tool (`mcp__<server>__<tool>`) ho jise permission rules allow ya deny kar sakein.\n3. **Kya yeh kai roles ko chain karta hai** jinke beech human gates hain? **Workflow** use karo: `workflows/` mein ek documented sequence, main session se run hota hai (module 08).\n4. **Kya ise apna context, apni tool limits, ya independent opinion chahiye?** **Agent** use karo.\n5. **Kya wahi procedure baar-baar repeat hoga** logon ya agents dwara? **Skill** use karo. Agents `skills` field se skills preload karte hain, toh procedure ek hi baar likha jaata hai.\n6. Warna yeh ek **prompt** hai. Jo sawaal tum ek baar poochoge use package mat karo.\n\nDo combinations itni baar aate hain ki unka naam rakhna banta hai:\n\n- **Agent + preloaded skill**: agent boundary deta hai, skill procedure (`reviewer` `code-review` preload karta hai; `sre` `production-rca` preload karta hai). Procedure upgrade karne se agent ki permissions ko haath nahi lagta.\n- **Workflow + hooks**: workflow order aur gates define karta hai; hooks gates ko real banate hain.\n\nNeeche wali comparison table *Prompt, skill, agent, workflow, MCP, hook* batati hai ki har ek kahan rehta hai, use kaun trigger karta hai aur woh kitna deterministic hai."
+    },
+    {
+      "heading": "Agent Contract",
+      "body_md": "**Agent Contract** is course mein agent ki specification hai, jo agent file se pehle likhi jaati hai aur usi ke paas rakhi jaati hai. Yeh ek convention hai, Claude Code feature nahi: Claude Code sirf `.claude/agents/<name>.md` padhta hai. Contract woh hai jiske against us file ka review hota hai, jise module 09 ke evals score karte hain, aur jo naya team member sabse pehle padhta hai.\n\nGyaarah fields, `build/schema.json` ke `agentContracts` jaise hi:\n\n| Field | Kis sawaal ka jawab deta hai |\n|---|---|\n| `purpose` | Output kaunse ek decision ko support karta hai? |\n| `inputs` / `outputs` | Task message mein kya aata hai; kya wapas aata hai aur kahan save hota hai |\n| `tools` | Exact tool names, scope ke saath (\"Bash (git diff only)\") |\n| `permissions` | Kaunsa frontmatter aur settings boundary enforce karte hain |\n| `must` / `mustNot` | Zaroori aur forbidden behaviour, har ek mechanism ya convention tag ke saath |\n| `failureConditions` | Kab guess karne ki jagah `blocked` ya `needs-human` ke saath rukna hai |\n| `validation` | Woh command, eval ya check jo output ko acceptable prove kare |\n| `handoffFormat` | Run-folder file aur uska front matter |\n| `humanGate` | Kahan ek insaan approve karta hai, aur woh real mechanism jo uska wait karta hai |\n\nReusable template `AI-SDLC/agents/CONTRACT_TEMPLATE.md` hai; har roster agent ki bhari hui copy `AI-SDLC/agents/<agent>/CONTRACT.md` mein rehti hai. `AI-SDLC/docs/foundations/validate-contract.mjs` check karta hai ki gyaarah `## field` headings present hain aur sahi order mein hain, list fields bullets hain, tool names real Claude Code tools hain, har `must`/`mustNot` line apna enforcement batati hai, aur `humanGate` ek real mechanism ka naam leta hai. `--json` contract ko schema-shaped object ki tarah print karta hai.\n\nYeh module ek worked **reviewer** draft ke saath aata hai (`docs/foundations/reviewer-contract-draft.md`). Module 02 jaan-boojhkar simple pehla reviewer banata hai, module 05-agent-roster is contract ko runtime definition ke saath `agents/reviewer/CONTRACT.md` ke roop mein finalise karta hai, aur module 09 agent ko iske against measure karta hai. Isliye practically contract code ki tarah review se badalta hai, aur agent file uske peeche chalti hai."
+    },
+    {
+      "heading": "Handoffs aur depth: roster flat kyon rehta hai",
+      "body_md": "Is course ke agents kabhi seedhe ek doosre se baat nahi karte. Har ek ek **handoff** return karta hai: YAML front matter (`run_id`, `step`, `agent`, `status`, `inputs`, `next`) wala Markdown document jo `.ai-sdlc/runs/<run-id>/NN-<agent>.md` mein save hota hai. Agla agent file padhta hai, pichhle agent ki conversation nahi, kyonki uske paas koi conversation hai hi nahi.\n\nClaude Code gehre structures allow karta hai: current docs ke hisaab se ek subagent apne subagents spawn **kar sakta hai**, aur `Agent(...)` type allowlist sirf tab enforce hoti hai jab agent main thread ki tarah chal raha ho. Exact limits aur settings module 07-agent-composition (\"Nesting: the real limits\") mein sikhaye jaate hain.\n\nIn facts par bana is course ka design decision:\n\n- **orchestrator** main thread ki tarah chalta hai (`claude --agent orchestrator`, ya main session mein `/feature` skill). Delegation sirf yahin hoti hai.\n- Roster agents (`architect`, `developer`, `reviewer`, `tester`, `security`, `sre`) `tools` mein `Agent` list **nahi** karte. Woh depth 1 par chalte hain, toh har delegation ek jagah dikhti hai aur har handoff ek file hai jise tum audit kar sakte ho.\n- Module 07 ek sanctioned depth-2 pattern aur real limits dikhata hai.\n\nAnatomy ke liye iska matlab hai ki element 12 (handoffs) aur element 2 (boundaries) milte hain: `tools` se `Agent` ko bahar rakhna ek mechanism hai jo handoff chain ko linear rakhta hai. Reviewer draft ka `mustNot` ise bilkul isi tarah record karta hai."
+    }
+  ],
+  "diagrams": [
+    {"title": "Contract fields aur unke peeche ke Claude Code mechanisms"},
+    {"title": "Primitive choose karna (pehla haan jeetta hai)"},
+    {"title": "Apne contract ke under ek reviewer run"}
+  ],
+  "comparisonTables": [
+    {
+      "title": "Prompt, skill, agent, workflow, MCP, hook",
+      "columns": ["Primitive", "Purpose", "Kahan rehta hai", "Kaun trigger karta hai", "Determinism", "Is repo mein example"],
+      "rows": [
+        ["Prompt", "Current conversation mein one-off instruction", "Kahin nahi (type kiya, ya `claude -p \"...\"`)", "Tum", "Low: model output, session ki history aur tools share karta hai", "`claude -p 'Which tests call $lastn?' --permission-mode plan`"],
+        ["Skill", "Reusable procedure plus supporting files", "`.claude/skills/<name>/SKILL.md`", "Tum `/name` se, Claude `description` match se, ya `skills` ke through agent mein preloaded", "Medium: loading aur `!` shell injection deterministic hain; execution model-driven hai", "`.claude/skills/code-review/SKILL.md` (module 03)"],
+        ["Agent", "Isolated worker, apne context, tools aur permissions ke saath", "`.claude/agents/<name>.md`", "Main session delegation (`description` se, naam se, `@agent-<name>`) ya `claude --agent <name>`", "Output determinism low, boundary deterministic (`tools`, `disallowedTools`)", "`.claude/agents/reviewer.md` (module 05)"],
+        ["Workflow", "Agents, skills aur human gates ki ordered composition", "`workflows/*.md` spec plus `/feature` jaisi entry skill", "Tum, main session se", "Order aur gates spec aur hooks se fixed; har step model-driven", "`workflows/feature-delivery.md` (module 08)"],
+        ["MCP server", "Repo ke bahar ke system se tools aur data", "`.mcp.json` (project scope) ya `~/.claude.json` (local, user)", "Task ko zaroorat ho toh Claude `mcp__<server>__<tool>` call karta hai", "Server code deterministic hai; call hoga ya nahi aur kaise, yeh model-driven hai", "`mcp/` mein FHIR-lite server (module 06)"],
+        ["Hook", "Lifecycle event par enforce ya react karna", "`.claude/settings.json` mein `hooks` (agent ya skill frontmatter mein bhi)", "Claude Code khud, `PreToolUse`, `SubagentStop` jaise events par", "High: ek script; exit code 2 block karta hai", "`.claude/hooks/block-secrets.mjs` (aaj exist karta hai)"]
+      ]
+    },
+    {
+      "title": "Anatomy element to Claude Code mechanism",
+      "columns": ["Element", "Claude Code mechanism", "Mechanism ya convention", "Reviewer example"],
+      "rows": [
+        ["Responsibilities", "`description` frontmatter (delegation) aur file body", "Routing ke liye mechanism; single-job rule convention hai", "\"Standards ke against diff review karta hai; kabhi edit nahi karta\""],
+        ["Boundaries", "`tools`, `disallowedTools`, `permissions.deny`", "Jahan tool ya rule use express kare wahan mechanism; warna `mustNot` convention", "Na Edit, na Write, na Agent"],
+        ["Inputs", "Agent tool `prompt` (task message); CLAUDE.md hierarchy; git status", "Delivery ke liye mechanism; required fields convention hain", "Base ref, run id, upstream handoff path"],
+        ["Outputs", "Main session ko return hua subagent ka final message", "Return ke liye mechanism; format convention hai", "Six-field findings table"],
+        ["Tools", "`tools` allowlist, `disallowedTools`, `mcpServers`", "Mechanism", "`Read, Grep, Glob, Bash`"],
+        ["Context", "CLAUDE.md hierarchy, `skills` preload, `omitClaudeMd`", "Mechanism", "`skills: [code-review]`"],
+        ["Instructions", "Agent file body = subagent ka system prompt", "Mechanism (model jo padhta hai), content tumhara hai", "Step-by-step review procedure"],
+        ["Memory/state", "`memory: user|project|local` (`MEMORY.md`); handoff files", "`memory` ke liye mechanism; files mein run state convention hai", "Koi memory nahi; state `.ai-sdlc/runs/` mein"],
+        ["Permissions", "`permissionMode`, settings allow/ask/deny, hooks", "Mechanism (dhyaan do: `acceptEdits`, `auto`, `bypassPermissions` parents ke under `permissionMode` ignore hota hai)", "`permissionMode: dontAsk` + agent-scoped `PreToolUse` hook"],
+        ["Verification", "`SubagentStop`/`PostToolUse` hooks, scripts, evals", "Convention jab tak koi hook check run na kare", "Module 09 ke golden tasks"],
+        ["Failure handling", "`maxTurns` (output partial mark hota hai); `-p` result `subtype`, `is_error`", "Limits ke liye mechanism; `status: blocked` convention hai", "Empty diff `blocked` return karta hai"],
+        ["Handoffs", "Kuch built in nahi", "Convention; `check-handoff.mjs` (module 08) ise mechanism banata hai", "`.ai-sdlc/runs/<run-id>/NN-reviewer.md`"]
+      ]
+    }
+  ],
+  "exercises": {
+    "01-anatomy-breakdown": {
+      "title": "Ek one-off review prompt ko agent anatomy mein todo",
+      "objective": "Woh review prompt lo jo developer aaj chat mein paste karta hai, use ek baar real `ObservationService` par run karke dekho ki kya output aata hai, phir use baarah anatomy elements mein todo. Har element ke liye record karo ki prompt kya kehta hai, gap kya hai, aur kaunsa Claude Code mechanism (ya convention) `reviewer` agent mein use implement karega.",
+      "testCases": [
+        {"name": "Baarahon elements present hain"},
+        {"name": "Har row mechanism ya convention bolti hai", "expected": "0 (har row dono mein se ek ka naam leti hai)"},
+        {"name": "Real subagent fields, koi invented nahi", "expected": "7 (aur file par `grep -E 'temperature|allowed-tools|timeout' ` kuch print nahi karta)"},
+        {"name": "Approval-by-LGTM pakda jaata hai", "expected": "Kam se kam ek row (failure handling ya handoffs) samjhati hai ki LGTM approval jaisa padha jaata hai, jise context/standards/review-standards.md forbid karta hai."},
+        {"name": "Run 1 teaching defect ko galat report karta dikhta hai", "expected": "Raw prompt ObservationService.java line 69 par `lastN` loop ko sample-app/docs/KNOWN_DEFECTS.md refer kiye bina naye finding ki tarah report karta hai; tumhara breakdown ise boundaries ya context ke under list karta hai."}
+      ],
+      "evaluationCriteria": [
+        "Baarahon elements mein se har ek ka concrete gap hai, jahan prompt kuch kehta hai wahan usse quote kiya gaya.",
+        "Claude Code column sirf build/CLAUDE_CODE_FACTS.md ke fields aur settings use karta hai (koi `temperature` nahi, agent mein hyphenated `allowed-tools` nahi).",
+        "Conventions ko conventions label kiya gaya hai, mechanisms bana kar pesh nahi kiya.",
+        "Breakdown pehchanta hai ki \"Fix anything obvious\" do responsibilities ko mila deta hai aur write authority de deta hai.",
+        "Inputs aise terms mein rewrite kiye gaye hain jin par bina chat history wala subagent act kar sake (base ref, run id)."
+      ],
+      "improvements": [
+        "Ek one-off security prompt ke liye breakdown repeat karo aur compare karo ki `security` versus `reviewer` ke liye kaunse elements mechanisms hain.",
+        "Terahvaan column jodo: kaunsa baad wala module har convention ko mechanism mein badalta hai.",
+        "Raw prompt teen baar run karo aur record karo ki runs ke beech kitni findings alag hain; yahi variance fixed output format ki daleel hai."
+      ]
+    },
+    "01-classify-primitives": {
+      "title": "Das SDLC needs ko prompt, skill, agent, workflow, MCP ya hook mein classify karo",
+      "objective": "Is repository ke SDLC ki das real needs ke liye woh ek primitive choose karo jo fit ho, aur ek sentence mein justify karo. Answer key ke against script se khud ko grade karo, phir jo miss hua uska justification padho. Point decision order hai: pehle enforcement, doosre external systems, teesre orchestration, chauthe isolation, paanchve reuse.",
+      "testCases": [
+        {"name": "Grader example attempt ko pass karta hai", "expected": "Aakhri do lines: `SCORE 8/10 (pass mark 8) PASS` aur `0`"},
+        {"name": "Stricter pass mark use fail karta hai", "expected": "`SCORE 8/10 (pass mark 9) FAIL` phir `1`"},
+        {"name": "Blank starting file zero score karti hai", "expected": "`MISSING` wali das lines, phir `SCORE 0/10 (pass mark 8) FAIL`, exit code 1"},
+        {"name": "Key examples real files ki taraf point karte hain", "expected": "Kam se kam 1: N01 ka example woh hook hai jo aaj repo mein exist karta hai."},
+        {"name": "Grader aur key ke unit tests"}
+      ],
+      "evaluationCriteria": [
+        "Grader ke saath kam se kam 8/10 score.",
+        "Har justification us property ka naam leta hai jisne decide kiya (enforcement, external system, gates, isolation, reuse), sirf primitive ka naam nahi.",
+        "N01 aur N08 ko enforcement problems pehchana gaya hai, instruction problems nahi.",
+        "N09 ke liye `skill` jawab saaf kehta hai ki skill `sre` agent ki tool boundary ke andar chalti hai.",
+        "Koi jawab chhe ke bahar ka primitive use nahi karta (permission rule ko hook answer ka hissa note kiya gaya hai, saatvi category nahi)."
+      ],
+      "improvements": [
+        "Apni team ke backlog se paanch needs key mein jodo, har ek ke justification ke saath, aur kisi colleague se khud ko grade karwao.",
+        "Grader ko extend karo taaki woh us answer ko fail kare jiske `why` mein decision-order keywords mein se koi na ho.",
+        "Claude se `claude -p` ke saath wahi das needs classify karwao aur uske answers grade karo; note karo ki enforcement problems ke liye woh kahan `agent` choose karta hai."
+      ]
+    },
+    "01-contract-validate": {
+      "title": "Reviewer Agent Contract likho aur validate karo",
+      "objective": "`agents/CONTRACT_TEMPLATE.md` copy karo, `reviewer` roster agent ke liye gyaarahon fields bharo, har must aur mustNot rule ko mechanism ya convention tag karo, aur `validate-contract.mjs` ko exit 0 karwao. Phir ise JSON `agentContracts` entry ki tarah export karo. Module 05-agent-roster is draft ko `agents/reviewer/CONTRACT.md` ke roop mein finalise karta hai.",
+      "testCases": [
+        {"name": "Bhara hua contract validate hota hai", "expected": "`OK    docs/foundations/reviewer-contract-draft.md: 11/11 contract sections` phir `0`"},
+        {"name": "Unfilled template reject hota hai", "expected": "`FAIL ... agent \"<agent-name>\" is not in the roster` plus har section ke liye ek `unreplaced <placeholder> text` line, phir `1`"},
+        {"name": "Template headings schema se match karti hain"},
+        {"name": "Har must/mustNot rule apna enforcement batata hai"},
+        {"name": "Boundaries mechanisms hain, sirf conventions nahi", "expected": "3 (Edit/Write nahi, Agent nahi, Bash sirf git tak limited)"},
+        {"name": "Unit tests"}
+      ],
+      "evaluationCriteria": [
+        "Gyaarahon fields bhare hue; `validate-contract.mjs` bina warnings ke exit 0 karta hai.",
+        "`tools` aur `permissions` agree karte hain: permissions mein kuch bhi aisa tool grant nahi karta jo `tools` mein nahi hai.",
+        "Kam se kam no-edit aur no-delegation rules mechanism (`tools`, `disallowedTools`) se enforce hote hain, instruction se nahi.",
+        "`permissionMode` caveat (`acceptEdits`, `auto`, `bypassPermissions` parents ke under ignore hota hai) ko backstop ke saath acknowledge kiya gaya hai.",
+        "`failureConditions` empty diff, oversized diff, missing inputs, aur code fix karne ki request ko cover karti hain.",
+        "`humanGate` ek real mechanism ka naam leta hai (PR approval, `ask` rule) aur batata hai ki reviewer kabhi merge approval nahi deta (uske `APPROVE` verdict ka matlab sirf itna hai ki koi blocking findings nahi hain)."
+      ],
+      "improvements": [
+        "Agla template `tester` ke liye bharo; uske `tools` mein Edit aur Write hain, toh uske `mustNot` ko restrict karna hoga ki woh *kahan* likhta hai (sirf tests) aur batana hoga ki yeh mechanism hai ya convention.",
+        "Ek `--frontmatter` mode jodo jo contract se matching `.claude/agents/reviewer.md` frontmatter (`name`, `description`, `tools`, `disallowedTools`, `permissionMode`) print kare, aur module 05 mein use real file ke against diff karo.",
+        "Jab module 05 `agents/*/CONTRACT.md` likh de, tab validator ko un par CI mein run karo."
+      ]
+    }
+  },
+  "agentContracts": [
+    {
+      "purpose": "`sample-app/` ke ek diff ko team standards ke against review karo aur structured findings return karo taaki human reviewer jaldi decide kar sake ki change mergeable hai ya nahi. Reviewer correctness, design, readability, testing aur standards cover karta hai; security aur performance concerns ko flag karta hai par unka deep analysis `security` aur `sre` agents par chhodta hai. Yeh kabhi code nahi badalta aur kabhi change approve nahi karta.",
+      "inputs": [
+        "Diff karne ke liye base ref, jaise `main` (required, task message mein).",
+        "Run id, jaise `2026-09-30-feat-observation-search` (required, task message mein; run folder ka naam isi se hota hai).",
+        "Upstream handoff ka path jo change ka intent batata hai, jaise `.ai-sdlc/runs/<run-id>/04-developer.md` (optional; iske bina reviewer diff ko uske apne merits par review karta hai aur yeh bata deta hai).",
+        "Apply karne wale standards: `context/standards/review-standards.md` aur `context/standards/coding-standards.md` (hamesha), `context/standards/testing-standards.md` jab test files badlein."
+      ],
+      "outputs": [
+        "Main session ko final message: poora handoff document (YAML front matter plus handoffFormat ke sections). Orchestrator, jiske paas run folder ka Write access hai, ise `.ai-sdlc/runs/<run-id>/NN-reviewer.md` ke roop mein save karta hai.",
+        "Har finding ke liye ek row wali findings table: `id | severity | category | location | evidence | recommendation`, severity `critical | high | medium | low | info` mein se.",
+        "Har us category ke liye explicit \"no findings\" line jo check ki gayi aur clean mili."
+      ],
+      "permissions": "`.claude/agents/reviewer.md` ka frontmatter: `tools: Read, Grep, Glob, Bash` (ek allowlist, toh Edit, Write aur Agent available nahi hain) aur second guard ki tarah `disallowedTools: Edit, Write, NotebookEdit`, `permissionMode: dontAsk` ke saath, jo har us Bash command ko auto-deny karta hai jo `.claude/settings.json` ke project rules (`Bash(git diff *)`, `Bash(git status)`, `Bash(git log *)`) se pre-approved nahi hai. Docs se caveat: subagent ka `permissionMode` ignore hota hai jab parent session `bypassPermissions`, `acceptEdits` ya `auto` mein chal raha ho, isliye module 05 agent ke apne `hooks` frontmatter mein ek `PreToolUse` hook jodta hai jo `git diff|git log|git status` ke bahar ki har Bash command ke liye 2 se exit karta hai. Project `deny` rules (`Read(./.env)`, `Read(./**/secrets/**)`, `Read(./**/*.phi.*)`) reviewer par bhi baaki har agent ki tarah apply hote hain.",
+      "must": [
+        "Har finding ko chhahon fields do: id, severity, category, `path:line` ke roop mein location, diff ya file se quoted evidence, recommendation. [convention: module 09-agent-evaluation ke reviewer golden tasks se checked]",
+        "Violate hua standard file plus rule number ke saath cite karo, jaise `context/standards/coding-standards.md` rule 6. [convention: reviewer golden tasks se checked]",
+        "Har us category ke liye \"no findings\" likho jo check ki aur clean mili. [convention: human reviewer handoff padhta hai]",
+        "Change ko `git diff <base>...HEAD` se padho, kisi pichhli conversation ki yaad se nahi. [mechanism: subagents bina conversation history ke start hote hain; Bash `permissionMode: dontAsk` plus allow rules se git tak limited hai]",
+        "Aise handoff ke saath khatam karo jiske front matter mein `run_id`, `step`, `agent: reviewer`, `status`, `inputs`, `next` hon. [mechanism: module 08 ka `.claude/hooks/check-handoff.mjs` missing keys wala handoff reject karta hai]"
+      ],
+      "mustNot": [
+        "Koi bhi file edit, create ya delete karna. [mechanism: Edit aur Write `tools` mein nahi hain aur `disallowedTools` mein listed hain]",
+        "Doosre agents ko delegate karna. [mechanism: `Agent` `tools` mein nahi hai, toh reviewer depth 1 par rehta hai]",
+        "Apne verdict ko merge approval ki tarah pesh karna ya \"LGTM\", \"approved\" ya \"ready to merge\" likhna. [convention: `context/standards/review-standards.md`: `APPROVE` verdict ka matlab sirf itna hai ki koi blocking findings nahi; merge approval ek human PR approval hai]",
+        "Evidence mein PHI quote karna (MRN values, naam, birth dates, patient se jude observation values); sirf code aur `MRN-000123` jaise synthetic fixtures quote karo. [convention: `context/security/phi-and-secrets-policy.md`, security agent dobara check karta hai]",
+        "`ObservationService.lastN` mein marked `TEACHING-DEFECT(perf-n+1)` ko naye finding ki tarah report karna. Ise known ki tarah mention kiya ja sakta hai, `sample-app/docs/KNOWN_DEFECTS.md` ke reference ke saath. [convention: reviewer golden tasks mein ek case hai jo yeh check karta hai]",
+        "`git diff`, `git log` ya `git status` ke alawa koi bhi shell command run karna. [mechanism: project allow rules ke saath `permissionMode: dontAsk`, module 05 ke agent-scoped `PreToolUse` hook se backed]"
+      ],
+      "failureConditions": [
+        "Base ref ke against diff empty hai ya base ref exist nahi karta: exact `git` error ke saath `status: blocked` return karo.",
+        "Diff 40 se zyada files ya 2,000 changed lines ko chhoota hai: `status: needs-human` return karo aur change ko split karne ko kaho.",
+        "Referenced standard file ya upstream handoff path exist nahi karta: missing path ka naam lekar `status: needs-human` return karo.",
+        "Change `config/SecurityConfig.java`, `audit/AuditLogger.java` ya `db/migration/` ko chhoota hai: review karo, par `next: security` set karo aur wajah batao.",
+        "Task reviewer se code fix karne ko kehta hai: mana karo, `status: blocked` return karo aur `developer` ko route karne ki recommendation do.",
+        "Run `maxTurns` tak pahunch jaata hai (output partial mark hota hai): complete ki tarah pesh ki gayi partial finding list ki jagah `status: blocked` return karo."
+      ],
+      "validation": "Yeh contract `node docs/foundations/validate-contract.mjs docs/foundations/reviewer-contract-draft.md` (exit 0) se check hota hai. Reviewer output teen tarah se check hota hai: handoff front matter `.claude/hooks/check-handoff.mjs` (module 08) se; findings `evaluations/` ke golden tasks (module 09) ke against, jahan loop ke andar repository call jodne wala seeded diff coding-standards rule 6 cite karti `performance` finding produce karna chahiye aur ek seeded unchecked `isActive()` glossary business rule 3 cite karti `correctness` finding produce karna chahiye; aur ek human spot-check ki koi finding quoted evidence ke bina nahi hai.",
+      "handoffFormat": "`workflows/README.md` aur style guide mein defined YAML front matter ke saath Markdown: `run_id`, `step`, `agent: reviewer`, `status` (`complete | blocked | needs-human`), `inputs` (upstream handoff file names ki list), `next` (`security`, `tester`, `developer` ya `human`). Sections is order mein: `## Summary` (ek sentence mein verdict, har severity ke counts), `## Findings` (six-column table), `## Decisions` (kya scope se bahar tha aur kyon), `## Open questions`, `## Artifacts` (hamesha \"none written; returned to main session\"). Orchestrator ise `.ai-sdlc/runs/<run-id>/NN-reviewer.md` ke roop mein save karta hai.",
+      "humanGate": "Reviewer advisory hai; gate human pull-request approval hai. Koi bhi `critical` ya `high` finding merge block karti hai (review-standards), aur orchestrated run mein orchestrator `status: needs-human` ke saath tab tak rukta hai jab tak koi insaan har ek ko accept ya reject na kare. Reviewer ka produce kiya kuch bhi code merge nahi kar sakta: `.claude/settings.json` mein `git push` ek `ask` rule hai, force-push denied hai, aur CLAUDE.md rule 7 push, merge aur deploy insaan par chhodta hai."
+    }
+  ],
+  "checklist": [
+    "Tum kisi diye gaye kaam ke liye bata sakte ho ki use alag context, alag tools ya alag authority chahiye ya nahi, aur isliye woh agent hai ya nahi.",
+    "`docs/foundations/anatomy-breakdown-reviewer.md` mein baarah rows hain, har ek Mechanism: ya Convention: par khatam hoti hai.",
+    "Tumhara cite kiya har Claude Code field `build/CLAUDE_CODE_FACTS.md` mein exist karta hai (agent fields camelCase, skill fields hyphenated).",
+    "`node docs/foundations/grade-classification.mjs` tumhare classification ko 8/10 ya usse better score karta hai.",
+    "`agents/CONTRACT_TEMPLATE.md` mein gyaarah `## field` headings schema order mein hain aur yeh `--template` validation pass karta hai.",
+    "`docs/foundations/reviewer-contract-draft.md` `validate-contract.mjs` ko exit code 0 ke saath pass karta hai.",
+    "Reviewer draft ka har `must` aur `mustNot` rule `[mechanism: ...]` ya `[convention: ...]` tagged hai.",
+    "Reviewer draft `tools` se `Agent`, `Edit` aur `Write` ko bahar rakhta hai, aur wajah batata hai.",
+    "`humanGate` field ek real mechanism ka naam leta hai, \"koi ise dekh lega\" nahi.",
+    "`node --test docs/foundations/foundations.test.mjs` 14 passing tests report karta hai.",
+    "Tum jaante ho ki reviewer contract ke kaunse hisse module 05-agent-roster finalise karega, aur kaunse module 09 measure karega."
+  ]
+}

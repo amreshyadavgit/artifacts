@@ -1,0 +1,328 @@
+{
+ "id": "04-skills-security-performance-rca",
+ "title": "Production Skills: Security Review, Performance Review aur Production RCA",
+ "summary": "Teen production-grade skills banao jin par security aur sre agents depend karte hain: ek PHI-first security-review jo bundled /security-review ko replace karta hai aur schema-validated JSON deta hai, ek measure-first performance-review jo $lastn N+1 ko prove karta hai (20 subjects ke liye 40 statements, fix ke baad 1), aur ek production-rca skill jo synthetic incident evidence pack ko cited, blameless RCA mein badal deta hai. Har skill instruments ke saath ship hota hai (schema, zero-dependency scripts, patch aur test) aur golden cases ke saath engineering asset ki tarah versioned hota hai.",
+ "prerequisites": [
+  "03-skills-architecture-code-test",
+  "Java 21 aur Maven 3.9 (`cd AI-SDLC/sample-app && mvn -q -B test` 25 tests ke saath pass hota hai)",
+  "Node 22 (helper scripts ki koi dependency nahi hai)",
+  "Claude Code CLI authenticated, live `claude -p` steps ke liye"
+ ],
+ "concepts": [
+  {
+   "heading": "Production skill = procedure plus instruments",
+   "body_md": "Module 03-skills-architecture-code-test mein jo skills bane woh zyaadatar procedure the: kya padhna hai, kya check karna hai, findings ko kaise format karna hai. Is module ke teen skills **instruments** jodte hain: aisi files jinhe model run karta hai ya jinke against validate karta hai, taaki result ka ek hissa deterministic ho.\n\n| Skill | Procedure (`SKILL.md`) | Reference (on demand load) | Instrument (execute hota hai) |\n|---|---|---|---|\n| `security-review` | scope, das categories, severity calibration | `checklist.md`, `report.schema.json` | `scripts/render-report.mjs` |\n| `performance-review` | pehle measure, severity, output | `checklist.md`, `examples/lastn-fix/` | `scripts/count-queries.mjs`, `LastnQueryCountTest.java` |\n| `production-rca` | guard, analysis order, reasoning rules | `rca-template.md`, evidence pack | `scripts/build-timeline.mjs` |\n\nYeh split kyon matter karta hai (`build/CLAUDE_CODE_FACTS.md` §2 se):\n\n- Skill ka **description** hamesha context mein rehta hai; **body** tab load hoti hai jab skill invoke hota hai; supporting files tabhi load hoti hain jab Claude unhe padhta hai. `SKILL.md` ko chhota rakho (docs kehte hain 500 lines se kam) aur baaki ko link karo.\n- Scripts **execute hote hain, load nahi**. 150-line ka validator koi context nahi khata; uska exit code hi baat karta hai.\n- `${CLAUDE_SKILL_DIR}` skill ke apne folder par resolve hota hai, isliye `node ${CLAUDE_SKILL_DIR}/scripts/count-queries.mjs` wahan bhi kaam karta hai jahan bhi skill install ho.\n\nThumb rule: jo bhi cheez reviewer ko warna har baar haath se re-check karni padti (schema shape, severity counts, statement counts, timestamp ordering, PHI patterns), woh script ban jaati hai. Judgement model karta hai; script us judgement ko checkable banata hai.\n\nToh practically, jab tum skill likho, har step ke liye poocho: *kya 50-line ka Node script yeh decide kar sakta hai?* Agar haan, toh script likho aur skill se use call karwao."
+  },
+  {
+   "heading": "Bundled /security-review ko replace karna, aur frontmatter choices",
+   "body_md": "Claude Code ek bundled `/security-review` ke saath ship hota hai. FACTS addendum ke hisaab se, **same naam ka project skill bundled command ko replace kar deta hai** (lekin uske aliases ko nahi). `AI-SDLC/` ke andar ab `/security-review` chalane par `.claude/skills/security-review/SKILL.md` run hota hai, is repo ki PHI table, severity scale aur report schema ke saath. Project ke bahar bundled wala hi chalta hai. Yeh baat skill ke README mein likh do taaki koi surprise na ho.\n\nFrontmatter, aur har key wahan kyon hai:\n\n- `description` + `when_to_use`: automatic use ke liye Claude inhi par match karta hai. Dono skill listing mein dikhte hain (milake 1,536 characters par truncate).\n- `argument-hint: \"[diff | path | git-range]\"`: autocomplete hint. Ise quote karo: bina quote ka `[...]` YAML list ban jaata hai.\n- `allowed-tools: Read Grep Glob Bash(git diff *) Bash(git log *) Bash(node */security-review/scripts/render-report.mjs *)`: skill active hone tak inhe **pre-approve** karta hai. Yeh kuch restrict nahi karta; restriction `security` agent ki `tools` list se aati hai (module 05-agent-roster) aur zaroorat ho toh `disallowed-tools` se.\n- `disable-model-invocation` **nahi**. Security agent is skill ko apne `skills:` field se preload karta hai, aur docs kehte hain ki `disable-model-invocation: true` wale skills preload nahi ho sakte.\n\nModel start hone se pehle body pending diff inject karti hai:\n\n```markdown\n!`git diff --stat`\n```\n\nDynamic injection permission rules ke against check hota hai. `.claude/settings.json` mein `Bash(git diff *)` pehle se allowed hai, isliye yeh bina prompt ke chalta hai. Non-zero exit poori invocation abort kar deta hai, isiliye command `git diff --stat` hai (koi change na ho toh bhi exit 0) aur aisa kuch nahi jo clean tree par fail ho.\n\nYahi reasoning `production-rca` ke `allowed-tools` mein bhi lagi: woh `Bash(kubectl get events *)` aur `Bash(kubectl get pods *)` pre-approve karta hai lekin `Bash(kubectl get *)` **nahi**, kyonki woh `kubectl get secret fhir-lite-secrets -o yaml` ko bhi pre-approve kar deta."
+  },
+  {
+   "heading": "Healthcare severity scale ke saath structured security findings",
+   "body_md": "Jo security review prose return karta hai woh merge ko gate nahi kar sakta. `security-review` ek JSON object return karta hai jo `report.schema.json` ke against validate hota hai: `scope`, `summary` (har severity ke counts plus `verdict`), `findings[]` (`id`, `severity`, `category`, `title`, `location`, `evidence`, `recommendation`, `confidence`, `phi`, optional `cwe`), `checkedClean[]` aur `limitations[]`.\n\nHeadless mode mein documented `--json-schema` flag Claude se woh object `structured_output` mein return karwata hai:\n\n```bash\nclaude -p \"/security-review sample-app/\" --permission-mode plan --output-format json \\\n  --json-schema \"$(cat .claude/skills/security-review/report.schema.json)\" | jq '.structured_output'\n```\n\nPhir `render-report.mjs` woh kaam karta hai jis par model ko akele trust nahi karna chahiye: schema validate karna, check karna ki `summary` counts findings ke barabar hain, verdict dobara compute karna (kisi bhi critical/high par `block`, medium par `needs-decision`, warna `pass`), non-synthetic MRN wale evidence ko reject karna, aur `--fail-on high` ke under `1` se exit karna.\n\n**Severity calibration** mein healthcare alag hai. `context/security/phi-and-secrets-policy.md` \"PHI exposure\" ko critical mein list karta hai. Skill ise aur sharp karta hai: unauthorized **caller** ko disclose hua PHI `critical` hai; **internal sink** (application logs) mein likha gaya PHI `high` hai. Dono merge block karte hain; yeh distinction incident response ko drive karta hai.\n\nUnmodified sample app ka review khaali nahi aata. Answer key (`skills/security-review/tests/expected/sample-app-report.json`) mein 1 high, 5 medium, 3 low, 1 info hai. High wala is module ko banate waqt reproduce hua: `PatientResource.HumanName.given` par koi `@Size` nahi hai, column `VARCHAR(255)` hai, aur 280-character ka given name ek 500 deta hai jiska H2 error message, naam samet, Hibernate ke `SqlExceptionHelper` aur `GlobalExceptionHandler.handleUnexpected` (`log.error(\"Unhandled exception\", ex)`, line 71) dono se ERROR par log hota hai. Code PHI-safe *dikhta* hai: `AuditLogger` sirf ids log karta hai, validation errors sirf field names echo karte hain. Leak us path mein hai jo kisi ne jaan-boojh kar likha hi nahi.\n\nToh practically: har category ya toh findings mein khatam hoti hai ya `checkedClean` entry mein. Jo category chup hai, use kisi ne check nahi kiya."
+  },
+  {
+   "heading": "Fix se pehle measure karo: statements per request",
+   "body_md": "\"Yeh N+1 jaisa lagta hai\" ek opinion hai. \"`$lastn` 20 subjects ke liye 40 statements chalata hai aur patch ke baad 1\" ek finding hai. `performance-review` har `high` ke liye ek number maangta hai.\n\nDo instruments, dono sample app ke against verified:\n\n1. **Test mein Hibernate statistics.** `examples/lastn-fix/LastnQueryCountTest.java` `ApiTestSupport` ko extend karta hai, `@TestPropertySource(properties = \"spring.jpa.properties.hibernate.generate_statistics=true\")` jodta hai, `Statistics` clear karta hai, MockMvc se `GET /fhir/Observation/$lastn` call karta hai aur `getPrepareStatementCount() <= 2` assert karta hai. Yeh `context/standards/testing-standards.md` ki \"performance smoke: query-count assertion\" row hai, aur yahi regression test ban jaata hai.\n2. **SQL log plus ek parser.** Wahi test `-Dspring.jpa.show-sql=true` ke saath chalao aur output `scripts/count-queries.mjs --from LASTN_BEGIN --to LASTN_QUERY_COUNT` ko do. Yeh statements ko shape ke hisaab se group karta hai (literals aur `IN (...)` lists collapse), jo bhi `select` shape paanch ya zyada baar repeat ho use flag karta hai, aur kabhi bind values print nahi karta.\n\nApp ki scratch copy mein measure kiya gaya:\n\n| | statements (20 subjects) | shapes | tests |\n|---|---|---|---|\n| `TEACHING-DEFECT(perf-n+1)` jaisa ship hua | 40 | 2, dono N+1 suspects | `LastnQueryCountTest`: 4 mein se 2 fail |\n| `lastn-set-based.patch` apply karke | 1 | 1 | full suite: 29 pass |\n\nLog woh cheezein bhi dikhata hai jo kisi ne poochi nahi: derived query `findByPatientIdOrderByEffectiveDateTimeDesc` `join patient p1_0 on p1_0.id=o1_0.patient_id where p1_0.id=?` generate karti hai, aur `findByFamilyNameIgnoreCaseOrderByIdAsc` `upper(p1_0.family_name)=upper(?)` generate karti hai, jo PostgreSQL par `ix_patient_family_name` use nahi kar sakti.\n\nFix set-based hai, cache nahi: `patient_id IN (:patientIds)` par ek `ROW_NUMBER() OVER (PARTITION BY patient_id ORDER BY effective_date_time DESC, id DESC)` query, code predicate SQL mein push kiya gaya, results request order mein re-order kiye gaye, aur 100-subject ka cap. N+1 ke aage laga cache use tab tak chhupa deta hai jab tak load ke under pehla cold miss na aaye, aur yahi exactly agle concept ka incident hai."
+  },
+  {
+   "heading": "RCA evidence discipline hai, storytelling nahi",
+   "body_md": "`production-rca` skill ek evidence pack se kaam karta hai, `examples/INC-2026-0922-lastn/`: incident brief, change calendar, do pods ke application logs, ingress access log, Kubernetes events, `kubectl describe pod`, rollout history, aur metrics jisme ek `pg_stat_statements` diff bhi hai. Yeh synthetic hai, internally consistent hai aur PHI-free hai.\n\nSkill chaar habits enforce karta hai:\n\n1. **Pehle evidence ko guard karo.** Agar koi line PHI jaisi dikhe (MRN, birth date, name fields, database errors jo submitted values echo karte hain) toh `build-timeline.mjs` kuch bhi print karne se mana kar deta hai aur `3` se exit karta hai. Real incident ke evidence mein bilkul wahi leak ho sakta hai jo security-review SEC-001 ne pakda; RCA ko use aise document mein copy nahi karna chahiye jo door-door tak share hota hai.\n2. **Boring candidates ko hamesha tolo.** Bad deploy, database degradation, resource exhaustion, traffic ya data change. Har ek ko evidence for aur evidence against milta hai. Yahan `rollout-history.txt` deploy ko reject karta hai; `pg_stat_statements` (mean 1.62 ms per call) database ko reject karta hai; `Reason: Error, Exit Code: 137` OOM ko reject karta hai, kyonki liveness failure aur grace period ke baad aaya SIGKILL `OOMKilled` nahi hota.\n3. **Sources ke across quantify karo.** Per-patient query ke 431,616 calls = 843 requests x 512 subjects; 176,099,328 rows / 431,616 calls = 408 rows per call = import ki average history. Jab independent sources ke numbers match karte hain, tab causal chain real hai.\n4. **Trigger, root cause aur contributing factors alag rakho.** Trigger: dashboard go-live. Root cause: `ObservationService.lastN` mein N+1 plus `subjects` par koi cap nahi. Contributing: traffic connector par 1 s timeout wale probes, 30 s pool timeout, koi application metrics nahi, 20 patients x 2 observations wala load test, ek shared `clinician` account.\n\nHealthcare do impact rows jodta hai jo zyaadatar templates mein nahi hoti: **clinical safety** (kya koi clinician stale data par action le sakta tha?) aur **PHI exposure** (aur tumne kaise check kiya). Dono `rca-template.md` mein hain."
+  },
+  {
+   "heading": "Skills versioned engineering assets ki tarah",
+   "body_md": "Jo skill `security` agent har review par preload karta hai, woh tumhare SDLC ke liye production code hai. Runtime/asset split (`.claude/skills/<name>/` versus `skills/<name>/` jisme `README.md`, `CHANGELOG.md` aur `tests/cases.json` hain) aur release discipline module 03-skills-architecture-code-test mein introduce hue the; yahan ke teen skills unhe follow karte hain aur `skills/<name>/tests/expected/` mein answer keys jodte hain.\n\nAnswer key kahan rehti hai, yeh jaan-boojh kar hai. Agar answer key `.claude/skills/security-review/` ke andar hoti, toh review ke dauraan ek `Glob` expected report dhoondh kar copy kar sakta tha. Answers ko us directory ke bahar rakho jise skill padhta hai.\n\nGolden cases do kinds ke hote hain:\n\n| Kind | Model chahiye | Example | Kya prove karta hai |\n|---|---|---|---|\n| deterministic | nahi | `perf-06`: real before-log par `count-queries.mjs` 40 statements ke saath exit 1 karta hai | instruments kaam karte hain |\n| live | haan | `sec-05`: DELETE matcher ko `/fhir/**` ke neeche le jaane par kam se kam `high` ka `authz` finding aana chahiye | procedure kaam karta hai |\n\nLive cases mein **negative controls** hote hain: `sec-07` (sirf README wala diff pass hona chahiye), `rca-02` (`OOMKilled` incident ka blame N+1 par nahi jaana chahiye), `rca-05` (thin evidence \"not determined\" par khatam hona chahiye). Jo skill har incident mein N+1 dhoondh leta hai woh achha RCA skill nahi hai; woh ek pattern matcher hai.\n\nHar change cases ko re-run karta hai aur pass rate CHANGELOG mein record karta hai (versioning rule: module 03; library-wide policy: module 10-governance). Module 09-agent-evaluation woh harness banata hai jo inhe scale par chalata hai."
+  }
+ ],
+ "diagrams": [
+  {
+   "title": "security-review: invocation se merge gate tak"
+  },
+  {
+   "title": "INC-2026-0922-01 ki causal chain"
+  },
+  {
+   "title": "performance-review: measure karo, fix karo, prove karo"
+  }
+ ],
+ "comparisonTables": [
+  {
+   "title": "Teeno skills side by side",
+   "columns": [
+    "",
+    "security-review",
+    "performance-review",
+    "production-rca"
+   ],
+   "rows": [
+    [
+     "Invocation",
+     "`/security-review [diff | path | git-range]`",
+     "`/performance-review [diff | path | endpoint]`",
+     "`/production-rca [evidence-dir] [incident-id]`"
+    ],
+    [
+     "Kaun preload karta hai",
+     "`security` agent",
+     "`sre` agent",
+     "`sre` agent"
+    ],
+    [
+     "Primary input",
+     "code aur manifests",
+     "code, SQL logs, ek query-count test",
+     "evidence pack (logs, events, metrics, changes)"
+    ],
+    [
+     "Output",
+     "`report.schema.json` ke against valid JSON, Markdown mein rendered",
+     "findings table + measurements + proposed patch",
+     "`rca-template.md` se 11-section RCA, `status: needs-human`"
+    ],
+    [
+     "Instrument",
+     "`render-report.mjs` (schema, counts, verdict, MRN guard, `--fail-on`)",
+     "`count-queries.mjs` (shapes, N+1 suspects, `--fail-on-suspect`)",
+     "`build-timeline.mjs` (UTC merge, refs, PHI guard exit 3)"
+    ],
+    [
+     "Pre-approved tools",
+     "Read, Grep, Glob, `git diff`, `git log`, renderer",
+     "Read, Grep, Glob, `git diff`, `mvn -q -B test`, helper",
+     "Read, Grep, Glob, read-only `kubectl` subcommands, helper"
+    ],
+    [
+     "Blocking signal",
+     "`verdict: block` / renderer exit 1",
+     "measurement ke saath `high` finding",
+     "koi nahi: RCA ko hamesha human review chahiye"
+    ],
+    [
+     "Negative-control case",
+     "`sec-07` sirf README wala diff pass hota hai",
+     "`perf-02` patched app mein koi N+1 nahi",
+     "`rca-02` OOMKilled, `rca-05` thin evidence"
+    ]
+   ]
+  },
+  {
+   "title": "RCA candidates ke liye discriminating evidence",
+   "columns": [
+    "Hypothesis",
+    "Kya predict karta",
+    "Kya observe hua",
+    "Verdict"
+   ],
+   "rows": [
+    [
+     "Bad deploy",
+     "08:00 ke aas-paas naya ReplicaSet ya image",
+     "last rollout 2026-09-18, wahi `fhir-lite-api:0.1.0`",
+     "rejected"
+    ],
+    [
+     "OOM",
+     "`Reason: OOMKilled`",
+     "liveness Killing events ke baad `Reason: Error`, `Exit Code: 137`",
+     "rejected (memory pressure GC ke through contribute karta hai)"
+    ],
+    [
+     "Database degradation",
+     "slow calls, lock waits, lag",
+     "408 rows ke liye 1.62 ms per call, koi lock waits nahi, lag 1 s se kam",
+     "rejected (load ek consequence tha)"
+    ],
+    [
+     "Ingress ya network",
+     "`upstream_response_time` `request_time` se kaafi kam",
+     "har slow line par dono barabar hain",
+     "rejected"
+    ],
+    [
+     "N+1 x 512 subjects x deep history",
+     "calls = requests x 512, rows per call = history depth",
+     "431,616 = 843 x 512; 408 rows per call; dashboard band hone par recovery",
+     "confirmed"
+    ]
+   ]
+  }
+ ],
+ "exercises": {
+  "04-security-review-skill": {
+   "title": "security-review banao: PHI-first checks, ek JSON schema aur ek merge gate",
+   "objective": "AI-SDLC ke andar bundled /security-review ko ek project skill se replace karo jo authN, authZ, input validation, secrets, PHI, SQL injection, API security, dependencies, logging aur infrastructure cover kare, ek JSON report return kare jo schema ke against validate ho, aur use ek script se Markdown mein render kare jo CI step fail kar sake. Ise unmodified sample app par chalao aur confirm karo ki yeh GlobalExceptionHandler ke through real PHI-in-logs path pakadta hai.",
+   "testCases": [
+    {
+     "name": "Renderer answer key accept karta hai aur high par gate karta hai",
+     "expected": "Markdown jisme 'Verdict: **block**' aur '| SEC-001 | high | phi |' ho, stderr 'render-report: 1 finding(s) at or above high: SEC-001', exit=1"
+    },
+    {
+     "name": "Renderer inconsistent counts reject karta hai"
+    },
+    {
+     "name": "Renderer non-synthetic MRN reject karta hai",
+     "expected": "exit 2, stderr mein 'MRN-483920, which is not a synthetic MRN; redact it' ho"
+    },
+    {
+     "name": "PHI finding real hai",
+     "expected": "Response 500 OperationOutcome 'Internal server error' hai; console par o.h.engine.jdbc.spi.SqlExceptionHelper aur o.e.fhir.error.GlobalExceptionHandler ki ERROR lines dikhti hain jinme 'Value too long for column \"given_names CHARACTER VARYING(255)\"' ke baad submitted value hoti hai"
+    },
+    {
+     "name": "Live review key findings pakadta hai aur koi injection nahi",
+     "expected": "GlobalExceptionHandler.java (ya PatientResource.java) par ek high 'phi' finding, ObservationService.java par ek medium 'logging-audit' finding, ObservationController.java:43 par ek medium finding; koi 'injection' finding nahi; 'injection' checkedClean mein dikhta hai"
+    },
+    {
+     "name": "Project skill bundled wale ko replace karta hai",
+     "expected": "Output is skill ko follow karta hai (schemaVersion 1.0 aur severities critical..info wala JSON report), bundled command ka free-form review nahi"
+    }
+   ],
+   "evaluationCriteria": [
+    "Saari das categories ya toh findings mein hain ya concrete evidence ke saath checkedClean mein.",
+    "Har critical ya high finding code quote karta hai aur AI-SDLC/ ke relative path:line cite karta hai.",
+    "Report mein koi PHI nahi: patient values [REDACTED] hain ya synthetic MRN-000xxx.",
+    "Severity calibration table follow karti hai (caller ko PHI = critical, logs mein PHI = high).",
+    "Frontmatter sirf documented keys use karta hai; skill preloadable rehta hai (koi disable-model-invocation nahi).",
+    "render-report.mjs bilkul documented tarike se 0/1/2 exit karta hai."
+   ],
+   "improvements": [
+    "render-report.mjs mein ek `sarif` output mode jodo taaki findings PR par code-scanning alerts ki tarah dikhein.",
+    "Ek `paths` frontmatter glob (`sample-app/**`) jodo taaki skill sirf tab auto-activate ho jab Claude app par kaam kare.",
+    "Ek PreToolUse hook jodo (module 10-governance) jo `git commit` ko block kare jab tak run folder ki latest report ka verdict block ho.",
+    "Machine-readable phi-fields.json use karke MRN guard ko glossary ke baaki PHI fields tak extend karo."
+   ]
+  },
+  "04-performance-review-lastn": {
+   "title": "performance-review banao aur $lastn fix ko query count se prove karo",
+   "objective": "Ek performance-review skill banao jo recommend karne se pehle measure karta hai, ek zero-dependency SQL-log parser aur ek Hibernate-statistics test ship karo, phir unse ObservationService.lastN mein TEACHING-DEFECT(perf-n+1) prove karo (20 subjects ke liye 40 statements) aur yeh bhi ki set-based patch ise 1 tak le aata hai jabki full suite abhi bhi pass hota hai. Patch sirf scratch copy par apply karo; sample-app mein defect bana rehta hai.",
+   "testCases": [
+    {
+     "name": "Defect measurable hai",
+     "expected": "'LASTN_QUERY_COUNT subjects=20 statements=40'; 4 mein se 2 tests fail (statement count aur 101-subject cap)"
+    },
+    {
+     "name": "Patch bina regressions ke fix karta hai",
+     "expected": "exit 0 (29 tests: 25 existing + 4 new), 'LASTN_QUERY_COUNT subjects=20 statements=1'"
+    },
+    {
+     "name": "Helper real log mein N+1 flag karta hai",
+     "expected": "'statements: 40  distinct shapes: 2', do lines jo '<-- N+1 suspect' par khatam hoti hain, exit=1"
+    },
+    {
+     "name": "After log par helper clean hai"
+    },
+    {
+     "name": "sample-app mein teaching defect abhi bhi hai"
+    },
+    {
+     "name": "Review cache se lead nahi karta",
+     "expected": "PERF-001 set-based query aur cap recommend karta hai; primary fix ke roop mein koi @Cacheable ya second-level cache nahi"
+    }
+   ],
+   "evaluationCriteria": [
+    "Har high finding ke saath ek measured number hai ya use paane ka exact command.",
+    "Fix behaviour bachaata hai: har subject ka latest, code filter, unknown subjects skip, lastnReturnsMostRecentObservationPerSubject abhi bhi pass hota hai, aur sample-app/docs/KNOWN_DEFECTS.md ke discovered defects D-02 aur D-03 na fix hote hain na bigadte hain (unke apne changes aayenge).",
+    "Patch sirf scratch copy mein apply hai; AI-SDLC/sample-app unchanged hai.",
+    "Index proposals naye V2__ migration mein jaate hain, kabhi V1__init.sql mein nahi.",
+    "count-queries.mjs kabhi bind values ya row contents print nahi karta."
+   ],
+   "improvements": [
+    "(patient_id, effective_date_time DESC) ke saath ek V2__ migration jodo aur 500 synthetic patients x 400 observations ke saath PostgreSQL par EXPLAIN (ANALYZE, BUFFERS) compare karo.",
+    "LastnQueryCountTest ko parameterised test banao (1, 20, 100 subjects) jo constant count assert kare.",
+    "CI mein poore test suite ke show-sql output par count-queries.mjs --fail-on-suspect chalao.",
+    "Batches ke liye JSON body ke saath POST /fhir/Observation/$lastn offer karo, jisse URL-length limit hat jaaye."
+   ]
+  },
+  "04-production-rca-incident": {
+   "title": "production-rca banao aur $lastn onboarding incident analyse karo",
+   "objective": "RCA template aur PHI ke against guard karne wale timeline builder ke saath ek production-rca skill banao, phir ise synthetic INC-2026-0922-01 evidence pack par chalao. RCA ko bad deploy, database degradation, OOM aur ingress hypotheses ko evidence ke saath reject karna hai, ObservationService.lastN ke N+1 plus missing subject cap ko root cause identify karna hai, CHG-4472 ko trigger naam dena hai, aur preventive actions ke roop mein intentions nahi, mechanisms propose karne hain.",
+   "testCases": [
+    {
+     "name": "Evidence pack PHI-free hai aur cleanly merge hota hai",
+     "expected": "exit 0, stderr 'build-timeline: 86 events from 8 file(s)', pehli row 06:30:00 par CHG-4471 hai"
+    },
+    {
+     "name": "PHI guard analysis rok deta hai",
+     "expected": "stderr bina value ke 'rca07.log:1: MRN value' list karta hai; stdout par kuch nahi; exit=3"
+    },
+    {
+     "name": "Exit code 137 ko OOM nahi padha jaata",
+     "expected": "OOM sirf rejected candidate ke roop mein aata hai, pod-describe.txt se 'Reason: Error' cite karte hue"
+    },
+    {
+     "name": "Saare template sections present hain"
+    },
+    {
+     "name": "Negative control: OOMKilled variant",
+     "expected": "Root cause OOMKilled aur MaxRAMPercentage=90 change ka naam leta hai; N+1 ko blame nahi kiya jaata"
+    },
+    {
+     "name": "Preventive actions mechanisms hain",
+     "expected": "Har row owner role ke saath ek test, limit, probe setting, alert, gate ya credential change ka naam leti hai; koi bhi 'be careful' ya 'monitor more closely' nahi kehti"
+    }
+   ],
+   "evaluationCriteria": [
+    "Section 7 ka har causal link ek evidence id ya file:line cite karta hai.",
+    "Kam se kam chaar candidates, har ek ke liye evidence for aur against.",
+    "Numbers sources ke beech cross-check kiye gaye hain (pg_stat_statements vs AUDIT vs change calendar).",
+    "Impact clinical safety, data integrity aur PHI exposure cover karta hai, har ek ke saath yeh ki kaise check kiya.",
+    "Blameless: changes aur missing controls ke naam hain, logon ke nahi.",
+    "Output status needs-human wala handoff hai."
+   ],
+   "improvements": [
+    "build-timeline.mjs mein ek --metrics mode jodo jo Markdown metrics table padhe aur threshold crossings ko timeline events ki tarah mark kare.",
+    "Incident workflow (module 08-workflow-orchestration) link karo taaki orchestrator RCA ke bataye code location par performance-review chalaye.",
+    "Deployment mein GC logs (-Xlog:gc*) collect karo taaki agla RCA pause times ko HikariCP se infer karne ki bajaye measure kar sake.",
+    "docs/ ke andar $lastn-style overload ke pehle 15 minutes ke liye ek runbook jodo: user agent se client identify karo, throttle karo, phir scale karo."
+   ]
+  },
+  "04-skill-assets-golden-cases": {
+   "title": "Teeno skills ko golden cases ke saath assets ki tarah version karo",
+   "objective": "Har skill ko ek asset folder do jisme README (owner, version, kaun preload karta hai), 1.0.0 par CHANGELOG jo record kare ki kya verify hua aur kya nahi, kam se kam paanch golden cases jo instruments ke deterministic checks aur procedure ke live checks mix karein (negative controls samet), aur skill ke runtime folder ke bahar rakhi answer key ho. Har deterministic case chalao aur result record karo.",
+   "testCases": [
+    {
+     "name": "Har skill ke liye kam se kam paanch cases"
+    },
+    {
+     "name": "Har case mein id, kind, input aur expect hai"
+    },
+    {
+     "name": "Deterministic cases pass hote hain",
+     "expected": "8 PASS lines, exit code 0"
+    },
+    {
+     "name": "Answer keys runtime folder ke bahar hain"
+    },
+    {
+     "name": "CHANGELOG version aur verification batata hai"
+    },
+    {
+     "name": "Negative controls exist karte hain"
+    }
+   ],
+   "evaluationCriteria": [
+    "Har README owner, version, runtime location, skill preload karne wala agent aur invocation ka naam leta hai.",
+    "Har CHANGELOG jo verify hua (numbers ke saath) use alag rakhta hai us cheez se jise abhi model run chahiye.",
+    "Live cases mein har skill ke liye kam se kam ek negative control hai.",
+    "Golden inputs sirf synthetic data use karte hain; koi bhi MRN MRN-000xxx hai ya jaan-boojh kar invalid value jo guard test karne ke liye hai.",
+    "Answer key skill ke apne folder se reachable nahi hai."
+   ],
+   "improvements": [
+    "In cases ko module 09-agent-evaluation ke eval harness mein daalo aur har skill version ka live pass rate track karo.",
+    "Har live case run mein ek cost column (claude -p --output-format json se total_cost_usd) jodo.",
+    "Teeno skills ko company skill library (module 10-governance) mein ek plugin ki tarah package karo, asset folders uske docs ke roop mein."
+   ]
+  }
+ },
+ "checklist": [
+  "`.claude/skills/security-review/SKILL.md`, `performance-review/SKILL.md` aur `production-rca/SKILL.md` sirf documented frontmatter keys use karte hain aur koi bhi `disable-model-invocation` set nahi karta (agents unhe preload karte hain).",
+  "`AI-SDLC/` ke andar `/security-review` project skill chalata hai, bundled command nahi.",
+  "`render-report.mjs` answer key par `--fail-on high` ke saath 1 se exit karta hai aur invalid ya inconsistent report par 2 se.",
+  "Unmodified app ka security review `GlobalExceptionHandler.java:71` ke through given-name PHI-in-logs path ko high report karta hai aur usme koi injection finding nahi hai.",
+  "`LastnQueryCountTest` shipped app par 20 subjects ke liye 40 statements dikhata hai aur scratch copy mein `lastn-set-based.patch` ke baad 1, 29 tests pass hote hue.",
+  "`AI-SDLC/sample-app` unchanged hai aur usme abhi bhi `TEACHING-DEFECT(perf-n+1)` hai.",
+  "`build-timeline.mjs` aath evidence files (86 events) merge karta hai aur PHI jaise input par bina print kiye 3 se exit karta hai.",
+  "RCA bad deploy, database degradation, OOM aur ingress ko evidence ke saath reject karta hai aur har causal link ke liye file:line cite karta hai.",
+  "Har skill ke paas README, CHANGELOG (1.0.0) aur kam se kam paanch golden cases hain; saare aath deterministic cases pass hote hain.",
+  "Answer keys `AI-SDLC/skills/<name>/tests/expected/` ke andar rehti hain, `.claude/skills/` ke andar nahi."
+ ]
+}
