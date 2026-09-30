@@ -88,6 +88,54 @@ for (const { name, data } of modules) {
 
 modules.sort((a, b) => a.data.level - b.data.level || a.data.id.localeCompare(b.data.id));
 
+// ---- translations: content/i18n/<lang>/<module-id>.json overlay the English module ----
+// Allowed translatable fields. Code, commands, file contents, and real outputs stay English.
+const I18N_FIELDS = {
+  module: ["id", "title", "summary", "prerequisites", "concepts", "diagrams", "comparisonTables", "exercises", "agentContracts", "checklist"],
+  concept: ["heading", "body_md"], diagram: ["title"], table: ["title", "columns", "rows"],
+  exercise: ["title", "objective", "testCases", "evaluationCriteria", "improvements"], testCase: ["name", "expected"],
+  contract: ["purpose", "inputs", "outputs", "must", "mustNot", "failureConditions", "validation", "handoffFormat", "humanGate", "permissions"],
+};
+const i18n = {};
+const i18nDir = join(ROOT, "content/i18n");
+const byId = new Map(modules.map((m) => [m.data.id, m.data]));
+function checkShape(label, base, ov, allowed, sub) {
+  if (typeof ov !== "object" || ov === null || Array.isArray(ov)) { errors.push(`${label}: expected object`); return; }
+  for (const k of Object.keys(ov)) {
+    if (!allowed.includes(k)) { errors.push(`${label}: field "${k}" is not translatable`); continue; }
+    const bv = base[k], v = ov[k];
+    if (Array.isArray(bv) && k !== "exercises") {
+      if (!Array.isArray(v)) { errors.push(`${label}.${k}: expected array`); continue; }
+      if (v.length !== bv.length) warnings.push(`${label}.${k}: ${v.length} items, English has ${bv.length}`);
+      if (sub[k]) v.forEach((item, i) => bv[i] !== undefined && checkShape(`${label}.${k}[${i}]`, bv[i], item, I18N_FIELDS[sub[k]], {}));
+      if (k === "rows") v.forEach((r, i) => bv[i] && r.length !== bv[i].length && warnings.push(`${label}.rows[${i}]: cell count differs`));
+    } else if (k === "exercises") {
+      for (const [xid, xo] of Object.entries(v)) {
+        const bx = (bv || []).find((x) => x.id === xid);
+        if (!bx) { errors.push(`${label}.exercises: unknown exercise "${xid}"`); continue; }
+        checkShape(`${label}.exercises.${xid}`, bx, xo, I18N_FIELDS.exercise, { testCases: "testCase" });
+      }
+    } else if (typeof v !== typeof bv) errors.push(`${label}.${k}: type differs from English`);
+  }
+}
+if (existsSync(i18nDir)) {
+  for (const langName of readdirSync(i18nDir)) {
+    const dir = join(i18nDir, langName);
+    const pack = { modules: {} };
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+      let ov;
+      try { ov = JSON.parse(readFileSync(join(dir, f), "utf8")); } catch (e) { errors.push(`i18n/${langName}/${f}: invalid JSON: ${e.message}`); continue; }
+      const base = byId.get(ov.id);
+      if (!base) { errors.push(`i18n/${langName}/${f}: no English module "${ov.id}"`); continue; }
+      checkShape(`i18n/${langName}/${f}`, base, ov, I18N_FIELDS.module, { concepts: "concept", diagrams: "diagram", comparisonTables: "table", agentContracts: "contract" });
+      pack.modules[ov.id] = ov;
+    }
+    const missing = [...byId.keys()].filter((id) => !pack.modules[id]);
+    if (missing.length) warnings.push(`i18n/${langName}: untranslated modules fall back to English: ${missing.join(", ")}`);
+    i18n[langName] = pack;
+  }
+}
+
 for (const w of warnings) console.warn(`WARN  ${w}`);
 for (const e of errors) console.error(`ERROR ${e}`);
 if (errors.length || (STRICT && warnings.length)) {
@@ -99,7 +147,7 @@ if (errors.length || (STRICT && warnings.length)) {
 const template = readFileSync(join(ROOT, "src/template.html"), "utf8");
 const MARK = "/*__CURRICULUM_DATA__*/null";
 if (!template.includes(MARK)) { console.error("template marker not found"); process.exit(1); }
-const payload = { builtAt: new Date().toISOString(), modules: modules.map((m) => m.data) };
+const payload = { builtAt: new Date().toISOString(), modules: modules.map((m) => m.data), i18n };
 // Escape "<" so no string can close the <script> element; also escape U+2028/9 for older parsers.
 const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 const html = template.replace(MARK, () => json);

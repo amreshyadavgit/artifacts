@@ -85,6 +85,11 @@ code, pre, kbd { font-family: var(--font-mono); font-size: .86em; }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .progress-meter { font-size: .8rem; color: var(--muted); }
+.lang-switch { display: flex; gap: 0; }
+.lang-switch .btn { flex: 1; border-radius: 0; }
+.lang-switch .btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.lang-switch .btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
+.lang-switch .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
 .progress-bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
 .progress-bar i { display: block; height: 100%; background: var(--accent); width: 0; }
 
@@ -201,17 +206,19 @@ ul.criteria { margin: 0; padding-left: 1.2em; display: flex; flex-direction: col
 <div class="topbar">
   <button class="btn" id="nav-toggle" aria-label="Open navigation" aria-expanded="false">Menu</button>
   <b>AI-SDLC</b>
+  <button class="btn" id="lang-toggle-m" aria-label="Switch language">EN</button>
   <button class="btn" id="theme-toggle-m" aria-label="Toggle colour theme">Theme</button>
 </div>
 <div class="app">
   <nav class="rail" id="rail" aria-label="Curriculum">
     <a class="brand" href="#home"><b>AI-SDLC</b><span>Agent &amp; Skill Engineering with Claude Code</span></a>
-    <div class="search"><label for="q" class="eyebrow">Search all modules</label><input id="q" type="search" placeholder="e.g. PreToolUse, N+1, ADR" autocomplete="off"></div>
-    <div class="navgroup"><h4>By level</h4><ul id="nav-levels"></ul></div>
-    <div class="navgroup"><h4>By artifact type</h4><ul id="nav-types"></ul></div>
+    <div class="search"><label for="q" class="eyebrow" id="q-label">Search all modules</label><input id="q" type="search" placeholder="e.g. PreToolUse, N+1, ADR" autocomplete="off"></div>
+    <div class="navgroup"><h4 id="nav-levels-h">By level</h4><ul id="nav-levels"></ul></div>
+    <div class="navgroup"><h4 id="nav-types-h">By artifact type</h4><ul id="nav-types"></ul></div>
     <div class="rail-actions">
       <div class="progress-meter"><span id="progress-text">0 of 0 exercises done</span><div class="progress-bar"><i id="progress-fill"></i></div></div>
       <button class="btn primary" id="download">Download starter repo</button>
+      <div class="lang-switch" role="group" aria-label="Language"><button class="btn" type="button" data-lang="en" aria-pressed="true">English</button><button class="btn" type="button" data-lang="hinglish" aria-pressed="false">Hinglish</button></div>
       <button class="btn" id="theme-toggle">Switch theme</button>
       <span class="progress-meter" id="build-info"></span>
     </div>
@@ -228,10 +235,61 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
 <script>
 (function () {
   "use strict";
-  var DATA = window.CURRICULUM || { modules: [], builtAt: "" };
-  var MODULES = DATA.modules || [];
+  var DATA = window.CURRICULUM || { modules: [], builtAt: "", i18n: {} };
+  var BASE = DATA.modules || [];
+  var I18N = DATA.i18n || {};
+  var LKEY = "ai-sdlc-lang";
+  var lang = "en";
+  var MODULES = BASE;
+  var UI = {
+    en: { concepts: "Concepts", diagrams: "Diagrams", comparisons: "Comparisons", exercises: "Exercises", contracts: "Agent contracts", checklist: "Checklist",
+      prereq: "Prerequisites", done: "Done", level: "Level", search: "Search all modules", byLevel: "By level", byType: "By artifact type",
+      download: "Download starter repo", theme: "Switch theme", progress: "{d} of {n} exercises done", curriculum: "Curriculum",
+      noStart: "No starting files. You begin from the current state of the repository.", input: "Input", expected: "Expected",
+      tabs: ["Objective", "Starting files", "Required structure", "Implementation", "Example input", "Expected output", "Test cases", "Evaluation criteria", "Improvements"],
+      c: ["Inputs", "Outputs", "Tools", "Permissions", "Must", "Must not", "Failure conditions", "Validation", "Handoff format", "Human gate"],
+      results: "{n} results for", minChars: "Type at least two characters.", notFound: "Not found", levels: "Levels", tags: "How to read the tags",
+      builtIn: "Built in", repoFile: "Repository file", startFile: "Starting file", artType: "Artifact type", from: "From",
+      filesIn: "{n} files in the reference repository. Each links back to the exercise that builds it.", langNote: "",
+      homeLede: "Build a working, reviewable AI engineering system for a Spring Boot FHIR-lite API: subagents with contracts, skills as tested assets, hooks and permissions as real human gates, and an evaluation harness that tells you when a prompt change made things worse.",
+      tagsBody: "Every code sample carries a tag. **verified-format** means the file's structure matches the Claude Code documentation as recorded in `build/CLAUDE_CODE_FACTS.md` (subagent files, `SKILL.md`, `settings.json`, `.mcp.json`, `CLAUDE.md`, `claude -p` invocations). **illustrative** means a pattern or convention of this course, such as Agent Contracts, workflow specs, eval datasets, and helper scripts. Illustrative files are real and runnable where they are code, but they are not Claude Code features." },
+    hinglish: { concepts: "Concepts (samjho)", diagrams: "Diagrams", comparisons: "Comparisons (tulna)", exercises: "Exercises (practice)", contracts: "Agent contracts", checklist: "Checklist",
+      prereq: "Pehle se aana chahiye", done: "Ho gaya", level: "Level", search: "Saare modules mein search karo", byLevel: "Level ke hisaab se", byType: "Artifact type ke hisaab se",
+      download: "Starter repo download karo", theme: "Theme badlo", progress: "{n} mein se {d} exercises ho gaye", curriculum: "Curriculum",
+      noStart: "Koi starting file nahi hai. Repository ki current state se shuru karo.", input: "Input", expected: "Expected",
+      tabs: ["Objective (lakshya)", "Starting files", "Required structure", "Implementation", "Example input", "Expected output", "Test cases", "Evaluation criteria", "Improvements (aage kya)"],
+      c: ["Inputs", "Outputs", "Tools", "Permissions", "Must (zaroor karna)", "Must not (kabhi nahi)", "Failure conditions", "Validation", "Handoff format", "Human gate"],
+      results: "{n} results mile:", minChars: "Kam se kam do characters type karo.", notFound: "Nahi mila", levels: "Levels", tags: "Tags ko kaise padhein",
+      builtIn: "Yeh bana hai", repoFile: "Repository file", startFile: "Starting file", artType: "Artifact type", from: "Module:",
+      filesIn: "Reference repository mein {n} files. Har file us exercise se link hoti hai jo use banati hai.", langNote: "Code, commands aur real outputs English mein hi rakhe gaye hain taaki woh repo se exactly match karein.",
+      homeLede: "Ek Spring Boot FHIR-lite API ke liye ek working, reviewable AI engineering system banao: contracts ke saath subagents, tested assets ki tarah skills, asli human gates ki tarah hooks aur permissions, aur ek evaluation harness jo batata hai ki prompt change ne cheezein kab kharab kar di.",
+      tagsBody: "Har code sample par ek tag hai. **verified-format** ka matlab hai file ka structure Claude Code documentation se match karta hai, jaisa `build/CLAUDE_CODE_FACTS.md` mein record kiya gaya hai (subagent files, `SKILL.md`, `settings.json`, `.mcp.json`, `CLAUDE.md`, `claude -p` invocations). **illustrative** ka matlab hai is course ka pattern ya convention, jaise Agent Contracts, workflow specs, eval datasets aur helper scripts. Illustrative files jahan code hain wahan real aur runnable hain, lekin woh Claude Code ke built-in features nahi hain." }
+  };
+  function t(k, vars) { var v = (UI[lang] && UI[lang][k] != null) ? UI[lang][k] : UI.en[k]; if (typeof v === "string" && vars) Object.keys(vars).forEach(function (x) { v = v.split("{" + x + "}").join(vars[x]); }); return v; }
+  function overlay(base, ov) {
+    if (ov == null) return base;
+    if (Array.isArray(base)) {
+      if (!Array.isArray(ov)) return base;
+      return base.map(function (b, i) { return overlay(b, ov[i]); });
+    }
+    if (base && typeof base === "object") {
+      var out = {};
+      Object.keys(base).forEach(function (k) {
+        if (k === "exercises" && ov.exercises && !Array.isArray(ov.exercises)) {
+          out.exercises = base.exercises.map(function (x) { return overlay(x, ov.exercises[x.id]); });
+        } else out[k] = overlay(base[k], ov[k]);
+      });
+      return out;
+    }
+    return (typeof ov === typeof base && ov !== "") ? ov : base;
+  }
+  function modulesFor(l) {
+    var pack = I18N[l] && I18N[l].modules;
+    if (!pack) return BASE;
+    return BASE.map(function (m) { return overlay(m, pack[m.id]); });
+  }
   var view = document.getElementById("view");
-  var FIELD_TABS = [
+  var FIELD_KEYS = [
     ["objective", "Objective"], ["startingFiles", "Starting files"], ["requiredStructure", "Required structure"],
     ["implementation", "Implementation"], ["exampleInput", "Example input"], ["expectedOutput", "Expected output"],
     ["testCases", "Test cases"], ["evaluationCriteria", "Evaluation criteria"], ["improvements", "Improvements"]
@@ -272,6 +330,8 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
 
   /* ---------- indexes ---------- */
   var exercises = [], files = [], contracts = [];
+  function reindex() {
+  exercises = []; files = []; contracts = [];
   MODULES.forEach(function (m) {
     (m.exercises || []).forEach(function (x) {
       exercises.push({ m: m, x: x });
@@ -280,6 +340,7 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
     });
     (m.agentContracts || []).forEach(function (c) { contracts.push({ m: m, c: c }); });
   });
+  }
   function filesOfType(t) {
     var re = null; TYPES.forEach(function (T) { if (T[0] === t) re = T[2]; });
     if (!re) return [];
@@ -317,7 +378,7 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
   }
   function updateProgress() {
     var done = exercises.filter(function (e) { return progress[e.x.id]; }).length;
-    document.getElementById("progress-text").textContent = done + " of " + exercises.length + " exercises done";
+    document.getElementById("progress-text").textContent = t("progress", { d: done, n: exercises.length });
     document.getElementById("progress-fill").style.width = exercises.length ? (100 * done / exercises.length) + "%" : "0";
   }
   function findEx(id) { for (var i = 0; i < exercises.length; i++) if (exercises[i].x.id === id) return exercises[i]; return null; }
@@ -327,56 +388,56 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
   function renderHome() {
     var levels = {};
     MODULES.forEach(function (m) { (levels[m.level] = levels[m.level] || []).push(m); });
-    var h = '<div class="section"><span class="eyebrow">Curriculum</span><h1>AI-SDLC: Agent &amp; Skill Engineering with Claude Code</h1>' +
-      '<p class="lede">Build a working, reviewable AI engineering system for a Spring Boot FHIR-lite API: subagents with contracts, skills as tested assets, hooks and permissions as real human gates, and an evaluation harness that tells you when a prompt change made things worse.</p>' +
+    var h = '<div class="section"><span class="eyebrow">' + t("curriculum") + '</span><h1>AI-SDLC: Agent &amp; Skill Engineering with Claude Code</h1>' +
+      '<p class="lede">' + esc(t("homeLede")) + '</p>' +
       '<div class="stats"><div><b>' + MODULES.length + '</b><span>Modules</span></div><div><b>' + exercises.length + '</b><span>Exercises</span></div><div><b>' +
       files.filter(function (f) { return f.kind === "implementation"; }).length + '</b><span>Repo files</span></div><div><b>' + contracts.length + "</b><span>Agent contracts</span></div></div></div>";
-    h += '<div class="section"><h2>Levels</h2><div class="cards">';
+    h += '<div class="section"><h2>' + t("levels") + '</h2><div class="cards">';
     MODULES.forEach(function (m) {
       var n = (m.exercises || []).length, d = (m.exercises || []).filter(function (x) { return progress[x.id]; }).length;
-      h += '<a class="card" href="#m-' + esc(m.id) + '"><span class="meta">Level ' + m.level + " · " + d + "/" + n + " exercises</span><b>" + esc(m.title) + "</b><p>" + esc(m.summary) + "</p></a>";
+      h += '<a class="card" href="#m-' + esc(m.id) + '"><span class="meta">' + t("level") + " " + m.level + " · " + d + "/" + n + "</span><b>" + esc(m.title) + "</b><p>" + esc(m.summary) + "</p></a>";
     });
     h += "</div></div>";
-    h += '<div class="section"><h2>How to read the tags</h2><div class="prose">' + md("Every code sample carries a tag. **verified-format** means the file's structure matches the Claude Code documentation as recorded in `build/CLAUDE_CODE_FACTS.md` (subagent files, `SKILL.md`, `settings.json`, `.mcp.json`, `CLAUDE.md`, `claude -p` invocations). **illustrative** means a pattern or convention of this course, such as Agent Contracts, workflow specs, eval datasets, and helper scripts. Illustrative files are real and runnable where they are code, but they are not Claude Code features.") + "</div></div>";
+    h += '<div class="section"><h2>' + t("tags") + '</h2><div class="prose">' + md(t("tagsBody")) + (t("langNote") ? md("_" + t("langNote") + "_") : "") + "</div></div>";
     view.innerHTML = h;
   }
 
   function renderModule(m, focusEx) {
     var idx = MODULES.indexOf(m), h = "";
-    h += '<div class="section"><span class="eyebrow">Level ' + m.level + " · " + esc(m.id) + "</span><h1>" + esc(m.title) + '</h1><p class="lede">' + esc(m.summary) + "</p>";
+    h += '<div class="section"><span class="eyebrow">' + t("level") + " " + m.level + " · " + esc(m.id) + "</span><h1>" + esc(m.title) + '</h1><p class="lede">' + esc(m.summary) + "</p>";
     if ((m.prerequisites || []).length) {
-      h += '<div class="chips"><span class="eyebrow" style="align-self:center">Prerequisites</span>' + m.prerequisites.map(function (p) {
+      h += '<div class="chips"><span class="eyebrow" style="align-self:center">' + t("prereq") + '</span>' + m.prerequisites.map(function (p) {
         var pm = findMod(p); return pm ? '<a class="chip" href="#m-' + esc(pm.id) + '">' + esc(pm.title) + "</a>" : '<span class="chip">' + inline(p) + "</span>";
       }).join("") + "</div>";
     }
     h += "</div>";
     if ((m.concepts || []).length) {
-      h += '<div class="section"><h2>Concepts</h2>' + m.concepts.map(function (c) {
+      h += '<div class="section"><h2>' + t("concepts") + '</h2>' + m.concepts.map(function (c) {
         return '<div class="concept"><h3>' + esc(c.heading) + '</h3><div class="prose">' + md(c.body_md) + "</div></div>";
       }).join("") + "</div>";
     }
     if ((m.diagrams || []).length) {
-      h += '<div class="section"><h2>Diagrams</h2>' + m.diagrams.map(function (d) {
+      h += '<div class="section"><h2>' + t("diagrams") + '</h2>' + m.diagrams.map(function (d) {
         return '<div><p class="diagram-title">' + esc(d.title) + '</p><div class="scroll-x diagram"><pre class="mermaid">' + esc(d.mermaid) + "</pre></div></div>";
       }).join("") + "</div>";
     }
     if ((m.comparisonTables || []).length) {
-      h += '<div class="section"><h2>Comparisons</h2>' + m.comparisonTables.map(tableHtml).join("") + "</div>";
+      h += '<div class="section"><h2>' + t("comparisons") + '</h2>' + m.comparisonTables.map(tableHtml).join("") + "</div>";
     }
     if ((m.exercises || []).length) {
-      h += '<div class="section"><h2>Exercises</h2>' + m.exercises.map(exerciseHtml).join("") + "</div>";
+      h += '<div class="section"><h2>' + t("exercises") + '</h2>' + m.exercises.map(exerciseHtml).join("") + "</div>";
     }
     if ((m.agentContracts || []).length) {
-      h += '<div class="section"><h2>Agent contracts</h2>' + m.agentContracts.map(contractHtml).join("") + "</div>";
+      h += '<div class="section"><h2>' + t("contracts") + '</h2>' + m.agentContracts.map(contractHtml).join("") + "</div>";
     }
     if ((m.checklist || []).length) {
-      h += '<div class="section"><h2>Checklist</h2><ul class="checklist">' + m.checklist.map(function (c) { return "<li><span>" + inline(c) + "</span></li>"; }).join("") + "</ul></div>";
+      h += '<div class="section"><h2>' + t("checklist") + '</h2><ul class="checklist">' + m.checklist.map(function (c) { return "<li><span>" + inline(c) + "</span></li>"; }).join("") + "</ul></div>";
     }
     h += '<div class="pager">' + (idx > 0 ? '<a class="btn" href="#m-' + esc(MODULES[idx - 1].id) + '">← ' + esc(MODULES[idx - 1].title) + "</a>" : "<span></span>") +
       (idx < MODULES.length - 1 ? '<a class="btn" href="#m-' + esc(MODULES[idx + 1].id) + '">' + esc(MODULES[idx + 1].title) + " →</a>" : "") + "</div>";
     view.innerHTML = h;
     wireExercises();
-    if (focusEx) { var t = document.getElementById("x-" + focusEx); if (t) setTimeout(function () { t.scrollIntoView(); }, 30); }
+    if (focusEx) { var tgt = document.getElementById("x-" + focusEx); if (tgt) setTimeout(function () { tgt.scrollIntoView(); }, 30); }
   }
   function inline(s) { if (window.marked && marked.parseInline) { try { return marked.parseInline(String(s)); } catch (e) {} } return esc(s); }
   function tableHtml(t) {
@@ -387,13 +448,13 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
   function exercisePanel(x, key) {
     switch (key) {
       case "objective": return '<div class="prose">' + md(x.objective) + "</div>";
-      case "startingFiles": return (x.startingFiles || []).length ? x.startingFiles.map(function (f) { return codeBlock(f.path, extOf(f.path), f.content); }).join("") : "<p>No starting files. You begin from the current state of the repository.</p>";
+      case "startingFiles": return (x.startingFiles || []).length ? x.startingFiles.map(function (f) { return codeBlock(f.path, extOf(f.path), f.content); }).join("") : "<p>" + esc(t("noStart")) + "</p>";
       case "requiredStructure": return codeBlock("required structure", "plaintext", x.requiredStructure);
       case "implementation": return (x.implementation || []).map(function (f) { return codeBlock(f.path, f.language, f.content, f.tag); }).join("");
       case "exampleInput": return codeBlock("example input", guessLang(x.exampleInput), x.exampleInput);
       case "expectedOutput": return codeBlock("expected output", guessLang(x.expectedOutput), x.expectedOutput);
-      case "testCases": return (x.testCases || []).map(function (t) {
-        return '<div class="testcase"><div class="name">' + esc(t.name) + '</div><div><span class="lbl">Input</span><pre>' + esc(t.input) + '</pre></div><div><span class="lbl">Expected</span><pre>' + esc(t.expected) + "</pre></div></div>";
+      case "testCases": return (x.testCases || []).map(function (tc) {
+        return '<div class="testcase"><div class="name">' + esc(tc.name) + '</div><div><span class="lbl">' + t("input") + '</span><pre>' + esc(tc.input) + '</pre></div><div><span class="lbl">' + t("expected") + '</span><pre>' + esc(tc.expected) + "</pre></div></div>";
       }).join("");
       case "evaluationCriteria": return listHtml(x.evaluationCriteria);
       case "improvements": return listHtml(x.improvements);
@@ -403,20 +464,21 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
   function extOf(p) { var m = /\.([a-z0-9]+)$/i.exec(p || ""); if (/Dockerfile$/.test(p || "")) return "dockerfile"; return m ? m[1] : "plaintext"; }
   function guessLang(s) { s = String(s || "").trim(); if (/^[\[{]/.test(s)) return "json"; if (/^(\$ |claude |mvn |node |curl |git |bash )/.test(s)) return "bash"; return "plaintext"; }
   function exerciseHtml(x) {
-    var done = !!progress[x.id];
-    var tabs = FIELD_TABS.map(function (f, i) {
-      return '<button type="button" role="tab" data-key="' + f[0] + '" aria-selected="' + (i === 0) + '"><span class="n">' + (i + 1) + "</span>" + f[1] + "</button>";
+    var done = !!progress[x.id], labels = t("tabs");
+    var tabs = FIELD_KEYS.map(function (f, i) {
+      return '<button type="button" role="tab" data-key="' + f[0] + '" aria-selected="' + (i === 0) + '"><span class="n">' + (i + 1) + "</span>" + labels[i] + "</button>";
     }).join("");
     return '<article class="exercise' + (done ? " is-done" : "") + '" id="x-' + esc(x.id) + '" data-ex="' + esc(x.id) + '"><header><div class="t"><span class="xid">' + esc(x.id) + '</span><h3>' + esc(x.title) + "</h3></div>" +
-      '<label class="done-toggle"><input type="checkbox" data-done="' + esc(x.id) + '"' + (done ? " checked" : "") + "> Done</label></header>" +
+      '<label class="done-toggle"><input type="checkbox" data-done="' + esc(x.id) + '"' + (done ? " checked" : "") + "> " + t("done") + "</label></header>" +
       '<div class="tabs" role="tablist" aria-label="Exercise sections">' + tabs + '</div><div class="panel" role="tabpanel">' + exercisePanel(x, "objective") + "</div></article>";
   }
   function contractHtml(c) {
+    var L = t("c");
     function row(k, v, cls) { return "<dt>" + k + '</dt><dd' + (cls ? ' class="' + cls + '"' : "") + ">" + v + "</dd>"; }
     return '<div class="contract" id="c-' + esc(c.agent) + '"><header><code>' + esc(c.agent) + "</code><span>" + esc(c.purpose) + "</span></header><dl>" +
-      row("Inputs", listHtml(c.inputs)) + row("Outputs", listHtml(c.outputs)) + row("Tools", listHtml(c.tools)) + row("Permissions", inline(c.permissions)) +
-      row("Must", listHtml(c.must)) + row("Must not", listHtml(c.mustNot)) + row("Failure conditions", listHtml(c.failureConditions)) +
-      row("Validation", inline(c.validation)) + row("Handoff format", inline(c.handoffFormat)) + row("Human gate", inline(c.humanGate), "gate") + "</dl></div>";
+      row(L[0], listHtml(c.inputs)) + row(L[1], listHtml(c.outputs)) + row(L[2], listHtml(c.tools)) + row(L[3], inline(c.permissions)) +
+      row(L[4], listHtml(c.must)) + row(L[5], listHtml(c.mustNot)) + row(L[6], listHtml(c.failureConditions)) +
+      row(L[7], inline(c.validation)) + row(L[8], inline(c.handoffFormat)) + row(L[9], inline(c.humanGate), "gate") + "</dl></div>";
   }
   function wireExercises() {
     view.querySelectorAll(".exercise").forEach(function (art) {
@@ -437,15 +499,15 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
     });
   }
 
-  function renderType(t) {
-    var label = ""; TYPES.forEach(function (T) { if (T[0] === t) label = T[1]; });
-    var h = '<div class="section"><span class="eyebrow">Artifact type</span><h1>' + esc(label) + "</h1>";
-    if (t === "contracts") {
+  function renderType(ty) {
+    var label = ""; TYPES.forEach(function (T) { if (T[0] === ty) label = T[1]; });
+    var h = '<div class="section"><span class="eyebrow">' + t("artType") + '</span><h1>' + esc(label) + "</h1>";
+    if (ty === "contracts") {
       h += '<p class="lede">Every Agent Contract defined across the curriculum. The roster is fixed: architect, developer, reviewer, tester, security, sre, orchestrator.</p></div>';
-      h += contracts.map(function (e) { return '<div class="section"><span class="eyebrow">From <a href="#m-' + esc(e.m.id) + '">' + esc(e.m.title) + "</a></span>" + contractHtml(e.c) + "</div>"; }).join("");
+      h += contracts.map(function (e) { return '<div class="section"><span class="eyebrow">' + t("from") + ' <a href="#m-' + esc(e.m.id) + '">' + esc(e.m.title) + "</a></span>" + contractHtml(e.c) + "</div>"; }).join("");
     } else {
-      var list = filesOfType(t);
-      h += '<p class="lede">' + list.length + " files in the reference repository. Each links back to the exercise that builds it.</p></div>";
+      var list = filesOfType(ty);
+      h += '<p class="lede">' + esc(t("filesIn", { n: list.length })) + "</p></div>";
       h += '<div class="results">' + list.map(function (e) {
         return '<a class="result" href="#' + slugPath(e.f.path) + '"><span><code>' + esc(e.f.path) + '</code></span><small>' + esc(e.x.title) + " · " + esc(e.m.title) + " · " + esc(e.f.tag) + "</small></a>";
       }).join("") + "</div>";
@@ -456,14 +518,14 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
     var hits = files.filter(function (e) { return slugPath(e.f.path) === slug; });
     if (!hits.length) return renderNotFound();
     var e = hits.filter(function (h) { return h.kind === "implementation"; })[0] || hits[0];
-    var h = '<div class="section"><span class="eyebrow">' + (e.kind === "implementation" ? "Repository file" : "Starting file") + "</span><h1><code>" + esc(e.f.path.split("/").pop()) + "</code></h1>" +
-      '<p class="lede">Built in <a href="#x-' + esc(e.x.id) + '">' + esc(e.x.title) + "</a> (" + esc(e.m.title) + ").</p></div>";
+    var h = '<div class="section"><span class="eyebrow">' + (e.kind === "implementation" ? t("repoFile") : t("startFile")) + "</span><h1><code>" + esc(e.f.path.split("/").pop()) + "</code></h1>" +
+      '<p class="lede">' + t("builtIn") + ' <a href="#x-' + esc(e.x.id) + '">' + esc(e.x.title) + "</a> (" + esc(e.m.title) + ").</p></div>";
     h += codeBlock(e.f.path, e.f.language || extOf(e.f.path), e.f.content, e.f.tag);
     view.innerHTML = h;
   }
   function renderSearch(q) {
     q = q.trim(); var ql = q.toLowerCase(), out = [];
-    if (ql.length < 2) { view.innerHTML = '<div class="section"><h1>Search</h1><p class="lede">Type at least two characters.</p></div>'; return; }
+    if (ql.length < 2) { view.innerHTML = '<div class="section"><h1>Search</h1><p class="lede">' + t("minChars") + '</p></div>'; return; }
     function snip(text) {
       var t = String(text || ""), i = t.toLowerCase().indexOf(ql); if (i < 0) return null;
       var s = Math.max(0, i - 60), e = Math.min(t.length, i + ql.length + 90);
@@ -482,10 +544,10 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
       (m.agentContracts || []).forEach(function (c) { add("#m-" + m.id, c.agent + " contract", m.title, [c.purpose].concat(c.must, c.mustNot, c.failureConditions, [c.humanGate]).join(" · ")); });
       (m.checklist || []).forEach(function (c) { add("#m-" + m.id, "Checklist item", m.title, c); });
     });
-    view.innerHTML = '<div class="section"><span class="eyebrow">Search</span><h1>' + out.length + " results for “" + esc(q) + '”</h1></div><div class="results">' +
+    view.innerHTML = '<div class="section"><span class="eyebrow">Search</span><h1>' + esc(t("results", { n: out.length })) + " “" + esc(q) + '”</h1></div><div class="results">' +
       out.slice(0, 200).map(function (r) { return '<a class="result" href="' + esc(r.href) + '"><b>' + esc(r.title) + "</b><small>" + esc(r.where) + "</small><span>" + r.s + "</span></a>"; }).join("") + "</div>";
   }
-  function renderNotFound() { view.innerHTML = '<div class="section"><h1>Not found</h1><p class="lede">That link does not match a module, exercise, or file. <a href="#home">Go to the overview</a>.</p></div>'; }
+  function renderNotFound() { view.innerHTML = '<div class="section"><h1>' + t("notFound") + '</h1><p class="lede">That link does not match a module, exercise, or file. <a href="#home">Go to the overview</a>.</p></div>'; }
 
   /* ---------- enhancement: highlight, copy, mermaid ---------- */
   var mermaidReady = false;
@@ -555,7 +617,7 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
       try {
         var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ai-sdlc-starter.zip";
         document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
-        btn.textContent = "Download starter repo";
+        btn.textContent = t("download");
       } catch (e) { btn.textContent = "Download blocked by this viewer"; }
     }, function () { btn.textContent = "Zip failed, try again"; });
   }
@@ -586,7 +648,30 @@ window.CURRICULUM = /*__CURRICULUM_DATA__*/null;
   });
   window.addEventListener("hashchange", route);
 
-  buildNav(); updateProgress(); route();
+  function applyLang(l, rerender) {
+    lang = (l === "hinglish" && I18N.hinglish) ? "hinglish" : "en";
+    MODULES = modulesFor(lang);
+    reindex();
+    document.documentElement.setAttribute("lang", lang === "hinglish" ? "hi-Latn" : "en");
+    document.querySelectorAll(".lang-switch [data-lang]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
+    var m = document.getElementById("lang-toggle-m"); if (m) m.textContent = lang === "hinglish" ? "HI" : "EN";
+    document.getElementById("q-label").textContent = t("search");
+    document.getElementById("nav-levels-h").textContent = t("byLevel");
+    document.getElementById("nav-types-h").textContent = t("byType");
+    document.getElementById("download").textContent = t("download");
+    document.getElementById("theme-toggle").textContent = t("theme");
+    buildNav(); updateProgress();
+    if (rerender) route();
+  }
+  document.querySelectorAll(".lang-switch [data-lang]").forEach(function (b) {
+    b.addEventListener("click", function () { store.set(LKEY, b.getAttribute("data-lang")); applyLang(b.getAttribute("data-lang"), true); });
+  });
+  document.getElementById("lang-toggle-m").addEventListener("click", function () {
+    var next = lang === "hinglish" ? "en" : "hinglish"; store.set(LKEY, next); applyLang(next, true);
+  });
+  if (!I18N.hinglish) document.querySelectorAll(".lang-switch, #lang-toggle-m").forEach(function (e) { e.hidden = true; });
+  applyLang(store.get(LKEY) || "en", false);
+  route();
 })();
 </script>
 </body>

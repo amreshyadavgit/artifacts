@@ -1,0 +1,109 @@
+{
+  "id": "00-example",
+  "title": "Orientation: Project Memory aur Context Engineering",
+  "summary": "AI-SDLC reference repository ka tour karo aur Claude Code ko woh project knowledge do jis par aage ka har agent depend karta hai: on-demand imports ke saath ek lean CLAUDE.md, Java code ke liye path-scoped rules, aur ek context pack (domain, security, standards) jo PHI ko har prompt se bahar rakhta hai.",
+  "prerequisites": ["Git aur terminal", "Java 21 aur Maven 3.9 installed", "Claude Code CLI installed aur authenticated (`claude --version`)"],
+  "concepts": [
+    {"heading": "Agents se pehle context kyon",
+     "body_md": "Ek subagent **bina conversation history** ke start hota hai. Docs ke hisaab se use milta hai: apna system prompt (uski `.claude/agents/<name>.md` file ka body), main session ka bheja hua task message, basic environment details, git status, aur **CLAUDE.md hierarchy**. Yeh aakhri cheez hi woh akela project knowledge hai jo har agent ko free mein milta hai.\n\nIsliye practically, is course ke har agent ki quality un teen files se capped hai jo tum is module mein likhoge:\n\n- `AI-SDLC/CLAUDE.md`: repo kya hai, kaunse commands prove karte hain ki change kaam karta hai, aur non-negotiable rules (koi PHI nahi, tests pass hone chahiye, kabhi push nahi).\n- `AI-SDLC/.claude/rules/*.md`: rules jo sirf tab load hote hain jab Claude matching paths par kaam karta hai.\n- `AI-SDLC/context/**`: lamba reference material (architecture, standards, threat model, glossary) jo agents *tabhi padhte hain jab task ko zaroorat ho*.\n\nEk senior engineer codebase join karte waqt code chhoone se pehle README, architecture doc aur contributing guide padhta hai. CLAUDE.md woh jagah hai jahan tum Claude ko batate ho ki inme se kya padhna hai, aur kab."},
+    {"heading": "CLAUDE.md kaise load hota hai (verified behaviour)",
+     "body_md": "`build/CLAUDE_CODE_FACTS.md` §6 se:\n\n- Project memory `./CLAUDE.md` ya `./.claude/CLAUDE.md` mein rehti hai. Personal overrides `./CLAUDE.local.md` mein jaate hain (git-ignored).\n- Claude Code working directory se root tak **upar** chalta hai aur jo bhi CLAUDE.md milta hai use **concatenate** karta hai, root pehle. Kuch bhi override nahi hota; paas wali files baad mein padhi jaati hain.\n- **Subdirectories** ki CLAUDE.md files on demand load hoti hain, jab Claude us directory ki files padhta hai.\n- `@path/to/file` doosri file import karta hai, importing file ke relative, 4 hops tak. Code spans ya code blocks ke andar imports expand nahi hote.\n- 200 lines se kam ka target rakho. CLAUDE.md ka har shabd *har* agent ke *har* turn par tokens khata hai.\n\nDesign ka nateeja: **rules aur commands** CLAUDE.md mein rakho, **reference material** `context/` mein rakho, aur sirf woh do-teen files import karo jinki lagbhag har task ko zaroorat hai. Baaki ka path naam se likh do taaki agents zaroorat par `Read` kar sakein."},
+    {"heading": ".claude/rules ke saath path-scoped rules",
+     "body_md": "`.claude/rules/**/*.md` files project instructions ki tarah load hoti hain. Wahan Claude Code sirf ek frontmatter field padhta hai: `paths` (globs ki list). `paths` wala rule sirf tab apply hota hai jab Claude matching files ke saath kaam karta hai; bina `paths` wala rule CLAUDE.md ki tarah launch par load hota hai.\n\nIska use stack-specific guidance ke liye karo jo baaki jagah noise hoti. `sample-app/` ke Java conventions (DTOs ke liye records, `GlobalExceptionHandler` se `OperationOutcome`, `AuditLogger` se sirf ids logging) tab matter karte hain jab `sample-app/src/**/*.java` edit ho rahi ho, aur tab bekaar hain jab tester agent eval dataset edit kar raha ho.\n\nRules ko **testable** rakho. \"Clean code likho\" check nahi ho sakta; \"Naye endpoints ko success, 4xx, 401 aur 403 ke MockMvc tests chahiye\" reviewer agent bhi check kar sakta hai aur code review mein insaan bhi."},
+    {"heading": "Context pack aur PHI",
+     "body_md": "Healthcare ek constraint jodta hai jo zyada tutorials skip kar dete hain: **jo bhi agent padhta hai woh prompt, log, commit message, ya Jira/GitHub ko MCP call mein pahunch sakta hai.** Isliye context pack do kaam karta hai:\n\n1. **Jaankari deta hai**: `context/domain/fhir-lite-glossary.md` Patient, Observation, Bundle, OperationOutcome, MRN aur LOINC codes ko bilkul waise define karta hai jaise sample app implement karta hai, taaki agents aise FHIR fields invent karna band karein jo yahan exist hi nahi karte.\n2. **Rok lagata hai**: wahi glossary har field ko PHI ya non-PHI classify karti hai, aur `context/security/phi-and-secrets-policy.md` batati hai ki PHI kahan kabhi nahi dikhna chahiye. Aage ke modules ise asli mechanisms se enforce karte hain (`permissions.deny` rules aur ek `PreToolUse` hook), kyonki sirf instruction control nahi hota.\n\n**Thumb rule:** instructions intent batati hain, permissions aur hooks use enforce karte hain. Dono likho."},
+    {"heading": "Reference repository mein kya hai",
+     "body_md": "`AI-SDLC/` Claude Code project root hai. Isme pehle se sample app aur shared configuration hai jiske upar tum banaoge:\n\n- `sample-app/`: Spring Boot 3.5 FHIR-lite API, 25 passing tests aur ek labelled teaching defect (`ObservationService.lastN` mein `TEACHING-DEFECT(perf-n+1)`) ke saath.\n- `.claude/settings.json`: permission `allow`/`ask`/`deny` rules aur ek `PreToolUse` hook jo file writes mein secrets ko block karta hai.\n- `.claude/agents/`, `.claude/skills/`: aage ke modules inhe bharte hain.\n- `agents/<name>/CONTRACT.md`: har roster agent ka Agent Contract (architect, developer, reviewer, tester, security, sre, orchestrator).\n- `workflows/`, `evaluations/`, `docs/`: workflow specs, eval harness, ADRs aur runbooks.\n\nCourse ki har exercise is tree mein kuch edit ya run karti hai. Kuch bhi hypothetical nahi hai."}
+  ],
+  "diagrams": [
+    {"title": "Subagent ko start-up par asal mein kya milta hai"},
+    {"title": "Project knowledge kahan rehti hai"}
+  ],
+  "comparisonTables": [
+    {"title": "Yeh knowledge kahan jaani chahiye?",
+     "columns": ["Mechanism", "Kab load hota hai", "Kiske liye achha", "Kiske liye bura", "Is repo mein example"],
+     "rows": [
+      ["`CLAUDE.md`", "Har turn, har agent", "Commands, hard rules, repo map", "Lambe reference docs", "`AI-SDLC/CLAUDE.md`"],
+      ["CLAUDE.md se `@import`", "CLAUDE.md ke saath", "Woh 2-3 docs jinki lagbhag har task ko zaroorat hai", "Docs jo sirf ek agent ko chahiye", "`@context/domain/fhir-lite-glossary.md`"],
+      ["`paths` ke saath `.claude/rules/*.md`", "Jab Claude matching files par kaam kare", "Stack- ya folder-specific conventions", "Global rules", "`.claude/rules/sample-app-java.md`"],
+      ["`context/**` file (import nahi)", "Jab koi agent use padhe", "Standards, threat model, ADRs", "Rules jo hamesha apply hone chahiye", "`context/standards/testing-standards.md`"],
+      ["Agent file body", "Sirf us subagent mein", "Role-specific procedure", "Project facts jo sab agents ko chahiye", "`.claude/agents/reviewer.md` (module 05)"],
+      ["`CLAUDE.local.md`", "Har turn, sirf tumhari machine par", "Personal preferences", "Kuch bhi jis par team depend karti hai", "git-ignored"]
+     ]}
+  ],
+  "exercises": {
+    "00-claude-md": {
+      "title": "Imports ke saath ek lean project CLAUDE.md likho",
+      "objective": "`AI-SDLC/CLAUDE.md` banao jo kisi bhi agent ko batata hai ki repo kya hai, kaunse commands prove karte hain ki change kaam karta hai, aur kaunse rules non-negotiable hain, aur sirf woh teen context files import karta hai jinki lagbhag har task ko zaroorat hai. Verify karo ki Claude Code sach mein ise load karta hai: aisa sawaal poocho jiska jawab sirf CLAUDE.md de sakti hai.",
+      "testCases": [
+        {"name": "CLAUDE.md lean rehti hai", "expected": "200 se kam lines (reference file lagbhag 40 lines ki hai)."},
+        {"name": "Bilkul teen imports"},
+        {"name": "Imported files exist karti hain"},
+        {"name": "Claude memory se jawab deta hai, guess se nahi", "expected": "Jawab mein `sample-app` ke andar `mvn -q -B test` aur sirf-ids logging rule aata hai. Agar `./gradlew test` ya bina `-q -B` ke `mvn test` bole, toh CLAUDE.md load nahi hui (check karo ki tumne AI-SDLC/ ke andar se run kiya)."},
+        {"name": "Local overrides git se bahar rehte hain"}
+      ],
+      "evaluationCriteria": [
+        "Har rule reviewer check kar sakta hai (\"clean code likho\" jaisa kuch nahi).",
+        "Commands copy-paste karne layak aur is repo ke liye sahi hain.",
+        "Lamba reference material link ya import kiya gaya hai, inline paste nahi.",
+        "PHI aur secrets rules saaf likhe hain aur policy file ki taraf point karte hain.",
+        "File roster agents ke naam aur unke contracts ki jagah batati hai."
+      ],
+      "improvements": [
+        "Interactive session mein `/memory` chalao aur confirm karo ki kaunsi memory files load hui.",
+        "Agar Commands section das lines se bada ho jaye toh use `context/standards/commands.md` mein le jao aur import karo.",
+        "Maven-specific tips ke liye `sample-app/CLAUDE.md` subdirectory file jodo; yeh sirf tab load hoti hai jab Claude wahan ki files padhta hai."
+      ]
+    },
+    "00-path-scoped-rules": {
+      "title": "Java code ke liye path-scoped rule jodo",
+      "objective": "`paths` glob ke saath `.claude/rules/sample-app-java.md` banao taaki Java conventions sirf tab load hon jab Claude `sample-app/src/**/*.java` par kaam kare. Dikhao ki eval JSON file ke baare mein sawaal rule ko nahi kheenchta, jabki Java edit kheenchta hai.",
+      "testCases": [
+        {"name": "Frontmatter mein sirf paths"},
+        {"name": "Rule specific aur checkable hai", "expected": "6 bullet rules, har ek ek concrete class, annotation ya test type ka naam leta hai."},
+        {"name": "Java task rule ko pick karta hai", "expected": "Output mein `AuditLogger`, `OperationOutcome`/`FhirApiException`, aur 401/403 tests ka zikr hai."},
+        {"name": "Non-Java kaam mein rule leak nahi hota", "expected": "`AuditLogger` ya MockMvc ka zikr nahi; jawab eval dataset conventions ki baat karta hai."}
+      ],
+      "evaluationCriteria": [
+        "Sirf `paths` frontmatter key use karta hai (rules ke liye Claude Code sirf yahi padhta hai).",
+        "Glob Java sources ko match karta hai aur kuch nahi.",
+        "Har rule `sample-app` ke kisi real type ko refer karta hai (grep se verify karo).",
+        "CLAUDE.md mein pehle se maujood content ko duplicate nahi karta."
+      ],
+      "improvements": [
+        "`paths: [\"sample-app/k8s/**\"]` ke saath `.claude/rules/k8s-manifests.md` jodo, resource-limit aur probe rules ke liye jin par sre agent depend karta hai.",
+        "`sample-app/src/main/resources/db/migration/**` ke liye rule jodo ki applied migrations immutable hain."
+      ]
+    },
+    "00-context-pack": {
+      "title": "Domain aur PHI context pack banao",
+      "objective": "PHI classification table ke saath FHIR-lite glossary aur PHI & secrets policy likho, phir prove karo ki pack agent ka behaviour badalta hai: pack ke pehle aur baad Claude se patient lookup ke liye log line draft karwao, aur compare karo.",
+      "testCases": [
+        {"name": "PHI table har Patient field cover karti hai"},
+        {"name": "Policy enforce karne wale mechanisms ka naam leti hai", "expected": "Kam se kam ek line `permissions.deny` refer karti hai aur ek `PreToolUse` hook ko."},
+        {"name": "Behaviour change", "expected": "Bina pack: log line mein naam ya MRN. Pack ke saath: log line mein sirf id, `AuditLogger` ke through."},
+        {"name": "Koi real data nahi", "expected": "Koi output nahi: sirf synthetic MRN-000xxx values dikhti hain."}
+      ],
+      "evaluationCriteria": [
+        "Glossary terms asli sample-app DTO field names se match karte hain.",
+        "Har PHI field ke liye saaf jawab hai ki woh logs mein aa sakta hai ya nahi.",
+        "Policy intent (instructions) aur enforcement (permissions, hooks) mein fark karti hai.",
+        "Threat model ki har row ek check se map hoti hai jo koi specific roster agent karta hai."
+      ],
+      "improvements": [
+        "Tests mein use hone wale LOINC codes ke saath `context/domain/loinc-codes.md` jodo, taaki tester agent codes invent karna band kare.",
+        "Jab app audit events store karne lage tab `context/security/data-retention.md` jodo.",
+        "PHI table ko machine-readable `phi-fields.json` mein badlo jise ek hook diffs scan karne ke liye use kar sake."
+      ]
+    }
+  },
+  "checklist": [
+    "`AI-SDLC/CLAUDE.md` 200 lines se kam hai aur usme bilkul teen `@context/...` imports hain jo resolve hote hain.",
+    "`AI-SDLC/` se chalaya gaya `claude -p` test command ka jawab `sample-app/` ke andar `mvn -q -B test` deta hai.",
+    "`.claude/rules/sample-app-java.md` sirf `paths` frontmatter key use karta hai.",
+    "Glossary har Patient aur Observation field ko PHI ya non-PHI classify karti hai.",
+    "PHI policy sirf intent nahi, enforce karne wale mechanisms (deny rules, hook) ka naam leti hai.",
+    "`CLAUDE.local.md` aur `.ai-sdlc/runs/` git-ignored hain.",
+    "`cd AI-SDLC/sample-app && mvn -q -B test` pass hota hai (25 tests)."
+  ]
+}

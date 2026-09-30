@@ -12,3 +12,7 @@
 - W9: approval-gates.md has "(verify)" cells for hook `ask` behaviour under dontAsk/bypassPermissions/auto.
 - W9: skill-library validator warns for runtime-only skills lacking skills/<name>/ asset folders (explain-endpoint, run-tests, ticket-intake, feature, bug-fix, incident, requirements, implementation-plan). Decide: add minimal README/CHANGELOG or document exemption.
 - W3: two more real $lastn defects (null effectiveDateTime as latest; duplicate subject ids) documented as D-02/D-03 in KNOWN_DEFECTS.md.
+- W10: `node AI-SDLC/scripts/capstone/verify-system.mjs` FAILS: `.claude/agents/sre.md` tool-guard bash allow-list lacks `node .claude/skills/production-rca/scripts/build-timeline.mjs` (sre blocked with exit 2 on the PHI-guard step of production-rca). Fix in sre.md (and embed).
+- W10: performance-review calls `${CLAUDE_SKILL_DIR}/scripts/count-queries.mjs` but the sre guard matches relative prefixes literally; whether `${CLAUDE_SKILL_DIR}` expands to an absolute path is unverified — make the guard accept both forms.
+- W10: `AI-SDLC/skills/production-rca/tests/expected/INC-2026-0922-01-rca.md` front matter `inputs:` contains `.claude/skills/...` paths that check-handoff would reject.
+- Orchestrator: i18n overlay mechanism added (content/i18n/hinglish/*.json). Reviewers do NOT edit i18n files.
